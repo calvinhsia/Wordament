@@ -62,49 +62,155 @@ Class MainWindow
             _txtCols = CType(_stkCtrls.FindName("tbxCols"), TextBox)
             _chkLongWord = CType(_stkCtrls.FindName("chkLongWord"), CheckBox)
             btn.AddHandler(Button.ClickEvent, New RoutedEventHandler(AddressOf AddContent))
-
             AddContent()
         Catch ex As Exception
             Me.Content = ex.ToString
         End Try
     End Sub
 
+    Dim isShowingResult = False
     Private Sub AddContent()
-        _pnl.Children.Clear()
-        _pnl.Children.Add(_stkCtrls)
-        Dim grd = MakeGrid()
-        _pnl.Children.Add(grd)
-        If _chkLongWord.IsChecked Then
-            _spellDict.DictNum = 2
-            Dim nMinWordLen = 14
-            Dim nTries = 0
-            ' create a list of random directions (N,S, SE, etc) which can be tried in sequence til success
-            Dim directions(7) As Integer ' 8 directions
-            For i = 0 To 7
-                directions(i) = i
-            Next
+        If Not isShowingResult Then
+            _pnl.Children.Clear()
+            _pnl.Children.Add(_stkCtrls)
+            Dim grd = MakeGrid()
+            _pnl.Children.Add(grd)
+            If _chkLongWord.IsChecked Then
+                FillGridWithLongWord(grd)
+            Else
+                FillGridWithRandomletters(grd)
+            End If
+        Else
+            ShowResults()
+        End If
+        isShowingResult = Not isShowingResult
+        Me.Content = _pnl
+        'Width = 800
+        'Height = 800
+    End Sub
 
-            Dim isGood = False
-            Do While Not isGood
-                Dim randLongWord = String.Empty
-                Do
-                    randLongWord = _spellDict.RandWord(IIf(_seed = 0, 0, 1))
-                Loop While randLongWord.Length < nMinWordLen
-                '                randLongWord = "ABCDEFGHIJ"
-                grd.ToolTip = randLongWord
-                _arrTiles = Array.CreateInstance(GetType(WrdTile), _nRows, _nCols)
-                randLongWord = randLongWord.ToUpper
-                ' now place the word in the grid. Start with a random
-                ' randomize the order of the directions we try
-                For j = 0 To 7
-                    Dim r = _Random.Next(8)
-                    Dim tmp = directions(j)
-                    directions(j) = directions(r)
-                    directions(r) = tmp
-                Next
-                ' Given r,c of empty square with current letter index, put ltr in square
-                ' and find a lefit direction return true if is legit (within bounds and not used) 
-                Dim recurLam As Func(Of Integer, Integer, Integer, Boolean) =
+    Sub ShowResults()
+        For dictnum = 1 To 2
+            Dim spResult = New StackPanel With {.Orientation = Orientation.Vertical}
+            _spellDict.DictNum = dictnum
+            Dim lv As New ListView
+            CalcWordList()
+            Dim sortedlist = From wrd In _resultWords
+                             Select wrd.Key,
+                                 Points = wrd.Value.Points,
+                                 ltrList = wrd.Value
+                             Order By Points Descending
+                             Select Word = Key,
+                             pts = CInt(Points),
+                             lst = ltrList
+
+            lv.ItemsSource = sortedlist
+            Dim gview = New GridView
+            lv.View = gview
+            lv.MaxHeight = Me.Height - 100
+            gview.Columns.Add(New GridViewColumn With {
+                              .Header = New GridViewColumnHeader With {.Content = "Word"},
+                              .DisplayMemberBinding = New Binding("Word"),
+                              .Width = 120
+                            }
+                          )
+            gview.Columns.Add(New GridViewColumn With {
+                              .Header = New GridViewColumnHeader With {.Content = "Points"},
+                              .DisplayMemberBinding = New Binding("pts"),
+                              .Width = 60
+                            }
+                          )
+            Dim score = Aggregate wrd In _resultWords Select pts = wrd.Value.Points Into Sum()
+
+            spResult.Children.Add(New TextBlock With {
+                                  .Text = String.Format("Dict# {0} Score = {1:n0}" + vbCrLf + "#Words={2}", dictnum, CInt(score), _resultWords.Count)
+                              })
+            spResult.Children.Add(lv)
+            Dim fInHandler = False
+            AddHandler lv.SelectionChanged,
+                Sub()
+                    If lv.SelectedItems.Count > 0 Then
+                        If Not fInHandler Then
+                            fInHandler = True
+                            Dim itm = lv.SelectedItems(0)
+                            Dim tdesc = TypeDescriptor.GetProperties(itm)
+                            Dim ltrLst = CType(tdesc("lst").GetValue(itm), LetterList)
+                            Dim saveback = ltrLst(0).Background
+                            For Each ltr In ltrLst
+                                ltr.Background = Brushes.Red
+                                Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.Background, Function() Nothing)
+                                System.Threading.Thread.Sleep(100)
+                            Next
+                            System.Threading.Thread.Sleep(500)
+                            For Each ltr In ltrLst
+                                ltr.Background = saveback
+                            Next
+                            fInHandler = False
+                        End If
+                    End If
+                End Sub
+
+            _pnl.Children.Add(spResult)
+        Next
+
+        Dim arrLetDist(25) As Integer ' calc letter dist
+        For Each ltr In _arrTiles
+            arrLetDist(Asc(ltr._letter) - 65) += 1
+        Next
+        Dim letDist = String.Empty
+        For i = 0 To 25
+            letDist += String.Format("{0}={1}" + vbCrLf, Chr(65 + i), arrLetDist(i))
+        Next
+        _pnl.Children.Add(
+            New TextBlock With {
+                    .Text = letDist,
+                    .ToolTip = "Current Grid letter distribution"}
+            )
+        _pnl.Children.Add(
+            New ListView With {
+                .ItemsSource = MainWindow._LetterValues,
+                .ToolTip = "Points per letter"}
+            )
+        _pnl.Children.Add(
+            New ListView With {
+                .ItemsSource = RandLetterGenerator._letDistArr,
+                .ToolTip = "#letters in RandLetterGenerator"}
+            )
+        '_pnl.Children.Add(New ListView With {.ItemsSource = RandLetterGenerator._letDist})
+
+
+    End Sub
+    Private Sub FillGridWithLongWord(grd As UniformGrid)
+        _spellDict.DictNum = 2
+        Dim nMinWordLen = 14
+        Dim nTries = 0
+        ' create a list of random directions (N,S, SE, etc) which can be tried in sequence til success
+        Dim directions(7) As Integer ' 8 directions
+        For i = 0 To 7
+            directions(i) = i
+        Next
+
+        Dim isGood = False
+        Do While Not isGood
+            Dim randLongWord = String.Empty
+            Do
+                randLongWord = _spellDict.RandWord(IIf(_seed = 0, 0, 1))
+            Loop While randLongWord.Length < nMinWordLen
+            '                randLongWord = "ABCDEFGHIJ"
+            grd.ToolTip = randLongWord
+            _arrTiles = Array.CreateInstance(GetType(WrdTile), _nRows, _nCols)
+            randLongWord = randLongWord.ToUpper
+            ' now place the word in the grid. Start with a random
+            ' randomize the order of the directions we try
+            For j = 0 To 7
+                Dim r = _Random.Next(8)
+                Dim tmp = directions(j)
+                directions(j) = directions(r)
+                directions(r) = tmp
+            Next
+            ' Given r,c of empty square with current letter index, put ltr in square
+            ' and find a lefit direction return true if is legit (within bounds and not used) 
+            Dim recurLam As Func(Of Integer, Integer, Integer, Boolean) =
                         Function(r, c, ndxW) As Boolean
                             Dim ltr = randLongWord(ndxW)
                             Debug.Assert(_arrTiles(r, c) Is Nothing)
@@ -164,114 +270,19 @@ Class MainWindow
                             End If
                             Return isGood
                         End Function
-                Dim ncurRow = _Random.Next(_nRows)
-                Dim ncurCol = _Random.Next(_nCols)
-                isGood = recurLam(ncurRow, ncurCol, 0)
-                ' we recurred down and couldn't find a path
-            Loop
-            For iRow = 0 To _nRows - 1
-                For iCol = 0 To _nCols - 1
-                    If _arrTiles(iRow, iCol) Is Nothing Then
-                        _arrTiles(iRow, iCol) = New WrdTile(_randLetGenerator.GetRandLet, _nCols)
-                    End If
-                    grd.Children.Add(_arrTiles(iRow, iCol))
-                Next
+            Dim ncurRow = _Random.Next(_nRows)
+            Dim ncurCol = _Random.Next(_nCols)
+            isGood = recurLam(ncurRow, ncurCol, 0)
+            ' we recurred down and couldn't find a path
+        Loop
+        For iRow = 0 To _nRows - 1
+            For iCol = 0 To _nCols - 1
+                If _arrTiles(iRow, iCol) Is Nothing Then
+                    _arrTiles(iRow, iCol) = New WrdTile(_randLetGenerator.GetRandLet, _nCols)
+                End If
+                grd.Children.Add(_arrTiles(iRow, iCol))
             Next
-
-        Else
-            FillGridWithRandomletters(grd)
-            For dictnum = 1 To 2
-                Dim spResult = New StackPanel With {.Orientation = Orientation.Vertical}
-                _spellDict.DictNum = dictnum
-                Dim lv As New ListView
-                CalcWordList()
-                Dim sortedlist = From wrd In _resultWords
-                                 Select wrd.Key,
-                                 Points = wrd.Value.Points,
-                                 ltrList = wrd.Value
-                                 Order By Points Descending
-                                 Select Word = Key,
-                             pts = CInt(Points),
-                             lst = ltrList
-
-                lv.ItemsSource = sortedlist
-                Dim gview = New GridView
-                lv.View = gview
-                lv.MaxHeight = Me.Height - 100
-                gview.Columns.Add(New GridViewColumn With {
-                              .Header = New GridViewColumnHeader With {.Content = "Word"},
-                              .DisplayMemberBinding = New Binding("Word"),
-                              .Width = 100
-                            }
-                          )
-                gview.Columns.Add(New GridViewColumn With {
-                              .Header = New GridViewColumnHeader With {.Content = "Points"},
-                              .DisplayMemberBinding = New Binding("pts"),
-                              .Width = 60
-                            }
-                          )
-                Dim score = Aggregate wrd In _resultWords Select pts = wrd.Value.Points Into Sum()
-
-                spResult.Children.Add(New TextBlock With {
-                                  .Text = String.Format("Dict# {0} Score = {1:n0}" + vbCrLf + "#Words={2}", dictnum, CInt(score), _resultWords.Count)
-                              })
-                spResult.Children.Add(lv)
-                Dim fInHandler = False
-                AddHandler lv.SelectionChanged,
-                Sub()
-                    If lv.SelectedItems.Count > 0 Then
-                        If Not fInHandler Then
-                            fInHandler = True
-                            Dim itm = lv.SelectedItems(0)
-                            Dim tdesc = TypeDescriptor.GetProperties(itm)
-                            Dim ltrLst = CType(tdesc("lst").GetValue(itm), LetterList)
-                            Dim saveback = ltrLst(0).Background
-                            For Each ltr In ltrLst
-                                ltr.Background = Brushes.Red
-                                Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.Background, Function() Nothing)
-                                System.Threading.Thread.Sleep(100)
-                            Next
-                            System.Threading.Thread.Sleep(500)
-                            For Each ltr In ltrLst
-                                ltr.Background = saveback
-                            Next
-                            fInHandler = False
-                        End If
-                    End If
-                End Sub
-
-                _pnl.Children.Add(spResult)
-            Next
-
-            Dim arrLetDist(25) As Integer ' calc letter dist
-            For Each ltr In _arrTiles
-                arrLetDist(Asc(ltr._letter) - 65) += 1
-            Next
-            Dim letDist = String.Empty
-            For i = 0 To 25
-                letDist += String.Format("{0}={1}" + vbCrLf, Chr(65 + i), arrLetDist(i))
-            Next
-            _pnl.Children.Add(
-            New TextBlock With {
-                    .Text = letDist,
-                    .ToolTip = "Current Grid letter distribution"}
-            )
-            _pnl.Children.Add(
-            New ListView With {
-                .ItemsSource = MainWindow._LetterValues,
-                .ToolTip = "Points per letter"}
-            )
-            _pnl.Children.Add(
-            New ListView With {
-                .ItemsSource = RandLetterGenerator._letDistArr,
-                .ToolTip = "#letters in RandLetterGenerator"}
-            )
-            '_pnl.Children.Add(New ListView With {.ItemsSource = RandLetterGenerator._letDist})
-
-        End If
-        Me.Content = _pnl
-        'Width = 800
-        'Height = 800
+        Next
     End Sub
 
     Private Function MakeGrid() As UniformGrid
@@ -429,7 +440,7 @@ Class MainWindow
         Friend Shared _letDist As String
         Friend Shared _letDistArr(25) As String
         Public Sub New()
-            Dim maxScore = Aggregate ltr In _LetterValues Into Max()
+            Dim maxScore = Aggregate ltr In _LetterValues Into Max() ' the highest score. e.g. 12
             Dim letdist = String.Empty
             For i = 0 To _LetterValues.Length - 1
                 Dim nThisLet = maxScore * 30 / (_LetterValues(i)) 'lcm = 360
