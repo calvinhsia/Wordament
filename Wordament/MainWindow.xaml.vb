@@ -4,6 +4,10 @@ Imports System.Windows.Threading
 
 Class MainWindow
     Public Shared _spellDict As Dictionary.CDict
+    '.......................................... A  B  C  D  E  F  G  H  I  J   K  L  M  N  O  P  Q   R  S  T  U  V  W  X  Y  Z
+    Public Shared _LetterValues() As Integer = {2, 5, 3, 3, 1, 5, 4, 4, 2, 10, 6, 3, 2, 2, 2, 4, 12, 2, 2, 2, 2, 4, 6, 9, 5, 8}
+    Public Shared _Random As Random
+
     Public ReadOnly Property _nRows As Integer
         Get
             Return CInt(_txtRows.Text)
@@ -17,6 +21,8 @@ Class MainWindow
     Private _stkCtrls As StackPanel
     Private _txtRows As TextBox
     Private _txtCols As TextBox
+    Private _chkLongWord As CheckBox
+    Private _seed As Integer
     Private _randLetGenerator As RandLetterGenerator
     Private _resultWords As Dictionary(Of String, LetterList)
 
@@ -27,13 +33,14 @@ Class MainWindow
         Try
             Height = 800
             Width = 1000
-            Title = "Calvin's WordAMent"
-            Dim seed = Environment.TickCount
+            Title = "Calvin's Wordament"
+            _seed = Environment.TickCount
             If Debugger.IsAttached Then
-                seed = 1
+                _seed = 0
             End If
-            _randLetGenerator = New RandLetterGenerator(seed)
+            _Random = New Random(_seed)
             _spellDict = New Dictionary.CDict
+            _randLetGenerator = New RandLetterGenerator
             _stkCtrls = CType(Markup.XamlReader.Load(
                 <StackPanel
                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -45,6 +52,7 @@ Class MainWindow
                     <StackPanel Orientation="Horizontal">
                         <Label>Cols</Label><TextBox Name="tbxCols" HorizontalAlignment="Right" Width="30">4</TextBox>
                     </StackPanel>
+                    <CheckBox Name="chkLongWord" IsChecked="True">_LongWord</CheckBox>
                     <Button Name="btnNew">_New</Button>
                 </StackPanel>.CreateReader
             ), StackPanel)
@@ -52,7 +60,9 @@ Class MainWindow
             Dim btn = _stkCtrls.FindName("btnNew")
             _txtRows = CType(_stkCtrls.FindName("tbxRows"), TextBox)
             _txtCols = CType(_stkCtrls.FindName("tbxCols"), TextBox)
+            _chkLongWord = CType(_stkCtrls.FindName("chkLongWord"), CheckBox)
             btn.AddHandler(Button.ClickEvent, New RoutedEventHandler(AddressOf AddContent))
+
             AddContent()
         Catch ex As Exception
             Me.Content = ex.ToString
@@ -64,44 +74,150 @@ Class MainWindow
         _pnl.Children.Add(_stkCtrls)
         Dim grd = MakeGrid()
         _pnl.Children.Add(grd)
-        For dictnum = 1 To 2
-            Dim spResult = New StackPanel With {.Orientation = Orientation.Vertical}
-            _spellDict.DictNum = dictnum
-            Dim lv As New ListView
-            CalcWordList()
-            Dim sortedlist = From wrd In _resultWords
-                             Select wrd.Key,
+        If _chkLongWord.IsChecked Then
+            _spellDict.DictNum = 2
+            Dim nMinWordLen = 14
+            Dim nTries = 0
+            ' create a list of random directions (N,S, SE, etc) which can be tried in sequence til success
+            Dim directions(7) As Integer ' 8 directions
+            For i = 0 To 7
+                directions(i) = i
+            Next
+
+            Dim isGood = False
+            Do While Not isGood
+                Dim randLongWord = String.Empty
+                Do
+                    randLongWord = _spellDict.RandWord(IIf(_seed = 0, 0, 1))
+                Loop While randLongWord.Length < nMinWordLen
+                '                randLongWord = "ABCDEFGHIJ"
+                grd.ToolTip = randLongWord
+                _arrTiles = Array.CreateInstance(GetType(WrdTile), _nRows, _nCols)
+                randLongWord = randLongWord.ToUpper
+                ' now place the word in the grid. Start with a random
+                ' randomize the order of the directions we try
+                For j = 0 To 7
+                    Dim r = _Random.Next(8)
+                    Dim tmp = directions(j)
+                    directions(j) = directions(r)
+                    directions(r) = tmp
+                Next
+                ' Given r,c of empty square with current letter index, put ltr in square
+                ' and find a lefit direction return true if is legit (within bounds and not used) 
+                Dim recurLam As Func(Of Integer, Integer, Integer, Boolean) =
+                        Function(r, c, ndxW) As Boolean
+                            Dim ltr = randLongWord(ndxW)
+                            Debug.Assert(_arrTiles(r, c) Is Nothing)
+                            _arrTiles(r, c) = New WrdTile(ltr, _nRows)
+                            If ndxW = randLongWord.Length - 1 Then
+                                isGood = True
+                                Return True
+                            End If
+                            For idir = 0 To 7
+                                isGood = True
+                                Dim newr = r
+                                Dim newc = c
+                                Select Case directions(idir)
+                                    Case 0 ' nw
+                                        newr -= 1
+                                        newc -= 1
+                                    Case 1 ' n
+                                        newr -= 1
+                                    Case 2 ' ne
+                                        newr -= 1
+                                        newc += 1
+                                    Case 3 ' w
+                                        newc -= 1
+                                    Case 4 'e
+                                        newc += 1
+                                    Case 5 'sw
+                                        newr += 1
+                                        newc -= 1
+                                    Case 6 ' s
+                                        newr += 1
+                                    Case 7 'se
+                                        newr += 1
+                                        newc += 1
+                                End Select
+                                If newr < 0 Or newr >= _nRows Or newc < 0 Or newc >= _nCols Then
+                                    isGood = False
+                                Else
+                                    If _arrTiles(newr, newc) IsNot Nothing Then
+                                        isGood = False
+                                    End If
+                                End If
+                                If isGood Then
+                                    If recurLam(newr, newc, ndxW + 1) Then
+                                        Exit For
+                                    Else
+                                        isGood = False
+                                    End If
+                                    If ndxW = randLongWord.Length - 1 Then ' have we placed all letters
+                                        Exit For ' exit loop with isgood=true
+                                    Else 'else we need to place more, so recur
+                                    End If
+                                Else   ' couldn't place
+                                End If
+                            Next
+                            If Not isGood Then
+                                _arrTiles(r, c) = Nothing
+                            End If
+                            Return isGood
+                        End Function
+                Dim ncurRow = _Random.Next(_nRows)
+                Dim ncurCol = _Random.Next(_nCols)
+                isGood = recurLam(ncurRow, ncurCol, 0)
+                ' we recurred down and couldn't find a path
+            Loop
+            For iRow = 0 To _nRows - 1
+                For iCol = 0 To _nCols - 1
+                    If _arrTiles(iRow, iCol) Is Nothing Then
+                        _arrTiles(iRow, iCol) = New WrdTile(_randLetGenerator.GetRandLet, _nCols)
+                    End If
+                    grd.Children.Add(_arrTiles(iRow, iCol))
+                Next
+            Next
+
+        Else
+            FillGridWithRandomletters(grd)
+            For dictnum = 1 To 2
+                Dim spResult = New StackPanel With {.Orientation = Orientation.Vertical}
+                _spellDict.DictNum = dictnum
+                Dim lv As New ListView
+                CalcWordList()
+                Dim sortedlist = From wrd In _resultWords
+                                 Select wrd.Key,
                                  Points = wrd.Value.Points,
                                  ltrList = wrd.Value
-                             Order By Points Descending
-                             Select Word = Key,
+                                 Order By Points Descending
+                                 Select Word = Key,
                              pts = CInt(Points),
                              lst = ltrList
 
-            lv.ItemsSource = sortedlist
-            Dim gview = New GridView
-            lv.View = gview
-            lv.MaxHeight = Me.Height - 100
-            gview.Columns.Add(New GridViewColumn With {
+                lv.ItemsSource = sortedlist
+                Dim gview = New GridView
+                lv.View = gview
+                lv.MaxHeight = Me.Height - 100
+                gview.Columns.Add(New GridViewColumn With {
                               .Header = New GridViewColumnHeader With {.Content = "Word"},
                               .DisplayMemberBinding = New Binding("Word"),
                               .Width = 100
                             }
                           )
-            gview.Columns.Add(New GridViewColumn With {
+                gview.Columns.Add(New GridViewColumn With {
                               .Header = New GridViewColumnHeader With {.Content = "Points"},
                               .DisplayMemberBinding = New Binding("pts"),
                               .Width = 60
                             }
                           )
-            Dim score = Aggregate wrd In _resultWords Select pts = wrd.Value.Points Into Sum()
+                Dim score = Aggregate wrd In _resultWords Select pts = wrd.Value.Points Into Sum()
 
-            spResult.Children.Add(New TextBlock With {
+                spResult.Children.Add(New TextBlock With {
                                   .Text = String.Format("Dict# {0} Score = {1:n0}" + vbCrLf + "#Words={2}", dictnum, CInt(score), _resultWords.Count)
                               })
-            spResult.Children.Add(lv)
-            Dim fInHandler = False
-            AddHandler lv.SelectionChanged,
+                spResult.Children.Add(lv)
+                Dim fInHandler = False
+                AddHandler lv.SelectionChanged,
                 Sub()
                     If lv.SelectedItems.Count > 0 Then
                         If Not fInHandler Then
@@ -124,64 +240,67 @@ Class MainWindow
                     End If
                 End Sub
 
-            _pnl.Children.Add(spResult)
-        Next
+                _pnl.Children.Add(spResult)
+            Next
 
-        Dim arrLetDist(25) As Integer ' calc letter dist
-        For Each ltr In _arrTiles
-            arrLetDist(Asc(ltr._letter) - 65) += 1
-        Next
-        Dim letDist = String.Empty
-        For i = 0 To 25
-            letDist += String.Format("{0}={1}" + vbCrLf, Chr(65 + i), arrLetDist(i))
-        Next
-        _pnl.Children.Add(
+            Dim arrLetDist(25) As Integer ' calc letter dist
+            For Each ltr In _arrTiles
+                arrLetDist(Asc(ltr._letter) - 65) += 1
+            Next
+            Dim letDist = String.Empty
+            For i = 0 To 25
+                letDist += String.Format("{0}={1}" + vbCrLf, Chr(65 + i), arrLetDist(i))
+            Next
+            _pnl.Children.Add(
             New TextBlock With {
                     .Text = letDist,
                     .ToolTip = "Current Grid letter distribution"}
             )
-        _pnl.Children.Add(
+            _pnl.Children.Add(
             New ListView With {
-                .ItemsSource = RandLetterGenerator._LetterValues,
+                .ItemsSource = MainWindow._LetterValues,
                 .ToolTip = "Points per letter"}
             )
-        _pnl.Children.Add(
+            _pnl.Children.Add(
             New ListView With {
                 .ItemsSource = RandLetterGenerator._letDistArr,
                 .ToolTip = "#letters in RandLetterGenerator"}
             )
-        '_pnl.Children.Add(New ListView With {.ItemsSource = RandLetterGenerator._letDist})
+            '_pnl.Children.Add(New ListView With {.ItemsSource = RandLetterGenerator._letDist})
+
+        End If
         Me.Content = _pnl
         'Width = 800
         'Height = 800
     End Sub
 
-    Private Function MakeGrid() As UIElement
+    Private Function MakeGrid() As UniformGrid
         Dim uGrid = New UniformGrid With {
             .Background = Brushes.Black,
             .Width = 300,
             .VerticalAlignment = VerticalAlignment.Top,
             .Height = 300
             }
-        _arrTiles = Array.CreateInstance(GetType(WrdTile), _nRows, _nCols)
         '_randLetGenerator.PreSeed(2, 6, _nRows * _nCols)
 
+        Return uGrid
+    End Function
+
+    Private Sub FillGridWithRandomletters(uGrid As UniformGrid)
+        _arrTiles = Array.CreateInstance(GetType(WrdTile), _nRows, _nCols)
         For iRow = 0 To _nRows - 1
             For iCol = 0 To _nCols - 1
-                Dim rndLetResult = _randLetGenerator.GetRandLet
-                Dim rndLet = rndLetResult.Item1
-                Dim rndLetPts = rndLetResult.Item2
+                Dim rndLet = _randLetGenerator.GetRandLet
                 'If rndLet = "Q" Then
                 '    rndLet = "QU"
                 '    rndLetPts += RandLetterGenerator._LetterValues(Asc("U") - 65)
                 'End If
-                Dim tile = New WrdTile(rndLet, rndLetPts, _nRows)
+                Dim tile = New WrdTile(rndLet, _nRows)
                 _arrTiles(iRow, iCol) = tile
                 uGrid.Children.Add(tile)
             Next
         Next
-        Return uGrid
-    End Function
+    End Sub
 
     Private _visitedarr(,) As Boolean
     Private Sub CalcWordList()
@@ -285,9 +404,9 @@ Class MainWindow
         Inherits DockPanel
         Public Property _letter As String
         Public Property _pts As Integer ' points for this tile
-        Public Sub New(ByVal letter As String, ByVal pts As Integer, ByVal nCols As Integer)
+        Public Sub New(ByVal letter As String, ByVal nCols As Integer)
             _letter = letter ' could be digraph, like "qu"
-            _pts = pts
+            _pts = _LetterValues(Asc(letter) - 65)
             Background = Brushes.DarkSlateBlue
 
             Margin = New Thickness(2, 2, 2, 2)
@@ -307,13 +426,9 @@ Class MainWindow
     End Class
 
     Public Class RandLetterGenerator
-        Private _Random As Random
-        '.......................................... A  B  C  D  E  F  G  H  I  J   K  L  M  N  O  P  Q   R  S  T  U  V  W  X  Y  Z
-        Public Shared _LetterValues() As Integer = {2, 5, 3, 3, 1, 5, 4, 4, 2, 10, 6, 3, 2, 2, 2, 4, 12, 2, 2, 2, 2, 4, 6, 9, 5, 8}
         Friend Shared _letDist As String
         Friend Shared _letDistArr(25) As String
-        Public Sub New(ByVal seed As Integer)
-            _Random = New Random(seed)
+        Public Sub New()
             Dim maxScore = Aggregate ltr In _LetterValues Into Max()
             Dim letdist = String.Empty
             For i = 0 To _LetterValues.Length - 1
@@ -362,9 +477,8 @@ Class MainWindow
             'Next
         End Sub
 
-        Public Function GetRandLet() As Tuple(Of String, Integer) ' letter, score
+        Public Function GetRandLet() As String ' letter, score
             Dim rndLet = String.Empty
-            Dim scorelet = 0
             If _seedArray Is Nothing Then
                 Dim rndNum = _Random.Next(_letDist.Length)
                 rndLet = _letDist.Substring(rndNum, 1)
@@ -372,8 +486,8 @@ Class MainWindow
                 rndLet = _seedArray(_seedIndex)
                 _seedIndex += 1
             End If
-            scorelet = _LetterValues(Asc(rndLet) - 65)
-            Return New Tuple(Of String, Integer)(rndLet, scorelet)
+            Return rndLet
         End Function
     End Class
 End Class
+
