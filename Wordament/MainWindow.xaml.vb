@@ -8,16 +8,8 @@ Class MainWindow
     Public Shared _LetterValues() As Integer = {2, 5, 3, 3, 1, 5, 4, 4, 2, 10, 6, 3, 2, 2, 2, 4, 12, 2, 2, 2, 2, 4, 6, 9, 5, 8}
     Public Shared _Random As Random
 
-    Public ReadOnly Property _nRows As Integer
-        Get
-            Return CInt(_txtRows.Text)
-        End Get
-    End Property
-    Public ReadOnly Property _nCols As Integer
-        Get
-            Return CInt(_txtCols.Text)
-        End Get
-    End Property
+    Public _nRows As Integer
+    Public _nCols As Integer
     Private _stkCtrls As StackPanel
     Private _txtRows As TextBox
     Private _txtCols As TextBox
@@ -69,14 +61,35 @@ Class MainWindow
     End Sub
 
     Dim isShowingResult = False
-    Private Sub AddContent()
+    Private Async Sub AddContent()
+        _nRows = CInt(_txtRows.Text)
+        _nCols = CInt(_txtCols.Text)
         If Not isShowingResult Then
             _pnl.Children.Clear()
             _pnl.Children.Add(_stkCtrls)
             Dim grd = MakeGrid()
             _pnl.Children.Add(grd)
             If _chkLongWord.IsChecked Then
-                FillGridWithLongWord(grd)
+                Await Task.Run(Sub() FillGridWithLongWord())
+                Dim arr = FillGridWithLongWord()
+
+                _arrTiles = Array.CreateInstance(GetType(WrdTile), _nRows, _nCols)
+
+                For iRow = 0 To _nRows - 1
+                    For iCol = 0 To _nCols - 1
+                        Dim ltr = "a"
+                        If arr(iRow, iCol) = 0 Then
+                            ltr = _randLetGenerator.GetRandLet
+                        Else
+                            ltr = Chr(arr(iRow, iCol))
+                        End If
+                        _arrTiles(iRow, iCol) = New WrdTile(ltr, _nCols)
+                        If _arrTiles(iRow, iCol) Is Nothing Then
+                        End If
+                        grd.Children.Add(_arrTiles(iRow, iCol))
+                    Next
+                Next
+
             Else
                 FillGridWithRandomletters(grd)
             End If
@@ -177,10 +190,9 @@ Class MainWindow
                 .ToolTip = "#letters in RandLetterGenerator"}
             )
         '_pnl.Children.Add(New ListView With {.ItemsSource = RandLetterGenerator._letDist})
-
-
     End Sub
-    Private Sub FillGridWithLongWord(grd As UniformGrid)
+
+    Private Function FillGridWithLongWord() As Integer(,)
         _spellDict.DictNum = 2
         Dim nMinWordLen = 14
         Dim nTries = 0
@@ -191,14 +203,13 @@ Class MainWindow
         Next
 
         Dim isGood = False
+        Dim arr(,) As Integer = Nothing ' asc
         Do While Not isGood
             Dim randLongWord = String.Empty
             Do
                 randLongWord = _spellDict.RandWord(IIf(_seed = 0, 0, 1))
             Loop While randLongWord.Length < nMinWordLen
             '                randLongWord = "ABCDEFGHIJ"
-            grd.ToolTip = randLongWord
-            _arrTiles = Array.CreateInstance(GetType(WrdTile), _nRows, _nCols)
             randLongWord = randLongWord.ToUpper
             ' now place the word in the grid. Start with a random
             ' randomize the order of the directions we try
@@ -208,13 +219,14 @@ Class MainWindow
                 directions(j) = directions(r)
                 directions(r) = tmp
             Next
+            arr = Array.CreateInstance(GetType(Integer), _nRows, _nCols)
             ' Given r,c of empty square with current letter index, put ltr in square
             ' and find a lefit direction return true if is legit (within bounds and not used) 
             Dim recurLam As Func(Of Integer, Integer, Integer, Boolean) =
                         Function(r, c, ndxW) As Boolean
                             Dim ltr = randLongWord(ndxW)
-                            Debug.Assert(_arrTiles(r, c) Is Nothing)
-                            _arrTiles(r, c) = New WrdTile(ltr, _nRows)
+                            Debug.Assert(arr(r, c) = 0)
+                            arr(r, c) = Asc(ltr)
                             If ndxW = randLongWord.Length - 1 Then
                                 isGood = True
                                 Return True
@@ -248,7 +260,7 @@ Class MainWindow
                                 If newr < 0 Or newr >= _nRows Or newc < 0 Or newc >= _nCols Then
                                     isGood = False
                                 Else
-                                    If _arrTiles(newr, newc) IsNot Nothing Then
+                                    If arr(newr, newc) > 0 Then
                                         isGood = False
                                     End If
                                 End If
@@ -266,7 +278,7 @@ Class MainWindow
                                 End If
                             Next
                             If Not isGood Then
-                                _arrTiles(r, c) = Nothing
+                                arr(r, c) = Nothing
                             End If
                             Return isGood
                         End Function
@@ -275,15 +287,8 @@ Class MainWindow
             isGood = recurLam(ncurRow, ncurCol, 0)
             ' we recurred down and couldn't find a path
         Loop
-        For iRow = 0 To _nRows - 1
-            For iCol = 0 To _nCols - 1
-                If _arrTiles(iRow, iCol) Is Nothing Then
-                    _arrTiles(iRow, iCol) = New WrdTile(_randLetGenerator.GetRandLet, _nCols)
-                End If
-                grd.Children.Add(_arrTiles(iRow, iCol))
-            Next
-        Next
-    End Sub
+        Return arr
+    End Function
 
     Private Function MakeGrid() As UniformGrid
         Dim uGrid = New UniformGrid With {
