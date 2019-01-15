@@ -14,6 +14,7 @@ Class MainWindow
     Private _txtRows As TextBox
     Private _txtCols As TextBox
     Private _chkLongWord As CheckBox
+    Private _txtStatus As TextBox
     Private _seed As Integer
     Private _randLetGenerator As RandLetterGenerator
     Private _resultWords As Dictionary(Of String, LetterList)
@@ -21,6 +22,7 @@ Class MainWindow
     Private _arrTiles(,) As WrdTile
     Private _minWordLength As Integer = 3
     Private _pnl As StackPanel = New StackPanel With {.Orientation = Orientation.Horizontal}
+
     Private Sub Window_Loaded(ByVal sender As System.Object, ByVal e As System.Windows.RoutedEventArgs) Handles MyBase.Loaded
         Try
             Height = 800
@@ -38,13 +40,14 @@ Class MainWindow
                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     >
-                    <StackPanel Orientation="Horizontal">
-                        <Label>Rows</Label><TextBox Name="tbxRows" HorizontalAlignment="Right" Width="30">4</TextBox>
+                    <StackPanel Orientation="Horizontal" Width="300">
+                        <Label>Rows</Label><TextBox Name="tbxRows" HorizontalAlignment="Right" Width="50">4</TextBox>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <Label>Cols</Label><TextBox Name="tbxCols" HorizontalAlignment="Right" Width="30">4</TextBox>
+                        <Label>Cols</Label><TextBox Name="tbxCols" HorizontalAlignment="Right" Width="50">4</TextBox>
                     </StackPanel>
                     <CheckBox Name="chkLongWord" IsChecked="True">_LongWord</CheckBox>
+                    <TextBox Name="tbxStatus" Width="300" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Left"></TextBox>
                     <Button Name="btnNew">_New</Button>
                 </StackPanel>.CreateReader
             ), StackPanel)
@@ -52,12 +55,23 @@ Class MainWindow
             Dim btn = _stkCtrls.FindName("btnNew")
             _txtRows = CType(_stkCtrls.FindName("tbxRows"), TextBox)
             _txtCols = CType(_stkCtrls.FindName("tbxCols"), TextBox)
+            _txtStatus = CType(_stkCtrls.FindName("tbxStatus"), TextBox)
+            _txtStatus.MaxHeight = Me.Height
             _chkLongWord = CType(_stkCtrls.FindName("chkLongWord"), CheckBox)
+            AddStatusMsg("starting")
             btn.AddHandler(Button.ClickEvent, New RoutedEventHandler(AddressOf AddContent))
             AddContent()
         Catch ex As Exception
             Me.Content = ex.ToString
         End Try
+    End Sub
+
+    Private Sub AddStatusMsg(msg As String)
+        msg = $"{DateTime.Now.ToString("hh:mm:ss")}{msg} {vbCrLf}"
+        System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(Sub()
+                                                                              _txtStatus.AppendText(msg)
+                                                                              _txtStatus.ScrollToEnd()
+                                                                          End Sub)
     End Sub
 
     Dim isShowingResult = False
@@ -67,7 +81,13 @@ Class MainWindow
         If Not isShowingResult Then
             _pnl.Children.Clear()
             _pnl.Children.Add(_stkCtrls)
-            Dim grd = MakeGrid()
+            Dim grd = New UniformGrid With {
+            .Background = Brushes.Black,
+            .Width = 300,
+            .VerticalAlignment = VerticalAlignment.Top,
+            .Height = 300
+            }
+            '_randLetGenerator.PreSeed(2, 6, _nRows * _nCols)
             _pnl.Children.Add(grd)
             If _chkLongWord.IsChecked Then
                 Await Task.Run(Sub() FillGridWithLongWord())
@@ -219,11 +239,13 @@ Class MainWindow
                 directions(j) = directions(r)
                 directions(r) = tmp
             Next
+            AddStatusMsg("Filling grid")
             arr = Array.CreateInstance(GetType(Integer), _nRows, _nCols)
             ' Given r,c of empty square with current letter index, put ltr in square
             ' and find a lefit direction return true if is legit (within bounds and not used) 
             Dim recurLam As Func(Of Integer, Integer, Integer, Boolean) =
                         Function(r, c, ndxW) As Boolean
+                            AddStatusMsg($"RRR {r}, {c}, {ndxW}")
                             Dim ltr = randLongWord(ndxW)
                             Debug.Assert(arr(r, c) = 0)
                             arr(r, c) = Asc(ltr)
@@ -288,18 +310,6 @@ Class MainWindow
             ' we recurred down and couldn't find a path
         Loop
         Return arr
-    End Function
-
-    Private Function MakeGrid() As UniformGrid
-        Dim uGrid = New UniformGrid With {
-            .Background = Brushes.Black,
-            .Width = 300,
-            .VerticalAlignment = VerticalAlignment.Top,
-            .Height = 300
-            }
-        '_randLetGenerator.PreSeed(2, 6, _nRows * _nCols)
-
-        Return uGrid
     End Function
 
     Private Sub FillGridWithRandomletters(uGrid As UniformGrid)
