@@ -56,7 +56,7 @@ Class MainWindow
             _txtRows = CType(_stkCtrls.FindName("tbxRows"), TextBox)
             _txtCols = CType(_stkCtrls.FindName("tbxCols"), TextBox)
             _txtStatus = CType(_stkCtrls.FindName("tbxStatus"), TextBox)
-            _txtStatus.MaxHeight = Me.Height
+            _txtStatus.MaxHeight = Me.Height - 100
             _chkLongWord = CType(_stkCtrls.FindName("chkLongWord"), CheckBox)
             AddStatusMsg("starting")
             btn.AddHandler(Button.ClickEvent, New RoutedEventHandler(AddressOf AddContent))
@@ -240,12 +240,13 @@ Class MainWindow
                 directions(r) = tmp
             Next
             AddStatusMsg("Filling grid")
+            Dim nCalls = 0
             arr = Array.CreateInstance(GetType(Integer), _nRows, _nCols)
             ' Given r,c of empty square with current letter index, put ltr in square
             ' and find a lefit direction return true if is legit (within bounds and not used) 
             Dim recurLam As Func(Of Integer, Integer, Integer, Boolean) =
                         Function(r, c, ndxW) As Boolean
-                            AddStatusMsg($"RRR {r}, {c}, {ndxW}")
+                            nCalls += 1
                             Dim ltr = randLongWord(ndxW)
                             Debug.Assert(arr(r, c) = 0)
                             arr(r, c) = Asc(ltr)
@@ -307,6 +308,7 @@ Class MainWindow
             Dim ncurRow = _Random.Next(_nRows)
             Dim ncurCol = _Random.Next(_nCols)
             isGood = recurLam(ncurRow, ncurCol, 0)
+            AddStatusMsg($"NCalls= {nCalls}")
             ' we recurred down and couldn't find a path
         Loop
         Return arr
