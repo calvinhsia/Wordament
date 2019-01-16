@@ -8,12 +8,14 @@ Class MainWindow
     Public Shared _LetterValues() As Integer = {2, 5, 3, 3, 1, 5, 4, 4, 2, 10, 6, 3, 2, 2, 2, 4, 12, 2, 2, 2, 2, 4, 6, 9, 5, 8}
     Public Shared _Random As Random
 
-    Public _nRows As Integer
-    Public _nCols As Integer
+    Public Property _nRows As Integer = 4
+
+    Public Property _nCols As Integer = 4
+    Public Property _IsLongWrd = True
+    Public Property _nMinWordLen = 12
+
+
     Private _stkCtrls As StackPanel
-    Private _txtRows As TextBox
-    Private _txtCols As TextBox
-    Private _chkLongWord As CheckBox
     Private _txtStatus As TextBox
     Private _seed As Integer
     Private _randLetGenerator As RandLetterGenerator
@@ -21,7 +23,10 @@ Class MainWindow
 
     Private _arrTiles(,) As WrdTile
     Private _minWordLength As Integer = 3
-    Private _pnl As StackPanel = New StackPanel With {.Orientation = Orientation.Horizontal}
+    Private _pnl As StackPanel = New StackPanel With {
+        .Orientation = Orientation.Horizontal,
+        .DataContext = Me
+    }
 
     Private Sub Window_Loaded(ByVal sender As System.Object, ByVal e As System.Windows.RoutedEventArgs) Handles MyBase.Loaded
         Try
@@ -41,23 +46,22 @@ Class MainWindow
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     >
                     <StackPanel Orientation="Horizontal" Width="300">
-                        <Label>Rows</Label><TextBox Name="tbxRows" HorizontalAlignment="Right" Width="50">4</TextBox>
+                        <Label>Rows</Label><TextBox Name="tbxRows" Text="{Binding Path=_nRows}" HorizontalAlignment="Right" Width="50"></TextBox>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <Label>Cols</Label><TextBox Name="tbxCols" HorizontalAlignment="Right" Width="50">4</TextBox>
+                        <Label>Cols</Label><TextBox Name="tbxCols" Text="{Binding Path=_nCols}" HorizontalAlignment="Right" Width="50"></TextBox>
                     </StackPanel>
-                    <CheckBox Name="chkLongWord" IsChecked="True">_LongWord</CheckBox>
+                    <StackPanel Orientation="Horizontal">
+                        <CheckBox Name="chkLongWord" IsChecked="{Binding Path=_IsLongWrd}">LongWord</CheckBox><TextBox Text="{Binding Path=_nMinWordLen}" ToolTip="When doing long words, must be at least this length"></TextBox>
+                    </StackPanel>
                     <TextBox Name="tbxStatus" Width="300" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Left"></TextBox>
                     <Button Name="btnNew">_New</Button>
                 </StackPanel>.CreateReader
             ), StackPanel)
 
             Dim btn = _stkCtrls.FindName("btnNew")
-            _txtRows = CType(_stkCtrls.FindName("tbxRows"), TextBox)
-            _txtCols = CType(_stkCtrls.FindName("tbxCols"), TextBox)
             _txtStatus = CType(_stkCtrls.FindName("tbxStatus"), TextBox)
-            _txtStatus.MaxHeight = Me.Height - 100
-            _chkLongWord = CType(_stkCtrls.FindName("chkLongWord"), CheckBox)
+            _txtStatus.MaxHeight = Math.Min(100, Me.Height - 150)
             AddStatusMsg("starting")
             btn.AddHandler(Button.ClickEvent, New RoutedEventHandler(AddressOf AddContent))
             AddContent()
@@ -68,16 +72,15 @@ Class MainWindow
 
     Private Sub AddStatusMsg(msg As String)
         msg = $"{DateTime.Now.ToString("hh:mm:ss")}{msg} {vbCrLf}"
-        System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(Sub()
-                                                                              _txtStatus.AppendText(msg)
-                                                                              _txtStatus.ScrollToEnd()
-                                                                          End Sub)
+        Dim x = Me._txtStatus.Dispatcher
+        Me._txtStatus.Dispatcher.BeginInvoke(Sub()
+                                                 _txtStatus.AppendText(msg)
+                                                 _txtStatus.ScrollToEnd()
+                                             End Sub)
     End Sub
 
     Dim isShowingResult = False
     Private Async Sub AddContent()
-        _nRows = CInt(_txtRows.Text)
-        _nCols = CInt(_txtCols.Text)
         If Not isShowingResult Then
             _pnl.Children.Clear()
             _pnl.Children.Add(_stkCtrls)
@@ -89,9 +92,9 @@ Class MainWindow
             }
             '_randLetGenerator.PreSeed(2, 6, _nRows * _nCols)
             _pnl.Children.Add(grd)
-            If _chkLongWord.IsChecked Then
-                Await Task.Run(Sub() FillGridWithLongWord())
-                Dim arr = FillGridWithLongWord()
+            If Me._IsLongWrd Then
+
+                Dim arr = Await Task.Run(Function() FillGridWithLongWord())
 
                 _arrTiles = Array.CreateInstance(GetType(WrdTile), _nRows, _nCols)
 
@@ -214,8 +217,6 @@ Class MainWindow
 
     Private Function FillGridWithLongWord() As Integer(,)
         _spellDict.DictNum = 2
-        Dim nMinWordLen = 14
-        Dim nTries = 0
         ' create a list of random directions (N,S, SE, etc) which can be tried in sequence til success
         Dim directions(7) As Integer ' 8 directions
         For i = 0 To 7
@@ -226,9 +227,16 @@ Class MainWindow
         Dim arr(,) As Integer = Nothing ' asc
         Do While Not isGood
             Dim randLongWord = String.Empty
+            Dim nTries = 0
             Do
+                nTries += 1
                 randLongWord = _spellDict.RandWord(IIf(_seed = 0, 0, 1))
-            Loop While randLongWord.Length < nMinWordLen
+                If randLongWord.Length > 16 Then
+                    AddStatusMsg($"Got word too long {randLongWord}")
+                    randLongWord = String.Empty
+                End If
+            Loop While randLongWord.Length < _nMinWordLen
+            AddStatusMsg($"Got long word searching dict {nTries} tries")
             '                randLongWord = "ABCDEFGHIJ"
             randLongWord = randLongWord.ToUpper
             ' now place the word in the grid. Start with a random
@@ -308,7 +316,7 @@ Class MainWindow
             Dim ncurRow = _Random.Next(_nRows)
             Dim ncurCol = _Random.Next(_nCols)
             isGood = recurLam(ncurRow, ncurCol, 0)
-            AddStatusMsg($"NCalls= {nCalls}")
+            AddStatusMsg($"NRecurCalls= {nCalls} {randLongWord.Length}")
             ' we recurred down and couldn't find a path
         Loop
         Return arr
