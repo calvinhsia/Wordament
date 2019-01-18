@@ -55,7 +55,7 @@ Class MainWindow
                         <CheckBox Name="chkLongWord" IsChecked="{Binding Path=_IsLongWrd}">LongWord</CheckBox><TextBox Text="{Binding Path=_nMinWordLen}" ToolTip="When doing long words, must be at least this length"></TextBox>
                     </StackPanel>
                     <TextBox Name="tbxStatus" Width="300" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Left"></TextBox>
-                    <Button Name="btnNew">_New</Button>
+                    <Button Name="btnNew" Height="60">_New</Button>
                 </StackPanel>.CreateReader
             ), StackPanel)
 
