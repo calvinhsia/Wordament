@@ -21,7 +21,8 @@ Class MainWindow
     Private _randLetGenerator As RandLetterGenerator
     Private _resultWords As Dictionary(Of String, LetterList)
 
-    Private _arrTiles(,) As WrdTile
+    Private _arrTiles(,) As LtrTile
+    Private _arrLtrs(,) As SimpleLetter
     Private _minWordLength As Integer = 3
     Private _pnl As StackPanel = New StackPanel With {
         .Orientation = Orientation.Horizontal,
@@ -59,12 +60,60 @@ Class MainWindow
                 </StackPanel>.CreateReader
             ), StackPanel)
 
-            Dim btn = _stkCtrls.FindName("btnNew")
+            Dim btn = CType(_stkCtrls.FindName("btnNew"), Button)
             _txtStatus = CType(_stkCtrls.FindName("tbxStatus"), TextBox)
             _txtStatus.MaxHeight = Math.Min(100, Me.Height - 150)
             AddStatusMsg("starting")
-            btn.AddHandler(Button.ClickEvent, New RoutedEventHandler(AddressOf AddContent))
-            AddContent()
+            Dim isShowingResult = False
+            Dim taskGetResults As Task(Of List(Of Dictionary(Of String, LetterList))) = Nothing
+            AddHandler btn.Click,
+                Async Sub()
+                    If Not isShowingResult Then
+                        btn.Content = "_Show Results"
+                        _pnl.Children.Clear()
+                        _pnl.Children.Add(_stkCtrls)
+                        Dim grd = New UniformGrid With {
+                            .Background = Brushes.Black,
+                            .Width = 300,
+                            .VerticalAlignment = VerticalAlignment.Top,
+                            .Height = 300
+                            }
+                        '_randLetGenerator.PreSeed(2, 6, _nRows * _nCols)
+                        _pnl.Children.Add(grd)
+                        If Me._IsLongWrd Then
+                            Dim arr = Await Task.Run(Function() FillGridWithLongWord())
+                            _arrTiles = Array.CreateInstance(GetType(LtrTile), _nRows, _nCols)
+                            For iRow = 0 To _nRows - 1
+                                For iCol = 0 To _nCols - 1
+                                    Dim ltr = "a"
+                                    If arr(iRow, iCol) = 0 Then
+                                        ltr = _randLetGenerator.GetRandLet
+                                    Else
+                                        ltr = Chr(arr(iRow, iCol))
+                                    End If
+                                    _arrTiles(iRow, iCol) = New LtrTile(ltr, _nCols)
+                                    If _arrTiles(iRow, iCol) Is Nothing Then
+                                    End If
+                                    grd.Children.Add(_arrTiles(iRow, iCol))
+                                Next
+                            Next
+
+                        Else
+                            FillGridWithRandomletters(grd)
+                        End If
+                        taskGetResults = GetResultsAsync()
+                    Else
+                        Dim res = Await taskGetResults
+                        ShowResults(res)
+                        btn.Content = "_New"
+                    End If
+                    isShowingResult = Not isShowingResult
+                    Me.Content = _pnl
+                    'Width = 800
+                    'Height = 800
+                End Sub
+            '            btn.AddHandler(Button.ClickEvent, New RoutedEventHandler(AddressOf BtnClick))
+            btn.RaiseEvent(New RoutedEventArgs With {.RoutedEvent = Button.ClickEvent})
         Catch ex As Exception
             Me.Content = ex.ToString
         End Try
@@ -79,59 +128,26 @@ Class MainWindow
                                              End Sub)
     End Sub
 
-    Dim isShowingResult = False
-    Private Async Sub AddContent()
-        If Not isShowingResult Then
-            _pnl.Children.Clear()
-            _pnl.Children.Add(_stkCtrls)
-            Dim grd = New UniformGrid With {
-            .Background = Brushes.Black,
-            .Width = 300,
-            .VerticalAlignment = VerticalAlignment.Top,
-            .Height = 300
-            }
-            '_randLetGenerator.PreSeed(2, 6, _nRows * _nCols)
-            _pnl.Children.Add(grd)
-            If Me._IsLongWrd Then
+    Async Function GetResultsAsync() As Task(Of List(Of Dictionary(Of String, LetterList)))
+        Dim res = New List(Of Dictionary(Of String, LetterList))
+        Await Task.Run(Sub()
+                           For dictnum = 1 To 2
+                               AddStatusMsg($"getres {dictnum}")
+                               _spellDict.DictNum = dictnum
+                               res.Add(CalcWordList())
+                           Next
+                           AddStatusMsg($"getres endtask")
+                       End Sub)
+        Return res
+    End Function
 
-                Dim arr = Await Task.Run(Function() FillGridWithLongWord())
-
-                _arrTiles = Array.CreateInstance(GetType(WrdTile), _nRows, _nCols)
-
-                For iRow = 0 To _nRows - 1
-                    For iCol = 0 To _nCols - 1
-                        Dim ltr = "a"
-                        If arr(iRow, iCol) = 0 Then
-                            ltr = _randLetGenerator.GetRandLet
-                        Else
-                            ltr = Chr(arr(iRow, iCol))
-                        End If
-                        _arrTiles(iRow, iCol) = New WrdTile(ltr, _nCols)
-                        If _arrTiles(iRow, iCol) Is Nothing Then
-                        End If
-                        grd.Children.Add(_arrTiles(iRow, iCol))
-                    Next
-                Next
-
-            Else
-                FillGridWithRandomletters(grd)
-            End If
-        Else
-            ShowResults()
-        End If
-        isShowingResult = Not isShowingResult
-        Me.Content = _pnl
-        'Width = 800
-        'Height = 800
-    End Sub
-
-    Sub ShowResults()
-        For dictnum = 1 To 2
+    Sub ShowResults(results As List(Of Dictionary(Of String, LetterList)))
+        Dim dictnum = 0
+        For Each result In results
+            dictnum += 1
             Dim spResult = New StackPanel With {.Orientation = Orientation.Vertical}
-            _spellDict.DictNum = dictnum
             Dim lv As New ListView
-            CalcWordList()
-            Dim sortedlist = From wrd In _resultWords
+            Dim sortedlist = From wrd In result
                              Select wrd.Key,
                                  Points = wrd.Value.Points,
                                  ltrList = wrd.Value
@@ -156,10 +172,10 @@ Class MainWindow
                               .Width = 60
                             }
                           )
-            Dim score = Aggregate wrd In _resultWords Select pts = wrd.Value.Points Into Sum()
+            Dim score = Aggregate wrd In result Select pts = wrd.Value.Points Into Sum()
 
             spResult.Children.Add(New TextBlock With {
-                                  .Text = String.Format("Dict# {0} Score = {1:n0}" + vbCrLf + "#Words={2}", dictnum, CInt(score), _resultWords.Count)
+                                  .Text = String.Format("Dict# {0} Score = {1:n0}" + vbCrLf + "#Words={2}", dictnum, CInt(score), result.Count)
                               })
             spResult.Children.Add(lv)
             Dim fInHandler = False
@@ -191,7 +207,7 @@ Class MainWindow
 
         Dim arrLetDist(25) As Integer ' calc letter dist
         For Each ltr In _arrTiles
-            arrLetDist(Asc(ltr._letter) - 65) += 1
+            arrLetDist(Asc(ltr._letter._letter) - 65) += 1
         Next
         Dim letDist = String.Empty
         For i = 0 To 25
@@ -323,7 +339,7 @@ Class MainWindow
     End Function
 
     Private Sub FillGridWithRandomletters(uGrid As UniformGrid)
-        _arrTiles = Array.CreateInstance(GetType(WrdTile), _nRows, _nCols)
+        _arrTiles = Array.CreateInstance(GetType(LtrTile), _nRows, _nCols)
         For iRow = 0 To _nRows - 1
             For iCol = 0 To _nCols - 1
                 Dim rndLet = _randLetGenerator.GetRandLet
@@ -331,7 +347,7 @@ Class MainWindow
                 '    rndLet = "QU"
                 '    rndLetPts += RandLetterGenerator._LetterValues(Asc("U") - 65)
                 'End If
-                Dim tile = New WrdTile(rndLet, _nRows)
+                Dim tile = New LtrTile(rndLet, _nRows)
                 _arrTiles(iRow, iCol) = tile
                 uGrid.Children.Add(tile)
             Next
@@ -339,7 +355,7 @@ Class MainWindow
     End Sub
 
     Private _visitedarr(,) As Boolean
-    Private Sub CalcWordList()
+    Private Function CalcWordList() As Dictionary(Of String, LetterList)
         _resultWords = New Dictionary(Of String, LetterList)
         ReDim _visitedarr(_nRows - 1, _nCols - 1)
         For iRow = 0 To _nRows - 1
@@ -347,7 +363,8 @@ Class MainWindow
                 VisitCell(iRow, iCol, String.Empty, 0, New LetterList)
             Next
         Next
-    End Sub
+        Return _resultWords
+    End Function
 
     Private Sub VisitCell(ByVal iRow As Integer,
                           ByVal iCol As Integer,
@@ -357,7 +374,7 @@ Class MainWindow
         If iRow >= 0 AndAlso iCol >= 0 AndAlso iRow < _nRows AndAlso iCol < _nCols Then
             Dim tile = _arrTiles(iRow, iCol)
             If Not _visitedarr(iRow, iCol) Then
-                wordSoFar += tile._letter
+                wordSoFar += tile._letter._letter
                 ptsSoFar += tile._pts
                 ltrList.Add(_arrTiles(iRow, iCol))
                 If wordSoFar.Length >= _minWordLength Then
@@ -400,7 +417,7 @@ Class MainWindow
     End Sub
 
     Public Class LetterList
-        Inherits List(Of WrdTile)
+        Inherits List(Of LtrTile)
         Public Sub New()
             MyBase.New()
         End Sub
@@ -433,31 +450,45 @@ Class MainWindow
         Public Overrides Function ToString() As String
             Return String.Format("{0} {1}", Word, Points)
         End Function
-
     End Class
 
-    Public Class WrdTile
-        Inherits DockPanel
+    Public Class SimpleLetter
+        Public Sub New(letter As String)
+            _letter = letter
+        End Sub
+
         Public Property _letter As String
-        Public Property _pts As Integer ' points for this tile
+        Public ReadOnly Property _pts As Integer ' points for this tile
+            Get
+                Return _LetterValues(Asc(_letter) - 65)
+            End Get
+        End Property
+    End Class
+
+    Public Class LtrTile
+        Inherits DockPanel
+        Public _letter As SimpleLetter
         Public Sub New(ByVal letter As String, ByVal nCols As Integer)
-            _letter = letter ' could be digraph, like "qu"
-            _pts = _LetterValues(Asc(letter) - 65)
+            _letter = New SimpleLetter(letter)
             Background = Brushes.DarkSlateBlue
 
             Margin = New Thickness(2, 2, 2, 2)
 
             Dim txt As New TextBlock With {
-                .Text = _letter,
+                .Text = _letter._letter,
                 .FontSize = If(nCols > 10, 10, 40 - (nCols - 6) * 5),
                 .HorizontalAlignment = HorizontalAlignment.Center,
                 .Foreground = Brushes.White
             }
             Me.Children.Add(txt)
         End Sub
-
+        Public ReadOnly Property _pts As Integer
+            Get
+                Return _letter._pts
+            End Get
+        End Property
         Public Overrides Function ToString() As String
-            Return _letter
+            Return _letter._letter
         End Function
     End Class
 
