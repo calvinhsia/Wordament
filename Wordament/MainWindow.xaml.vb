@@ -20,7 +20,6 @@ Class MainWindow
     Private _resultWords As Dictionary(Of String, LetterList)
 
     Private _arrTiles(,) As LtrTile
-    Private _arrLtrs(,) As SimpleLetter
     Private _minWordLength As Integer = 3
     Private _pnl As StackPanel = New StackPanel With {
         .Orientation = Orientation.Horizontal,
@@ -62,9 +61,13 @@ Class MainWindow
             _txtStatus.MaxHeight = Math.Min(100, Me.Height - 150)
             AddStatusMsg("starting")
 
+            'Dim tmpSpellDict = New Dictionary.CDict
             'Dim ff = Sub()
-            '             For i = 1 To 1000
-            '                 Dim r = _spellDict.RandWord(1)
+            '             For i = 1 To 100
+            '                 Dim r = tmpSpellDict.RandWord(1)
+            '                 For j = 1 To 1000
+            '                     Dim iss = tmpSpellDict.IsWord(r)
+            '                 Next
             '             Next
             '         End Sub
             'Dim sw = New Stopwatch()
@@ -106,9 +109,7 @@ Class MainWindow
                                     Else
                                         ltr = Chr(arr(iRow, iCol))
                                     End If
-                                    _arrTiles(iRow, iCol) = New LtrTile(ltr, _nCols)
-                                    If _arrTiles(iRow, iCol) Is Nothing Then
-                                    End If
+                                    _arrTiles(iRow, iCol) = New LtrTile(ltr, iRow, iCol, _nCols)
                                     grd.Children.Add(_arrTiles(iRow, iCol))
                                 Next
                             Next
@@ -199,19 +200,24 @@ Class MainWindow
                     If lv.SelectedItems.Count > 0 Then
                         If Not fInHandler Then
                             fInHandler = True
-                            'Dim itm = lv.SelectedItems(0)
-                            'Dim tdesc = TypeDescriptor.GetProperties(itm)
-                            'Dim ltrLst = CType(tdesc("lst").GetValue(itm), LetterList)
-                            'Dim saveback = ltrLst(0).Background
-                            'For Each ltr In ltrLst
-                            '    ltr.Background = Brushes.Red
-                            '    Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.Background, Function() Nothing)
-                            '    System.Threading.Thread.Sleep(100)
-                            'Next
-                            'System.Threading.Thread.Sleep(500)
-                            'For Each ltr In ltrLst
-                            '    ltr.Background = saveback
-                            'Next
+                            Dim itm = lv.SelectedItems(0)
+                            Dim tdesc = TypeDescriptor.GetProperties(itm)
+                            Dim ltrLst = CType(tdesc("lst").GetValue(itm), LetterList)
+
+                            Dim firstTile = _arrTiles(ltrLst(0)._row, ltrLst(0)._col)
+
+                            Dim saveback = firstTile.Background
+                            For Each ltr In ltrLst
+                                Dim tile = _arrTiles(ltr._row, ltr._col)
+                                tile.Background = Brushes.Red
+                                Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.Background, Function() Nothing)
+                                System.Threading.Thread.Sleep(100)
+                            Next
+                            System.Threading.Thread.Sleep(500)
+                            For Each ltr In ltrLst
+                                Dim tile = _arrTiles(ltr._row, ltr._col)
+                                tile.Background = saveback
+                            Next
                             fInHandler = False
                         End If
                     End If
@@ -364,7 +370,7 @@ Class MainWindow
                 '    rndLet = "QU"
                 '    rndLetPts += RandLetterGenerator._LetterValues(Asc("U") - 65)
                 'End If
-                Dim tile = New LtrTile(rndLet, _nRows)
+                Dim tile = New LtrTile(rndLet, iRow, iCol, _nRows)
                 _arrTiles(iRow, iCol) = tile
                 uGrid.Children.Add(tile)
             Next
@@ -379,12 +385,6 @@ Class MainWindow
         _spellDict.DictNum = dictnum
         _resultWords = New Dictionary(Of String, LetterList)
         ReDim _visitedarr(_nRows - 1, _nCols - 1)
-        ReDim _arrLtrs(_nRows - 1, _nCols - 1)
-        For iRow = 0 To _nRows - 1
-            For iCol = 0 To _nCols - 1
-                _arrLtrs(iRow, iCol) = _arrTiles(iRow, iCol)._letter
-            Next
-        Next
         For iRow = 0 To _nRows - 1
             For iCol = 0 To _nCols - 1
                 VisitCell(iRow, iCol, String.Empty, 0, New LetterList)
@@ -399,9 +399,9 @@ Class MainWindow
                           ByVal ptsSoFar As Integer,
                           ByVal ltrList As LetterList)
         If iRow >= 0 AndAlso iCol >= 0 AndAlso iRow < _nRows AndAlso iCol < _nCols Then
-            Dim ltr = _arrLtrs(iRow, iCol)
+            Dim ltr = _arrTiles(iRow, iCol)
             If Not _visitedarr(iRow, iCol) Then
-                wordSoFar += ltr._letter
+                wordSoFar += ltr._letter._letter
                 ptsSoFar += ltr._pts
                 ltrList.Add(_arrTiles(iRow, iCol)._letter)
                 If wordSoFar.Length >= _minWordLength Then
@@ -481,28 +481,32 @@ Class MainWindow
 
     Public Class SimpleLetter
         Public Property _letter As String
+        Public _row As Integer
+        Public _col As Integer
         Public ReadOnly Property _pts As Integer ' points for this tile
             Get
                 Return _LetterValues(Asc(_letter) - 65)
             End Get
         End Property
-        Public Sub New(letter As String)
+        Public Sub New(letter As String, row As Integer, col As Integer)
             _letter = letter
+            _row = row
+            _col = col
         End Sub
     End Class
 
     Public Class LtrTile
         Inherits DockPanel
         Public _letter As SimpleLetter
-        Public Sub New(ByVal letter As String, ByVal nCols As Integer)
-            _letter = New SimpleLetter(letter)
+        Public Sub New(ByVal letter As String, row As Integer, col As Integer, ByVal nTotalCols As Integer)
+            _letter = New SimpleLetter(letter, row, col)
             Background = Brushes.DarkSlateBlue
 
             Margin = New Thickness(2, 2, 2, 2)
 
             Dim txt As New TextBlock With {
                 .Text = _letter._letter,
-                .FontSize = If(nCols > 10, 10, 40 - (nCols - 6) * 5),
+                .FontSize = If(nTotalCols > 10, 10, 40 - (nTotalCols - 6) * 5),
                 .HorizontalAlignment = HorizontalAlignment.Center,
                 .Foreground = Brushes.White
             }
