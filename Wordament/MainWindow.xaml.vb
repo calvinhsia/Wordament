@@ -376,6 +376,12 @@ Class MainWindow
         _spellDict.DictNum = dictnum
         _resultWords = New Dictionary(Of String, LetterList)
         ReDim _visitedarr(_nRows - 1, _nCols - 1)
+        ReDim _arrLtrs(_nRows - 1, _nCols - 1)
+        For iRow = 0 To _nRows - 1
+            For iCol = 0 To _nCols - 1
+                _arrLtrs(iRow, iCol) = _arrTiles(iRow, iCol)._letter
+            Next
+        Next
         For iRow = 0 To _nRows - 1
             For iCol = 0 To _nCols - 1
                 VisitCell(iRow, iCol, String.Empty, 0, New LetterList)
@@ -390,10 +396,10 @@ Class MainWindow
                           ByVal ptsSoFar As Integer,
                           ByVal ltrList As LetterList)
         If iRow >= 0 AndAlso iCol >= 0 AndAlso iRow < _nRows AndAlso iCol < _nCols Then
-            Dim tile = _arrTiles(iRow, iCol)
+            Dim ltr = _arrLtrs(iRow, iCol)
             If Not _visitedarr(iRow, iCol) Then
-                wordSoFar += tile._letter._letter
-                ptsSoFar += tile._pts
+                wordSoFar += ltr._letter
+                ptsSoFar += ltr._pts
                 ltrList.Add(_arrTiles(iRow, iCol)._letter)
                 If wordSoFar.Length >= _minWordLength Then
                     If _spellDict.IsWord(wordSoFar) Then
