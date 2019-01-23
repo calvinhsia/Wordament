@@ -1,6 +1,7 @@
 ﻿Imports System.Windows.Controls.Primitives
 Imports System.ComponentModel
 Imports System.Windows.Threading
+Imports System.Threading
 
 Class MainWindow
     '.......................................... A  B  C  D  E  F  G  H  I  J   K  L  M  N  O  P  Q   R  S  T  U  V  W  X  Y  Z
@@ -42,6 +43,7 @@ Class MainWindow
                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     >
+                    <Button Name="btnNew" Height="60">_New</Button>
                     <StackPanel Orientation="Horizontal" Width="300">
                         <Label>Rows</Label><TextBox Name="tbxRows" Text="{Binding Path=_nRows}" HorizontalAlignment="Right" Width="50"></TextBox>
                     </StackPanel>
@@ -52,7 +54,6 @@ Class MainWindow
                         <CheckBox Name="chkLongWord" IsChecked="{Binding Path=_IsLongWrd}">LongWord</CheckBox><TextBox Text="{Binding Path=_nMinWordLen}" ToolTip="When doing long words, must be at least this length"></TextBox>
                     </StackPanel>
                     <TextBox Name="tbxStatus" Width="300" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Left"></TextBox>
-                    <Button Name="btnNew" Height="60">_New</Button>
                 </StackPanel>.CreateReader
             ), StackPanel)
 
@@ -137,7 +138,7 @@ Class MainWindow
     End Sub
 
     Private Sub AddStatusMsg(msg As String)
-        msg = $"{DateTime.Now.ToString("hh:mm:ss")}{msg} {vbCrLf}"
+        msg = $"{DateTime.Now.ToString("hh:mm:ss")} {Thread.CurrentThread.ManagedThreadId} {msg} {vbCrLf}"
         Dim x = Me._txtStatus.Dispatcher
         Me._txtStatus.Dispatcher.BeginInvoke(Sub()
                                                  _txtStatus.AppendText(msg)
@@ -253,9 +254,9 @@ Class MainWindow
     End Sub
 
     Private Function FillGridWithLongWord() As Integer(,)
-        Dim spellDict = New Dictionary.CDict
-
-        spellDict.DictNum = 2
+        Dim spellDict = New Dictionary.CDict With {
+            .DictNum = 2
+        }
         ' create a list of random directions (N,S, SE, etc) which can be tried in sequence til success
         Dim directions(7) As Integer ' 8 directions
         For i = 0 To 7
@@ -381,8 +382,9 @@ Class MainWindow
     Private _spellDict As Dictionary.CDict
 
     Private Function CalcWordList(dictnum As Integer) As Dictionary(Of String, LetterList)
-        _spellDict = New Dictionary.CDict
-        _spellDict.DictNum = dictnum
+        _spellDict = New Dictionary.CDict With {
+            .DictNum = dictnum
+        }
         _resultWords = New Dictionary(Of String, LetterList)
         ReDim _visitedarr(_nRows - 1, _nCols - 1)
         For iRow = 0 To _nRows - 1
@@ -448,7 +450,7 @@ Class MainWindow
         Public Sub New()
             MyBase.New()
         End Sub
-        Private _pts As Integer
+        Private ReadOnly _pts As Integer
         Public Sub New(ByVal lst As LetterList, ByVal pts As Integer)
             MyBase.New()
             _pts = pts
@@ -541,7 +543,7 @@ Class MainWindow
             _letDist = letdist
         End Sub
 
-        Private _seedArray() As String
+        Private ReadOnly _seedArray() As String
         Private _seedIndex As Integer
         'Public Sub PreSeed(ByVal nWords As Integer, ByVal nWordLen As Integer, ByVal nTiles As Integer)
         '    Dim strSeeded = String.Empty
