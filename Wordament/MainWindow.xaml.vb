@@ -3,7 +3,6 @@ Imports System.ComponentModel
 Imports System.Windows.Threading
 
 Class MainWindow
-    Public Shared _spellDict As Dictionary.CDict
     '.......................................... A  B  C  D  E  F  G  H  I  J   K  L  M  N  O  P  Q   R  S  T  U  V  W  X  Y  Z
     Public Shared _LetterValues() As Integer = {2, 5, 3, 3, 1, 5, 4, 4, 2, 10, 6, 3, 2, 2, 2, 4, 12, 2, 2, 2, 2, 4, 6, 9, 5, 8}
     Public Shared _Random As Random
@@ -38,7 +37,6 @@ Class MainWindow
                 _seed = 0
             End If
             _Random = New Random(_seed)
-            _spellDict = New Dictionary.CDict
             _randLetGenerator = New RandLetterGenerator
             _stkCtrls = CType(Markup.XamlReader.Load(
                 <StackPanel
@@ -64,22 +62,22 @@ Class MainWindow
             _txtStatus.MaxHeight = Math.Min(100, Me.Height - 150)
             AddStatusMsg("starting")
 
-            Dim ff = Sub()
-                         For i = 1 To 1000
-                             Dim r = _spellDict.RandWord(1)
-                         Next
-                     End Sub
-            Dim sw = New Stopwatch()
-            sw.Restart()
-            Dim tt = Task.Run(Sub()
-                                  ff.Invoke
-                              End Sub)
-            tt.Wait()
-            Dim bthread = sw.Elapsed
-            sw.Start()
-            ff.Invoke()
-            Dim mthread = sw.Elapsed
-            AddStatusMsg($"mt={mthread.TotalSeconds} bg = {bthread.TotalSeconds}")
+            'Dim ff = Sub()
+            '             For i = 1 To 1000
+            '                 Dim r = _spellDict.RandWord(1)
+            '             Next
+            '         End Sub
+            'Dim sw = New Stopwatch()
+            'sw.Restart()
+            'Dim tt = Task.Run(Sub()
+            '                      ff.Invoke
+            '                  End Sub)
+            'tt.Wait()
+            'Dim bthread = sw.Elapsed
+            'sw.Start()
+            'ff.Invoke()
+            'Dim mthread = sw.Elapsed
+            'AddStatusMsg($"mt={mthread.TotalSeconds} bg = {bthread.TotalSeconds}")
 
             Dim isShowingResult = False
             Dim taskGetResults As Task(Of List(Of Dictionary(Of String, LetterList))) = Nothing
@@ -180,7 +178,7 @@ Class MainWindow
             gview.Columns.Add(New GridViewColumn With {
                               .Header = New GridViewColumnHeader With {.Content = "Word"},
                               .DisplayMemberBinding = New Binding("Word"),
-                              .Width = 120
+                              .Width = 130
                             }
                           )
             gview.Columns.Add(New GridViewColumn With {
@@ -249,7 +247,9 @@ Class MainWindow
     End Sub
 
     Private Function FillGridWithLongWord() As Integer(,)
-        _spellDict.DictNum = 2
+        Dim spellDict = New Dictionary.CDict
+
+        spellDict.DictNum = 2
         ' create a list of random directions (N,S, SE, etc) which can be tried in sequence til success
         Dim directions(7) As Integer ' 8 directions
         For i = 0 To 7
@@ -263,7 +263,7 @@ Class MainWindow
             Dim nTries = 0
             Do
                 nTries += 1
-                randLongWord = _spellDict.RandWord(IIf(_seed = 0, 0, 1))
+                randLongWord = spellDict.RandWord(IIf(_seed = 0, 0, 1))
                 If randLongWord.Length > 16 Then
                     AddStatusMsg($"Got word too long {randLongWord}")
                     randLongWord = String.Empty
@@ -372,7 +372,10 @@ Class MainWindow
     End Sub
 
     Private _visitedarr(,) As Boolean
+    Private _spellDict As Dictionary.CDict
+
     Private Function CalcWordList(dictnum As Integer) As Dictionary(Of String, LetterList)
+        _spellDict = New Dictionary.CDict
         _spellDict.DictNum = dictnum
         _resultWords = New Dictionary(Of String, LetterList)
         ReDim _visitedarr(_nRows - 1, _nCols - 1)
@@ -536,36 +539,36 @@ Class MainWindow
 
         Private _seedArray() As String
         Private _seedIndex As Integer
-        Public Sub PreSeed(ByVal nWords As Integer, ByVal nWordLen As Integer, ByVal nTiles As Integer)
-            Dim strSeeded = String.Empty
-            _seedIndex = 0
-            For i = 1 To nWords
-                Dim wrd = String.Empty
-                Do While wrd.Length <> nWordLen
-                    wrd = MainWindow._spellDict.RandWord(Environment.TickCount)
-                Loop
-                strSeeded += wrd.ToUpper
-            Next
-            For i = strSeeded.Length To nTiles
-                strSeeded += _letDist.Substring(_Random.Next(_letDist.Length), 1)
-            Next
-            ReDim _seedArray(nTiles)
-            For i = 0 To nTiles - 1
-                _seedArray(i) = strSeeded(i)
-            Next
-            For i = 0 To nTiles - 1
-                Dim rnd = _Random.Next(nTiles)
-                Dim tmp = _seedArray(i)
-                _seedArray(i) = _seedArray(rnd)
-                _seedArray(rnd) = tmp
-            Next
-            'For i = 0 To strSeeded.Length - 1
-            '    Dim rnd = _Random.Next(strSeeded.Length)
-            '    Dim tmp = strSeeded(rnd)
-            '    strSeeded = strSeeded.Substring(0, i - 1) + tmp + strSeeded(i + 1)
+        'Public Sub PreSeed(ByVal nWords As Integer, ByVal nWordLen As Integer, ByVal nTiles As Integer)
+        '    Dim strSeeded = String.Empty
+        '    _seedIndex = 0
+        '    For i = 1 To nWords
+        '        Dim wrd = String.Empty
+        '        Do While wrd.Length <> nWordLen
+        '            wrd = MainWindow._spellDict.RandWord(Environment.TickCount)
+        '        Loop
+        '        strSeeded += wrd.ToUpper
+        '    Next
+        '    For i = strSeeded.Length To nTiles
+        '        strSeeded += _letDist.Substring(_Random.Next(_letDist.Length), 1)
+        '    Next
+        '    ReDim _seedArray(nTiles)
+        '    For i = 0 To nTiles - 1
+        '        _seedArray(i) = strSeeded(i)
+        '    Next
+        '    For i = 0 To nTiles - 1
+        '        Dim rnd = _Random.Next(nTiles)
+        '        Dim tmp = _seedArray(i)
+        '        _seedArray(i) = _seedArray(rnd)
+        '        _seedArray(rnd) = tmp
+        '    Next
+        '    'For i = 0 To strSeeded.Length - 1
+        '    '    Dim rnd = _Random.Next(strSeeded.Length)
+        '    '    Dim tmp = strSeeded(rnd)
+        '    '    strSeeded = strSeeded.Substring(0, i - 1) + tmp + strSeeded(i + 1)
 
-            'Next
-        End Sub
+        '    'Next
+        'End Sub
 
         Public Function GetRandLet() As String ' letter, score
             Dim rndLet = String.Empty
