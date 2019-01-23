@@ -14,7 +14,6 @@ Class MainWindow
     Public Property _IsLongWrd = True
     Public Property _nMinWordLen = 12
 
-
     Private _stkCtrls As StackPanel
     Private _txtStatus As TextBox
     Private _seed As Integer
@@ -64,6 +63,24 @@ Class MainWindow
             _txtStatus = CType(_stkCtrls.FindName("tbxStatus"), TextBox)
             _txtStatus.MaxHeight = Math.Min(100, Me.Height - 150)
             AddStatusMsg("starting")
+
+            Dim ff = Sub()
+                         For i = 1 To 1000
+                             Dim r = _spellDict.RandWord(1)
+                         Next
+                     End Sub
+            Dim sw = New Stopwatch()
+            sw.Restart()
+            Dim tt = Task.Run(Sub()
+                                  ff.Invoke
+                              End Sub)
+            tt.Wait()
+            Dim bthread = sw.Elapsed
+            sw.Start()
+            ff.Invoke()
+            Dim mthread = sw.Elapsed
+            AddStatusMsg($"mt={mthread.TotalSeconds} bg = {bthread.TotalSeconds}")
+
             Dim isShowingResult = False
             Dim taskGetResults As Task(Of List(Of Dictionary(Of String, LetterList))) = Nothing
             AddHandler btn.Click,
@@ -103,6 +120,7 @@ Class MainWindow
                         End If
                         taskGetResults = GetResultsAsync()
                     Else
+                        btn.Content = "calculating..."
                         Dim res = Await taskGetResults
                         ShowResults(res)
                         btn.Content = "_New"
@@ -133,8 +151,7 @@ Class MainWindow
         Await Task.Run(Sub()
                            For dictnum = 1 To 2
                                AddStatusMsg($"getres {dictnum}")
-                               _spellDict.DictNum = dictnum
-                               res.Add(CalcWordList())
+                               res.Add(CalcWordList(dictnum))
                            Next
                            AddStatusMsg($"getres endtask")
                        End Sub)
@@ -184,19 +201,19 @@ Class MainWindow
                     If lv.SelectedItems.Count > 0 Then
                         If Not fInHandler Then
                             fInHandler = True
-                            Dim itm = lv.SelectedItems(0)
-                            Dim tdesc = TypeDescriptor.GetProperties(itm)
-                            Dim ltrLst = CType(tdesc("lst").GetValue(itm), LetterList)
-                            Dim saveback = ltrLst(0).Background
-                            For Each ltr In ltrLst
-                                ltr.Background = Brushes.Red
-                                Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.Background, Function() Nothing)
-                                System.Threading.Thread.Sleep(100)
-                            Next
-                            System.Threading.Thread.Sleep(500)
-                            For Each ltr In ltrLst
-                                ltr.Background = saveback
-                            Next
+                            'Dim itm = lv.SelectedItems(0)
+                            'Dim tdesc = TypeDescriptor.GetProperties(itm)
+                            'Dim ltrLst = CType(tdesc("lst").GetValue(itm), LetterList)
+                            'Dim saveback = ltrLst(0).Background
+                            'For Each ltr In ltrLst
+                            '    ltr.Background = Brushes.Red
+                            '    Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.Background, Function() Nothing)
+                            '    System.Threading.Thread.Sleep(100)
+                            'Next
+                            'System.Threading.Thread.Sleep(500)
+                            'For Each ltr In ltrLst
+                            '    ltr.Background = saveback
+                            'Next
                             fInHandler = False
                         End If
                     End If
@@ -355,7 +372,8 @@ Class MainWindow
     End Sub
 
     Private _visitedarr(,) As Boolean
-    Private Function CalcWordList() As Dictionary(Of String, LetterList)
+    Private Function CalcWordList(dictnum As Integer) As Dictionary(Of String, LetterList)
+        _spellDict.DictNum = dictnum
         _resultWords = New Dictionary(Of String, LetterList)
         ReDim _visitedarr(_nRows - 1, _nCols - 1)
         For iRow = 0 To _nRows - 1
@@ -376,7 +394,7 @@ Class MainWindow
             If Not _visitedarr(iRow, iCol) Then
                 wordSoFar += tile._letter._letter
                 ptsSoFar += tile._pts
-                ltrList.Add(_arrTiles(iRow, iCol))
+                ltrList.Add(_arrTiles(iRow, iCol)._letter)
                 If wordSoFar.Length >= _minWordLength Then
                     If _spellDict.IsWord(wordSoFar) Then
                         If Not _resultWords.ContainsKey(wordSoFar) Then
@@ -417,7 +435,7 @@ Class MainWindow
     End Sub
 
     Public Class LetterList
-        Inherits List(Of LtrTile)
+        Inherits List(Of SimpleLetter)
         Public Sub New()
             MyBase.New()
         End Sub
@@ -453,16 +471,15 @@ Class MainWindow
     End Class
 
     Public Class SimpleLetter
-        Public Sub New(letter As String)
-            _letter = letter
-        End Sub
-
         Public Property _letter As String
         Public ReadOnly Property _pts As Integer ' points for this tile
             Get
                 Return _LetterValues(Asc(_letter) - 65)
             End Get
         End Property
+        Public Sub New(letter As String)
+            _letter = letter
+        End Sub
     End Class
 
     Public Class LtrTile
