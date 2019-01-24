@@ -10,7 +10,7 @@ namespace WordamentTests
         [TestMethod]
         public void TestMakedDict()
         {
-            int dictNum = 2;
+            int dictNum = 1;
             int cnt = 0;
             var x = new MakeDictionary.MakeDictionary(dictNum);
             var sb = new StringBuilder();
@@ -19,7 +19,7 @@ namespace WordamentTests
                 cnt++;
                 sb.AppendLine(wrd);
             }
-            Assert.Fail($"Got {cnt} words");
+            Assert.Fail($"Got {cnt} words len= {sb.ToString().Length}");
 
         }
     }

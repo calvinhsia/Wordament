@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,6 +20,19 @@ namespace MakeDictionary
             {
                 DictNum = (uint)dictNum
             };
+            MakeBinFile();
+        }
+        void MakeBinFile()
+        {
+            var fileName = @"c:\users\calvinh\dict.bin";
+            if (File.Exists(fileName))
+            {
+                File.Delete(fileName);
+            }
+            using (var fs = File.Open(fileName, FileMode.CreateNew))
+            {
+                fs.Write(new byte[] { 65, 66, 67 },0 ,3);
+            }
         }
         public IEnumerable<string> GetWord(string start)
         {
