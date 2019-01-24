@@ -19,7 +19,6 @@ namespace MakeDictionary
             {
                 DictNum = (uint)dictNum
             };
-            _dict.DictNum = 1;
         }
         public IEnumerable<string> GetWord(string start)
         {

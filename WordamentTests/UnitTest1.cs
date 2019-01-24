@@ -10,14 +10,16 @@ namespace WordamentTests
         [TestMethod]
         public void TestMakedDict()
         {
-            int dictNum = 1;
+            int dictNum = 2;
+            int cnt = 0;
             var x = new MakeDictionary.MakeDictionary(dictNum);
             var sb = new StringBuilder();
-            foreach (var wrd in  x.GetWord("a*"))
+            foreach (var wrd in  x.GetWord("*"))
             {
+                cnt++;
                 sb.AppendLine(wrd);
             }
-//            Assert.Fail(sb.ToString());
+            Assert.Fail($"Got {cnt} words");
 
         }
     }
