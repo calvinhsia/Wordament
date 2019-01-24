@@ -25,7 +25,15 @@ namespace MakeDictionary
         {
             var wrd1 = _dict.FindMatch(start);
             yield return wrd1;
-            yield return _dict.NextMatch();
+            while (true)
+            {
+                var wrd = _dict.NextMatch();
+                if (string.IsNullOrEmpty(wrd))
+                {
+                    break;
+                }
+                yield return wrd;
+            }
             //var wrds = _dict.Words;
             //foreach (var wrd in _dict.Words)
             //{

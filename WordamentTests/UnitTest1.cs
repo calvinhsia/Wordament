@@ -17,7 +17,7 @@ namespace WordamentTests
             {
                 sb.AppendLine(wrd);
             }
-            Assert.Fail(sb.ToString());
+//            Assert.Fail(sb.ToString());
 
         }
     }
