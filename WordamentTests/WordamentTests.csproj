@@ -56,6 +56,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Dictionary\Dictionary.csproj">
+      <Project>{f2cdf883-83b6-400c-b1e3-ecf56982bdd2}</Project>
+      <Name>Dictionary</Name>
+    </ProjectReference>
     <ProjectReference Include="..\MakeDictionary\MakeDictionary.csproj">
       <Project>{db70ed37-5995-41e3-8740-4b7dc4c528c2}</Project>
       <Name>MakeDictionary</Name>

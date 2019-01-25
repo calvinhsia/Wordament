@@ -4,10 +4,18 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 15.0.28307.243
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "Wordament", "Wordament\Wordament.vbproj", "{EDA78854-E26D-44A6-A999-82F016975F6C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{F2CDF883-83B6-400C-B1E3-ECF56982BDD2} = {F2CDF883-83B6-400C-B1E3-ECF56982BDD2}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WordamentTests", "WordamentTests\WordamentTests.csproj", "{BA8D7505-517C-4E5B-94EE-C15BB7C709C7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MakeDictionary", "MakeDictionary\MakeDictionary.csproj", "{DB70ED37-5995-41E3-8740-4B7DC4C528C2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dictionary", "Dictionary\Dictionary.csproj", "{F2CDF883-83B6-400C-B1E3-ECF56982BDD2}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DB70ED37-5995-41E3-8740-4B7DC4C528C2} = {DB70ED37-5995-41E3-8740-4B7DC4C528C2}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +35,10 @@ Global
 		{DB70ED37-5995-41E3-8740-4B7DC4C528C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DB70ED37-5995-41E3-8740-4B7DC4C528C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DB70ED37-5995-41E3-8740-4B7DC4C528C2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F2CDF883-83B6-400C-B1E3-ECF56982BDD2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F2CDF883-83B6-400C-B1E3-ECF56982BDD2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F2CDF883-83B6-400C-B1E3-ECF56982BDD2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F2CDF883-83B6-400C-B1E3-ECF56982BDD2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
