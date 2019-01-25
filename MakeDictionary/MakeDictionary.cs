@@ -21,6 +21,19 @@ namespace MakeDictionary
         {
             return $"{nibbleOffset} {cnt}";
         }
+        public override bool Equals(object obj)
+        {
+            var that = (DictHeaderNibbleEntry)obj;
+            if (this.cnt != that.cnt || this.nibbleOffset != that.nibbleOffset)
+            {
+                return false;
+            }
+            return base.Equals(obj);
+        }
+        public override int GetHashCode()
+        {
+            throw new NotImplementedException();
+        }
     }
 
     // Encoded, compressed dictionary
@@ -66,6 +79,45 @@ namespace MakeDictionary
             var x = Marshal.PtrToStructure<DictHeader>(ptr);
             Marshal.FreeHGlobal(ptr);
             return x;
+        }
+        // override object.Equals
+    public override bool Equals(object obj)
+        {
+            //       
+            // See the full list of guidelines at
+            //   http://go.microsoft.com/fwlink/?LinkID=85237  
+            // and also the guidance for operator== at
+            //   http://go.microsoft.com/fwlink/?LinkId=85238
+            //
+
+            if (obj == null || GetType() != obj.GetType())
+            {
+                return false;
+            }
+            var that = (DictHeader)obj;
+            if (this.tab1 != that.tab1)
+                return false;
+            if (this.wordCount!= that.wordCount)
+                return false;
+            for (int i = 0; i < this.lookupTab1.Length; i++)
+            {
+                if (this.lookupTab1[i] != that.lookupTab1[i])
+                    return false;
+            }
+            for (int i = 0; i < this.nibPairPtr.Length; i++)
+            {
+                if (!this.nibPairPtr[i].Equals(that.nibPairPtr[i]))
+                    return false;
+            }
+
+            return true;
+        }
+
+        // override object.GetHashCode
+        public override int GetHashCode()
+        {
+            // TODO: write your implementation of GetHashCode() here
+            throw new NotImplementedException();
         }
     }
 

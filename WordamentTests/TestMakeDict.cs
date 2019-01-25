@@ -123,16 +123,20 @@ namespace WordamentTests
                 var bytesHeader = dictHeader.GetBytes();
                 fs.Write(dictHeader.GetBytes(), 0, bytesHeader.Length);
             }
-            // now test it
+            var that = ReadDictFromFile(fileName);
+            Assert.IsTrue(dictHeader.Equals(that));
+        }
+
+        DictHeader ReadDictFromFile(string fileName)
+        {
             using (var fs = File.OpenRead(fileName))
             {
                 var size = Marshal.SizeOf<DictHeader>();
                 var bytes = new byte[size];
                 var nbytes = fs.Read(bytes, 0, size);
                 var newheader = DictHeader.MakeHeaderFromBytes(bytes);
+                return newheader;
             }
-
         }
-
     }
 }
