@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -28,6 +29,11 @@ namespace MakeDictionary
     internal struct DictHeader
     {
         public int wordCount; //total # of words in dictionary
+        [MarshalAs(UnmanagedType.BStr)]
+        public string tab1;
+        [MarshalAs(UnmanagedType.BStr)]
+        public string tab2;
+
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
         public byte[] lookupTab1;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
@@ -80,83 +86,8 @@ namespace MakeDictionary
                 }
                 //            var fileName = @"C:\Users\calvinh\Source\Repos\Wordament\MakeDictionary\Resources\dict.bin";
                 var fileName = Path.Combine(Environment.CurrentDirectory, $@"dict{dictNum}.bin");
-                MakeBinFile(lstWords, fileName);
+                //MakeBinFile(lstWords, fileName);
             }
-        }
-
-        void MakeBinFile(List<string> words, string fileName)
-        {
-            if (File.Exists(fileName))
-            {
-                File.Delete(fileName);
-            }
-            DictHeader dictHeader = new DictHeader();
-            var tab1 = " acdegilmnorstu"; // 0th entry isn't used: 15 is escape to next table
-            var tab2 = " bfhjkpqvwxzy"; // 0th entry isn't used
-            dictHeader.lookupTab1 = new byte[16];
-            dictHeader.lookupTab2 = new byte[16];
-            void initTab(byte[] lookupTab, string data)
-            {
-                int ndx = 0;
-                foreach (var c in data)
-                {
-                    var b = Convert.ToByte(c);
-                    //var enc = Encoding.ASCII.GetBytes(new char[] { c });
-                    lookupTab[ndx++] = b;
-                }
-            }
-            initTab(dictHeader.lookupTab1, tab1);
-            initTab(dictHeader.lookupTab2, tab2);
-
-            using (var fs = File.Open(fileName, FileMode.CreateNew))
-            {
-                var bytesHeader = dictHeader.GetBytes();
-                fs.Write(dictHeader.GetBytes(), 0, bytesHeader.Length);
-                var letndx1 = 0; // from 'a'
-                var letndx2 = 0; // from 'a'
-                var let1 = Convert.ToChar(letndx1);
-                var let2 = Convert.ToChar(letndx2);
-                var curNib = 0;
-                var nkeepSoFar = 0;
-                var wordSofar = "a";
-                foreach (var word in words)
-                {
-                    if (word[0] == let1 && (word.Length < 2 || word[1] == let2))
-                    {
-                        // same bucket
-                        for (int i = 1; i < word.Length; i++)
-                        {
-                            if (wordSofar[i] == word[i])
-                            {
-
-                            }
-
-                        }
-
-                    }
-                    else
-                    { // diff bucket
-                        if (let2 == 'z')
-                        {
-                            let2 = 'a';
-                            let1 = Convert.ToChar(++letndx1);
-                        }
-                        else
-                        {
-                            let2 = Convert.ToChar(++letndx2);
-                        }
-                    }
-                }
-            }
-            // now test it
-            using (var fs = File.OpenRead(fileName))
-            {
-                var size = Marshal.SizeOf<DictHeader>();
-                var bytes = new byte[size];
-                var nbytes = fs.Read(bytes, 0, size);
-                var newheader = DictHeader.MakeHeaderFromBytes(bytes);
-            }
-
         }
 
         void oldstuff()
