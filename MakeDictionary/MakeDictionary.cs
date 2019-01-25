@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 namespace MakeDictionary
 {
     //ptr, cnt into encoded compressed dictionary data
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     struct DictHeaderNibbleEntry
     {
         // offset of nibble
@@ -38,14 +39,15 @@ namespace MakeDictionary
 
     // Encoded, compressed dictionary
     // data is a nibble (4 bits) 0-15.
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = CharSet.Ansi)]
     internal struct DictHeader
     {
-        public int wordCount; //total # of words in dictionary
-        [MarshalAs(UnmanagedType.BStr)]
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 16)]
         public string tab1;
-        [MarshalAs(UnmanagedType.BStr)]
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 16)]
         public string tab2;
+        [MarshalAs(UnmanagedType.I4)]
+        public int wordCount; //total # of words in dictionary
 
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
         public byte[] lookupTab1;
@@ -81,7 +83,7 @@ namespace MakeDictionary
             return x;
         }
         // override object.Equals
-    public override bool Equals(object obj)
+        public override bool Equals(object obj)
         {
             //       
             // See the full list of guidelines at
@@ -97,7 +99,7 @@ namespace MakeDictionary
             var that = (DictHeader)obj;
             if (this.tab1 != that.tab1)
                 return false;
-            if (this.wordCount!= that.wordCount)
+            if (this.wordCount != that.wordCount)
                 return false;
             for (int i = 0; i < this.lookupTab1.Length; i++)
             {

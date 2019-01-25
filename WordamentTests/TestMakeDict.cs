@@ -85,44 +85,51 @@ namespace WordamentTests
             var curNib = 0;
             var nkeepSoFar = 0;
             var wordSofar = "a";
-            foreach (var word in words)
-            {
-                dictHeader.wordCount++;
-                if (word[0] == let1 && (word.Length < 2 || word[1] == let2))
-                {
-                    // same bucket
-                    dictHeader.nibPairPtr[nibpairNdx].cnt++;
-                    for (int i = 1; i < wordSofar.Length && i < word.Length; i++)
-                    {
-                        if (wordSofar[i] == word[i])
-                        {
-
-                        }
-                    }
-                    wordSofar = word;
-                }
-                else
-                { // diff bucket
-                  //                    TestContext.WriteLine($"Add  {let1} {let2} {wordSofar} {curnibbleEntry}");
-                    ++nibpairNdx;
-                    if (let2 == 'z')
-                    {
-                        let2 = 'a';
-                        letndx2 = Convert.ToInt32('a');
-                        let1 = Convert.ToChar(++letndx1);
-                    }
-                    else
-                    {
-                        let2 = Convert.ToChar(++letndx2);
-                    }
-                }
-            }
-            //            dictHeader.nibPairPtr = lstnbiPairEntry.ToArray();
             using (var fs = File.Open(fileName, FileMode.CreateNew))
             {
+                fs.Seek(Marshal.SizeOf(dictHeader), SeekOrigin.Begin);
+                //var str = "this is a test";
+                //fs.Write(System.Text.ASCIIEncoding.ASCII.GetBytes(str), 0, str.Length);
+                foreach (var word in words)
+                {
+                    dictHeader.wordCount++;
+                    if (word[0] == let1 && (word.Length < 2 || word[1] == let2))
+                    {
+                        // same bucket
+                        dictHeader.nibPairPtr[nibpairNdx].cnt++;
+                        for (int i = 1; i < wordSofar.Length && i < word.Length; i++)
+                        {
+                            if (wordSofar[i] == word[i])
+                            {
+
+                            }
+                        }
+                        wordSofar = word;
+                    }
+                    else
+                    { // diff bucket
+                      //                    TestContext.WriteLine($"Add  {let1} {let2} {wordSofar} {curnibbleEntry}");
+                        ++nibpairNdx;
+                        if (let2 == 'z')
+                        {
+                            let2 = 'a';
+                            letndx2 = Convert.ToInt32('a');
+                            let1 = Convert.ToChar(++letndx1);
+                        }
+                        else
+                        {
+                            let2 = Convert.ToChar(++letndx2);
+                        }
+                    }
+                }
                 var bytesHeader = dictHeader.GetBytes();
+                fs.Seek(0, SeekOrigin.Begin);
                 fs.Write(dictHeader.GetBytes(), 0, bytesHeader.Length);
             }
+            var xx = File.ReadAllBytes(fileName);
+            TestContext.WriteLine($"{fileName} dump HdrSize= {Marshal.SizeOf(dictHeader)}  (0x{Marshal.SizeOf(dictHeader):x8})");
+            TestContext.WriteLine(DumpBytes(xx));
+
             var that = ReadDictFromFile(fileName);
             Assert.IsTrue(dictHeader.Equals(that));
         }
@@ -135,8 +142,70 @@ namespace WordamentTests
                 var bytes = new byte[size];
                 var nbytes = fs.Read(bytes, 0, size);
                 var newheader = DictHeader.MakeHeaderFromBytes(bytes);
+
+                //var txt = fs.Read(bytes, 0, 10);
+                //var tt= System.Text.ASCIIEncoding.ASCII.GetString(bytes, 0,10);
                 return newheader;
             }
+        }
+
+
+        [TestMethod]
+        public void TestGetResources()
+        {
+            TestContext.WriteLine($"{TestContext.TestName}  {DateTime.Now.ToString("MM/dd/yy hh:mm:ss")}");
+            var x = Dictionary.Dictionary.GetResource();
+            TestContext.WriteLine(DumpBytes(x));
+                
+        }
+
+        public string DumpBytes(byte[] bytes, bool fIncludeCharRep = true)
+        {
+            StringBuilder sb = new StringBuilder();
+            var addr = 0;
+            var padLength = (16 - (bytes.Length % 16)) % 16;
+            sb.AppendLine($"padlen = {padLength}");
+            for (int i = 0; i < bytes.Length + padLength; i++, addr++)
+            {
+                if (i % 16 == 0) // beginning of new line
+                {
+                    sb.Append($"{addr:x8}  ");
+                }
+                else if (i % 8 == 0)
+                {
+                    sb.Append(" ");
+                }
+
+                var dat = i < bytes.Length ? bytes[i].ToString("x2") : "  ";
+                sb.Append($" {dat}");
+                if (i % 16 == 15) // we did the last on the line. Add the char rep
+                {
+                    if (fIncludeCharRep)
+                    {
+                        var charrep = string.Empty;
+                        for (int j = i - 15; j <= i; j++)
+                        {
+                            if (j < bytes.Length)
+                            {
+                                var val = j < bytes.Length ? bytes[j] : 32;
+                                var chr = Convert.ToChar(val);
+                                if (!char.IsSymbol(chr) && !char.IsLetterOrDigit(chr) && !char.IsPunctuation(chr) && chr != ' ')
+                                {
+                                    chr = '.';
+                                }
+                                charrep += chr;
+                            }
+                        }
+                        sb.AppendLine($"  {charrep}");
+                    }
+                    else
+                    {
+                        sb.AppendLine();
+                    }
+                }
+            }
+            return sb.ToString();
+
         }
     }
 }

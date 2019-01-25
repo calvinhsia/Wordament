@@ -6,7 +6,11 @@ using System.Threading.Tasks;
 
 namespace Dictionary
 {
-    public class Class1
+    public class Dictionary
     {
+        public static byte[] GetResource()
+        {
+            return Properties.Resources.dict1;
+        }
     }
 }
