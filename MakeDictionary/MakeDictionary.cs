@@ -46,6 +46,7 @@ namespace MakeDictionary
     internal struct DictHeader
     {
         public const byte escapeChar = 0xf;
+        public const byte EODChar = 0xff;
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 16)]
         public string tab1;
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 16)]

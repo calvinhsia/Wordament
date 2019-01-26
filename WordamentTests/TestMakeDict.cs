@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using MakeDictionary;
@@ -30,9 +31,7 @@ namespace WordamentTests
                 }
                 //            var fileName = @"C:\Users\calvinh\Source\Repos\Wordament\MakeDictionary\Resources\dict.bin";
                 var fileName = Path.Combine(Environment.CurrentDirectory, $@"dict{dictNum}.bin");
-                MakeBinFile(lstWords, fileName);
-
-
+                MakeBinFile(lstWords.Take(10000), fileName);
             }
 
 
@@ -55,7 +54,7 @@ namespace WordamentTests
             //Assert.Fail($"Got {cnt} words len= {sb.ToString().Length}");
 
         }
-        void MakeBinFile(List<string> words, string fileName)
+        void MakeBinFile(IEnumerable<string> words, string fileName)
         {
             if (File.Exists(fileName))
             {
@@ -104,6 +103,7 @@ namespace WordamentTests
                 void AddNib(byte nib)
                 {
                     Debug.Assert(nib < 16);
+                    //                    TestContext.WriteLine($"   Adding nib {curNibNdx} {nib}");
                     curNibNdx++;
                     if (!havePartialByte)
                     {
@@ -118,8 +118,12 @@ namespace WordamentTests
                 }
                 void addChar(char chr)
                 {
-                    var ndx = dictHeader.tab1.IndexOf(chr);
-                    if (ndx > 0)
+                    var ndx = 0;
+                    if (chr != 0)
+                    {
+                        ndx = dictHeader.tab1.IndexOf(chr);
+                    }
+                    if (ndx >= 0)
                     {
                         AddNib((byte)ndx);
                     }
@@ -143,7 +147,9 @@ namespace WordamentTests
                 //fs.Write(System.Text.ASCIIEncoding.ASCII.GetBytes(str), 0, str.Length);
                 foreach (var word in words)
                 {
+                    //                  TestContext.WriteLine($"Adding word {dictHeader.wordCount} {word}");
                     dictHeader.wordCount++;
+
                     // each word starts with the length to keep from the prior word. e.g. from "common" to "computer", the 1st 3 letters are the same, so lenToKeep = 3
                     // All the encoded data after the header 
                     // encoding an int length 
@@ -205,11 +211,19 @@ namespace WordamentTests
                 fs.Seek(0, SeekOrigin.Begin);
                 fs.Write(dictHeader.GetBytes(), 0, bytesHeader.Length);
             }
-            var xx = File.ReadAllBytes(fileName);
+
+
+            var dictBytes = File.ReadAllBytes(fileName);
             var wordSoFar2 = string.Empty;
-            int cnt = 1000;
             var nibBaseNdx = Marshal.SizeOf(dictHeader);
             var nibndx = 0;
+            for (int i = 0; i < 26; i++)
+            {
+                for (int j = 0; j < 26; j++)
+                {
+                    TestContext.WriteLine($"{Convert.ToChar(i + 65)} {Convert.ToChar(j + 65)} {dictHeader.nibPairPtr[i * 26 + j].nibbleOffset:x4}  {dictHeader.nibPairPtr[i * 26 + j].cnt}");
+                }
+            }
 
             byte partialNib = 0;
             var havePartialNib = false;
@@ -222,31 +236,69 @@ namespace WordamentTests
                 }
                 else
                 {
-                    partialNib = xx[nibBaseNdx + nibndx++];
-                    result = (byte)(partialNib >> 4);
-                    partialNib = (byte)(partialNib & 0xf);
+                    if (nibBaseNdx + nibndx / 2 < dictBytes.Length)
+                    {
+                        partialNib = dictBytes[nibBaseNdx + nibndx / 2];
+                        result = (byte)(partialNib >> 4);
+                        partialNib = (byte)(partialNib & 0xf);
+                    }
+                    else
+                    {
+                        result = DictHeader.EODChar;
+                    }
                 }
+                nibndx++;
                 havePartialNib = !havePartialNib;
+                //                TestContext.WriteLine($"  GetNextNib {nibndx} {result}");
                 return result;
             }
             var lenSoFar = 0;
-            while (cnt-- > 0)
+            while (true)
             {
-                byte nib;
+                byte nib = 0;
+                lenSoFar = 0;
                 while ((nib = GetNextNib()) == 0xf)
                 {
                     lenSoFar += nib;
                 }
+                if (nib == DictHeader.EODChar)
+                {
+                    TestContext.WriteLine($"Got EOD {nibndx}");
+                    break;
+                }
                 lenSoFar += nib;
+                if (lenSoFar < wordSoFar2.Length)
+                {
+                    wordSoFar2 = wordSoFar2.Substring(0, lenSoFar);
+                }
                 while ((nib = GetNextNib()) != 0)
                 {
-                    var newchar = (char)nib + 'a' - 1;
+                    char newchar;
+                    if (nib == DictHeader.escapeChar)
+                    {
+                        nib = GetNextNib();
+                        newchar = dictHeader.tab2[nib];
+                    }
+                    else
+                    {
+                        if (nib == DictHeader.EODChar)
+                        {
+                            TestContext.WriteLine($"GOT EODCHAR {nibndx:x2}");
+                            break;
+                        }
+                        newchar = dictHeader.tab1[nib];
+                    }
                     wordSoFar2 += newchar;
+                }
+                TestContext.WriteLine($"Got Word {nibndx:x0} {wordSoFar2}");
+                if (nib == DictHeader.EODChar)
+                {
+                    break;
                 }
             }
             TestContext.WriteLine($"{fileName} dump HdrSize= {Marshal.SizeOf(dictHeader)}  (0x{Marshal.SizeOf(dictHeader):x8})");
-            TestContext.WriteLine($"Entire dump len= {xx.Length}");
-            TestContext.WriteLine(DumpBytes(xx));
+            TestContext.WriteLine($"Entire dump len= {dictBytes.Length}");
+            TestContext.WriteLine(DumpBytes(dictBytes));
 
             var that = ReadDictHeaderFromFile(fileName);
             Assert.IsTrue(dictHeader.Equals(that));
