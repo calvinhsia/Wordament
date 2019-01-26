@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -51,10 +52,6 @@ namespace MakeDictionary
         public string tab1;
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 16)]
         public string tab2;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
-        public byte[] lookupTab1;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
-        public byte[] lookupTab2;
 
         [MarshalAs(UnmanagedType.I4)]
         public int wordCount; //total # of words in dictionary
@@ -107,11 +104,6 @@ namespace MakeDictionary
                 return false;
             if (this.wordCount != that.wordCount)
                 return false;
-            for (int i = 0; i < this.lookupTab1.Length; i++)
-            {
-                if (this.lookupTab1[i] != that.lookupTab1[i])
-                    return false;
-            }
             for (int i = 0; i < this.nibPairPtr.Length; i++)
             {
                 if (!this.nibPairPtr[i].Equals(that.nibPairPtr[i]))

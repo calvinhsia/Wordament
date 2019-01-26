@@ -18,11 +18,11 @@ namespace WordamentTests
         [TestMethod]
         public void TestMakedDict()
         {
-            TestContext.WriteLine($"{TestContext.TestName}  {DateTime.Now.ToString("MM/dd/yy hh:mm:ss")}");
+            Console.WriteLine($"{TestContext.TestName}  {DateTime.Now.ToString("MM/dd/yy hh:mm:ss")}");
             var rsrc = Dictionary.Properties.Resources.dict1;
-            TestContext.WriteLine($"Got resources size = {rsrc.Length}");
+            Console.WriteLine($"Got resources size = {rsrc.Length}");
 
-            for (uint dictNum = 2; dictNum <= 2; dictNum++)
+            for (uint dictNum = 1; dictNum < 2; dictNum++)
             {
                 var lstWords = new List<string>();
                 using (var dictWrapper = new OldDictWrapper(dictNum))
@@ -31,14 +31,14 @@ namespace WordamentTests
                 }
                 //            var fileName = @"C:\Users\calvinh\Source\Repos\Wordament\MakeDictionary\Resources\dict.bin";
                 var fileName = Path.Combine(Environment.CurrentDirectory, $@"dict{dictNum}.bin");
-                MakeBinFile(lstWords.Take(10000), fileName);
+                MakeBinFile(lstWords.Take(10000000), fileName);
             }
 
 
             //var mm = new MakeDictionary.MakeDictionary();
             //foreach (var tentry in mm.dictHeader.lookupTab1)
             //{
-            //    TestContext.WriteLine($"x {tentry}");
+            //    Console.WriteLine($"x {tentry}");
             //}
 
             //uint dictNum = 1;
@@ -49,7 +49,7 @@ namespace WordamentTests
             //{
             //    cnt++;
             //    sb.AppendLine(wrd);
-            //    TestContext.WriteLine($"{wrd}");
+            //    Console.WriteLine($"{wrd}");
             //}
             //Assert.Fail($"Got {cnt} words len= {sb.ToString().Length}");
 
@@ -64,29 +64,7 @@ namespace WordamentTests
             {
                 tab1 = " acdegilmnorstu", // A 0 in the nib stream indicates end of word, so the 0th entry isn't used: 15 is escape to next table
                 tab2 = " bfhjkpqvwxzy", // 0th entry isn't used
-                lookupTab1 = new byte[16],
-                lookupTab2 = new byte[16]
             };
-            void initTab(byte[] lookupTab, string data)
-            {
-                int ndx = 0;
-                foreach (var c in data)
-                {
-                    var b = Convert.ToByte(c);
-                    if (!char.IsLetter(c))
-                    {
-                        b = 0;
-                    }
-                    else
-                    {
-                        b -= 0x60; // a == 1, b == 2, etc
-                    }
-                    //var enc = Encoding.ASCII.GetBytes(new char[] { c });
-                    lookupTab[ndx++] = b;
-                }
-            }
-            initTab(dictHeader.lookupTab1, dictHeader.tab1);
-            initTab(dictHeader.lookupTab2, dictHeader.tab2);
             dictHeader.nibPairPtr = new DictHeaderNibbleEntry[26 * 26];
             var nibpairNdx = 0;
             var letndx1 = 97; // from 'a'
@@ -103,7 +81,7 @@ namespace WordamentTests
                 void AddNib(byte nib)
                 {
                     Debug.Assert(nib < 16);
-                    //                    TestContext.WriteLine($"   Adding nib {curNibNdx} {nib}");
+                    //                    Console.WriteLine($"   Adding nib {curNibNdx} {nib}");
                     curNibNdx++;
                     if (!havePartialByte)
                     {
@@ -147,8 +125,11 @@ namespace WordamentTests
                 //fs.Write(System.Text.ASCIIEncoding.ASCII.GetBytes(str), 0, str.Length);
                 foreach (var word in words)
                 {
-                    //                  TestContext.WriteLine($"Adding word {dictHeader.wordCount} {word}");
                     dictHeader.wordCount++;
+                    if (word == "compartmentalised")
+                    {
+                        "".ToString();
+                    }
 
                     // each word starts with the length to keep from the prior word. e.g. from "common" to "computer", the 1st 3 letters are the same, so lenToKeep = 3
                     // All the encoded data after the header 
@@ -167,12 +148,17 @@ namespace WordamentTests
                             break;
                         }
                     }
-                    while (nkeepSoFar > 15)
+                    var tempKeepSoFar = nkeepSoFar;
+                    while (tempKeepSoFar >= 15)
                     {
                         AddNib(15);
-                        nkeepSoFar -= 15;
+                        Console.WriteLine($"Long word {word}");
+                        tempKeepSoFar -= 15;
                     }
-                    AddNib((byte)nkeepSoFar);
+                    AddNib((byte)tempKeepSoFar);
+
+                    Console.WriteLine($"Adding word {dictHeader.wordCount,6} {nkeepSoFar,3:n0} {word.Length,3} {word}");
+
                     wordSofar = word;
                     for (int i = nkeepSoFar; i < word.Length; i++)
                     {
@@ -188,7 +174,7 @@ namespace WordamentTests
                     }
                     else
                     { // diff bucket
-                      //                    TestContext.WriteLine($"Add  {let1} {let2} {wordSofar} {curnibbleEntry}");
+                      //                    Console.WriteLine($"Add  {let1} {let2} {wordSofar} {curnibbleEntry}");
                         priorNibNdx = curNibNdx;
                         ++nibpairNdx;
                         if (let2 == 'z')
@@ -212,7 +198,6 @@ namespace WordamentTests
                 fs.Write(dictHeader.GetBytes(), 0, bytesHeader.Length);
             }
 
-
             var dictBytes = File.ReadAllBytes(fileName);
             var wordSoFar2 = string.Empty;
             var nibBaseNdx = Marshal.SizeOf(dictHeader);
@@ -221,7 +206,7 @@ namespace WordamentTests
             {
                 for (int j = 0; j < 26; j++)
                 {
-                    TestContext.WriteLine($"{Convert.ToChar(i + 65)} {Convert.ToChar(j + 65)} {dictHeader.nibPairPtr[i * 26 + j].nibbleOffset:x4}  {dictHeader.nibPairPtr[i * 26 + j].cnt}");
+                    Console.WriteLine($"{Convert.ToChar(i + 65)} {Convert.ToChar(j + 65)} {dictHeader.nibPairPtr[i * 26 + j].nibbleOffset:x4}  {dictHeader.nibPairPtr[i * 26 + j].cnt}");
                 }
             }
 
@@ -249,7 +234,7 @@ namespace WordamentTests
                 }
                 nibndx++;
                 havePartialNib = !havePartialNib;
-                //                TestContext.WriteLine($"  GetNextNib {nibndx} {result}");
+                //                Console.WriteLine($"  GetNextNib {nibndx} {result}");
                 return result;
             }
             var lenSoFar = 0;
@@ -263,7 +248,7 @@ namespace WordamentTests
                 }
                 if (nib == DictHeader.EODChar)
                 {
-                    TestContext.WriteLine($"Got EOD {nibndx}");
+                    Console.WriteLine($"Got EOD {nibndx}");
                     break;
                 }
                 lenSoFar += nib;
@@ -283,22 +268,26 @@ namespace WordamentTests
                     {
                         if (nib == DictHeader.EODChar)
                         {
-                            TestContext.WriteLine($"GOT EODCHAR {nibndx:x2}");
+                            Console.WriteLine($"GOT EODCHAR {nibndx:x2}");
                             break;
                         }
                         newchar = dictHeader.tab1[nib];
                     }
                     wordSoFar2 += newchar;
                 }
-                TestContext.WriteLine($"Got Word {nibndx:x0} {wordSoFar2}");
+                if (wordSoFar2=="compartmentalised")
+                {
+                    "".ToString();
+                }
+                Console.WriteLine($"Got Word {nibndx:x0} {lenSoFar,2}  {wordSoFar2.Length,3} {wordSoFar2}");
                 if (nib == DictHeader.EODChar)
                 {
                     break;
                 }
             }
-            TestContext.WriteLine($"{fileName} dump HdrSize= {Marshal.SizeOf(dictHeader)}  (0x{Marshal.SizeOf(dictHeader):x8})");
-            TestContext.WriteLine($"Entire dump len= {dictBytes.Length}");
-            TestContext.WriteLine(DumpBytes(dictBytes));
+            Console.WriteLine($"{fileName} dump HdrSize= {Marshal.SizeOf(dictHeader)}  (0x{Marshal.SizeOf(dictHeader):x8})");
+            Console.WriteLine($"Entire dump len= {dictBytes.Length}");
+            Console.WriteLine(DumpBytes(dictBytes));
 
             var that = ReadDictHeaderFromFile(fileName);
             Assert.IsTrue(dictHeader.Equals(that));
@@ -320,14 +309,12 @@ namespace WordamentTests
             }
         }
 
-
         [TestMethod]
         public void TestGetResources()
         {
-            TestContext.WriteLine($"{TestContext.TestName}  {DateTime.Now.ToString("MM/dd/yy hh:mm:ss")}");
+            Console.WriteLine($"{TestContext.TestName}  {DateTime.Now.ToString("MM/dd/yy hh:mm:ss")}");
             var x = Dictionary.Dictionary.GetResource();
-            TestContext.WriteLine(DumpBytes(x));
-
+            Console.WriteLine(DumpBytes(x));
         }
 
         public string DumpBytes(byte[] bytes, bool fIncludeCharRep = true)
@@ -376,7 +363,6 @@ namespace WordamentTests
                 }
             }
             return sb.ToString();
-
         }
     }
 }
