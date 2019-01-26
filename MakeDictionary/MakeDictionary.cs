@@ -9,12 +9,15 @@ using System.Threading.Tasks;
 
 namespace MakeDictionary
 {
-    //ptr, cnt into encoded compressed dictionary data
+    //bucket: ptr, cnt into encoded compressed dictionary data
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     struct DictHeaderNibbleEntry
     {
         // offset of nibble
         // to get offset from dict base, divide by 2. If odd, skip a nibble
+        // There are 26*26 of these buckets, for each combination of 1st letter, 2nd letter, like aa, ab, ac...
+        // each offset points to a length nibble, which is 1 for the minor transitions bb=>bc, but 0, for major transitions, cz=>da
+        // this way, scanning through the data from one bucket to another is seamless.
         public int nibbleOffset;
         // # of entries in this bucket (used for RandWord
         public int cnt;
@@ -42,17 +45,19 @@ namespace MakeDictionary
     [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = CharSet.Ansi)]
     internal struct DictHeader
     {
+        public const byte escapeChar = 0xf;
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 16)]
         public string tab1;
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 16)]
         public string tab2;
-        [MarshalAs(UnmanagedType.I4)]
-        public int wordCount; //total # of words in dictionary
-
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
         public byte[] lookupTab1;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
         public byte[] lookupTab2;
+
+        [MarshalAs(UnmanagedType.I4)]
+        public int wordCount; //total # of words in dictionary
+
         /// <summary>
         /// 26*26 array of DictHeaderNibbleEntry 
         /// AA, AB, AC... BA,BB,BC.... the first one points to e.g. "aardvark", next to "abandon", etc.
@@ -144,7 +149,7 @@ namespace MakeDictionary
             }
         }
 
-        void oldstuff()
+        void Oldstuff()
         {
             //var assembly = System.Reflection.IntrospectionExtensions.GetTypeInfo(typeof(MakeDictionary)).Assembly;
             //System.IO.Stream stream = assembly.GetManifestResourceStream(typeof(MakeDictionary), "dict.bin"); // 150M works
@@ -174,9 +179,9 @@ namespace MakeDictionary
             {
                 Marshal.WriteByte(ptr + n++, (byte)i);
             }
-            DictHeader ss;
-            var xxx = Marshal.PtrToStructure<DictHeader>(mem);
-            Marshal.FreeCoTaskMem(mem);
+            //DictHeader ss;
+            //var xxx = Marshal.PtrToStructure<DictHeader>(mem);
+            //Marshal.FreeCoTaskMem(mem);
 
             //for (int i = 0; i <100; i++)
             //{
