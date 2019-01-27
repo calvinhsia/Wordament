@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DictionaryData;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -10,116 +11,6 @@ using System.Threading.Tasks;
 
 namespace MakeDictionary
 {
-    //bucket: ptr, cnt into encoded compressed dictionary data
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    struct DictHeaderNibbleEntry
-    {
-        // offset of nibble
-        // to get offset from dict base, divide by 2. If odd, skip a nibble
-        // There are 26*26 of these buckets, for each combination of 1st letter, 2nd letter, like aa, ab, ac...
-        // each offset points to a length nibble, which is 1 for the minor transitions bb=>bc, but 0, for major transitions, cz=>da
-        // this way, scanning through the data from one bucket to another is seamless.
-        public int nibbleOffset;
-        // # of entries in this bucket (used for RandWord
-        public short cnt;
-        public override string ToString()
-        {
-            return $"{nibbleOffset} {cnt}";
-        }
-        public override bool Equals(object obj)
-        {
-            var that = (DictHeaderNibbleEntry)obj;
-            if (this.cnt != that.cnt || this.nibbleOffset != that.nibbleOffset)
-            {
-                return false;
-            }
-            return base.Equals(obj);
-        }
-        public override int GetHashCode()
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    // Encoded, compressed dictionary
-    // data is a nibble (4 bits) 0-15.
-    [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = CharSet.Ansi)]
-    internal struct DictHeader
-    {
-        public const byte escapeChar = 0xf;
-        public const byte EODChar = 0xff;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 16)]
-        public string tab1;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 16)]
-        public string tab2;
-
-        [MarshalAs(UnmanagedType.I4)]
-        public int wordCount; //total # of words in dictionary
-
-        /// <summary>
-        /// 26*26 array of DictHeaderNibbleEntry 
-        /// AA, AB, AC... BA,BB,BC.... the first one points to e.g. "aardvark", next to "abandon", etc.
-        /// </summary>
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 26 * 26)]
-        public DictHeaderNibbleEntry[] nibPairPtr;
-        //[MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.I4, SizeConst =100)]
-        //public fixed int data[100];
-
-        public byte[] GetBytes()
-        {
-            var size = Marshal.SizeOf<DictHeader>();
-            var ptr = Marshal.AllocHGlobal(size);
-            var arr = new byte[size];
-            Marshal.StructureToPtr<DictHeader>(this, ptr, fDeleteOld: false);
-            Marshal.Copy(ptr, arr, 0, size);
-            Marshal.FreeHGlobal(ptr);
-            return arr;
-        }
-
-        public static DictHeader MakeHeaderFromBytes(byte[] bytes)
-        {
-            var size = Marshal.SizeOf<DictHeader>();
-            var ptr = Marshal.AllocHGlobal(size);
-            Marshal.Copy(bytes, 0, ptr, size);
-            var x = Marshal.PtrToStructure<DictHeader>(ptr);
-            Marshal.FreeHGlobal(ptr);
-            return x;
-        }
-        // override object.Equals
-        public override bool Equals(object obj)
-        {
-            //       
-            // See the full list of guidelines at
-            //   http://go.microsoft.com/fwlink/?LinkID=85237  
-            // and also the guidance for operator== at
-            //   http://go.microsoft.com/fwlink/?LinkId=85238
-            //
-
-            if (obj == null || GetType() != obj.GetType())
-            {
-                return false;
-            }
-            var that = (DictHeader)obj;
-            if (this.tab1 != that.tab1)
-                return false;
-            if (this.wordCount != that.wordCount)
-                return false;
-            for (int i = 0; i < this.nibPairPtr.Length; i++)
-            {
-                if (!this.nibPairPtr[i].Equals(that.nibPairPtr[i]))
-                    return false;
-            }
-
-            return true;
-        }
-
-        // override object.GetHashCode
-        public override int GetHashCode()
-        {
-            // TODO: write your implementation of GetHashCode() here
-            throw new NotImplementedException();
-        }
-    }
 
     /// <summary>
     /// Convert from the old STA COM based C++ dictionary to a C# based
@@ -269,87 +160,21 @@ namespace MakeDictionary
             }
         }
 
-        public static List<string> ReadDict(string fileName)
+        public static byte[] DumpDict(string fileName)
         {
-            var lstWords = new List<string>();
             var dictBytes = File.ReadAllBytes(fileName);
             var dictHeader = DictHeader.MakeHeaderFromBytes(dictBytes);
-            var wordSoFar = string.Empty;
-            var nibBaseNdx = Marshal.SizeOf(dictHeader);
-            var nibndx = 0;
-            byte partialNib = 0;
-            var havePartialNib = false;
-            byte GetNextNib()
+            Console.WriteLine($"{fileName} dump HdrSize= {Marshal.SizeOf(dictHeader)}  (0x{Marshal.SizeOf(dictHeader):x8})");
+            Console.WriteLine($"Entire dump len= {dictBytes.Length}");
+
+            for (int i = 0; i < 26; i++)
             {
-                byte result;
-                if (havePartialNib)
+                for (int j = 0; j < 26; j++)
                 {
-                    result = partialNib;
+                    Console.WriteLine($"{Convert.ToChar(i + 65)} {Convert.ToChar(j + 65)} {dictHeader.nibPairPtr[i * 26 + j].nibbleOffset:x4}  {dictHeader.nibPairPtr[i * 26 + j].cnt}");
                 }
-                else
-                {
-                    var ndx = nibBaseNdx + nibndx / 2;
-                    if (ndx < dictBytes.Length)
-                    {
-                        partialNib = dictBytes[ndx];
-                        result = (byte)(partialNib >> 4);
-                        partialNib = (byte)(partialNib & 0xf);
-                    }
-                    else
-                    {
-                        result = DictHeader.EODChar;
-                    }
-                }
-                nibndx++;
-                havePartialNib = !havePartialNib;
-                //                Console.WriteLine($"  GetNextNib {nibndx} {result}");
-                return result;
             }
-            while (true)
-            {
-                byte nib = 0;
-                var lenSoFar = 0;
-                while ((nib = GetNextNib()) == 0xf)
-                {
-                    lenSoFar += nib;
-                }
-                if (nib == DictHeader.EODChar)
-                {
-                    Console.WriteLine($"Got EOD {nibndx}");
-                    break;
-                }
-                lenSoFar += nib;
-                if (lenSoFar < wordSoFar.Length)
-                {
-                    wordSoFar = wordSoFar.Substring(0, lenSoFar);
-                }
-                while ((nib = GetNextNib()) != 0)
-                {
-                    char newchar;
-                    if (nib == DictHeader.escapeChar)
-                    {
-                        nib = GetNextNib();
-                        newchar = dictHeader.tab2[nib];
-                    }
-                    else
-                    {
-                        if (nib == DictHeader.EODChar)
-                        {
-                            Console.WriteLine($"GOT EODCHAR {nibndx:x2}");
-                            break;
-                        }
-                        newchar = dictHeader.tab1[nib];
-                    }
-                    wordSoFar += newchar;
-                }
-                if (nib == DictHeader.EODChar)
-                {
-                    break;
-                }
-                lstWords.Add(wordSoFar);
-                Console.WriteLine($"Got Word  {lstWords.Count,6} {nibndx:x0} {lenSoFar,2}  {wordSoFar.Length,3} {wordSoFar}");
-            }
-            return lstWords;
+            return dictBytes;
         }
     }
 

@@ -16,52 +16,70 @@ namespace WordamentTests
         public TestContext TestContext { get; set; }
 
         [TestMethod]
+        public void TestDictIsWord()
+        {
+            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small);
+            Assert.IsTrue(dict.IsWord("Abandon"));
+            Assert.IsTrue(dict.IsWord("contemporary"));
+            Assert.IsTrue(dict.IsWord("police"));
+            Assert.IsFalse(dict.IsWord("pollice"));
+        }
+
+        [TestMethod]
+        public void TestRandWord()
+        {
+            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, randSeed: 1);
+            var r = dict.RandomWord();
+            Console.WriteLine($"rand {r}");
+
+        }
+
+        [TestMethod]
         public void TestMakedDict()
         {
             Console.WriteLine($"{TestContext.TestName}  {DateTime.Now.ToString("MM/dd/yy hh:mm:ss")}");
-            var rsrc = Dictionary.Properties.Resources.dict1;
-            Console.WriteLine($"Got resources size = {rsrc.Length}  {Dictionary.Properties.Resources.dict2.Length}");
 
-            for (uint dictNum = 1; dictNum < 2; dictNum++)
+            for (uint dictNum = 1; dictNum <= 2; dictNum++)
             {
                 var lstWords = new List<string>();
                 using (var dictWrapper = new OldDictWrapper(dictNum))
                 {
                     lstWords.AddRange(dictWrapper.GetWords("*"));
                 }
+                Console.WriteLine($"DictSect {dictNum} NumWords = {lstWords.Count}");
                 //            var fileName = @"C:\Users\calvinh\Source\Repos\Wordament\MakeDictionary\Resources\dict.bin";
                 var fileName = Path.Combine(Environment.CurrentDirectory, $@"dict{dictNum}.bin");
                 MakeDictionary.MakeDictionary.MakeBinFile(lstWords.Take(10000000), fileName);
 
+                Console.WriteLine($"DictSect {dictNum}  Dictionary NibTable");
                 var dictBytes = File.ReadAllBytes(fileName);
-                var dictHeader = DictHeader.MakeHeaderFromBytes(dictBytes);
-                Console.WriteLine($"{fileName} dump HdrSize= {Marshal.SizeOf(dictHeader)}  (0x{Marshal.SizeOf(dictHeader):x8})");
-                Console.WriteLine($"Entire dump len= {dictBytes.Length}");
+                MakeDictionary.MakeDictionary.DumpDict(fileName);
+
+                Console.WriteLine($"DictSect {dictNum}  Raw Bytes");
                 Console.WriteLine(DumpBytes(dictBytes));
 
-                for (int i = 0; i < 26; i++)
-                {
-                    for (int j = 0; j < 26; j++)
-                    {
-                        Console.WriteLine($"{Convert.ToChar(i + 65)} {Convert.ToChar(j + 65)} {dictHeader.nibPairPtr[i * 26 + j].nibbleOffset:x4}  {dictHeader.nibPairPtr[i * 26 + j].cnt}");
-                    }
-                }
 
-                var newlstWord = MakeDictionary.MakeDictionary.ReadDict(fileName);
-                Assert.AreEqual(newlstWord.Count, lstWords.Count());
+                var dict = new Dictionary.Dictionary((Dictionary.DictionaryType)dictNum);
+                //var newlstWord = new List<string>();
+                var newlstWord = dict.FindMatch("*");
+                //newlstWord.Add(result.Word);
+                //while (true)
+                //{
+                //    result = result.GetNextResult();
+                //    if (result == null)
+                //    {
+                //        break;
+                //    }
+                //    newlstWord.Add(result.Word);
+                //}
+
+                //                var newlstWord = DictionaryData.DictionaryUtil.ReadDict(dictBytes);
+                Assert.AreEqual(newlstWord.Count(), lstWords.Count());
                 for (int i = 0; i < lstWords.Count; i++)
                 {
                     Assert.AreEqual(lstWords[i], newlstWord[i]);
                 }
             }
-        }
-
-        [TestMethod]
-        public void TestGetResources()
-        {
-            Console.WriteLine($"{TestContext.TestName}  {DateTime.Now.ToString("MM/dd/yy hh:mm:ss")}");
-            var x = Dictionary.Dictionary.GetResource();
-            Console.WriteLine(DumpBytes(x));
         }
 
         public string DumpBytes(byte[] bytes, bool fIncludeCharRep = true)

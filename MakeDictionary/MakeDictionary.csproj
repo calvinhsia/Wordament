@@ -42,6 +42,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Dictionary\DictionaryData.cs">
+      <Link>DictionaryData.cs</Link>
+    </Compile>
     <Compile Include="MakeDictionary.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
