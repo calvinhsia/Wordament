@@ -20,7 +20,7 @@ namespace WordamentTests
         {
             Console.WriteLine($"{TestContext.TestName}  {DateTime.Now.ToString("MM/dd/yy hh:mm:ss")}");
             var rsrc = Dictionary.Properties.Resources.dict1;
-            Console.WriteLine($"Got resources size = {rsrc.Length}");
+            Console.WriteLine($"Got resources size = {rsrc.Length}  {Dictionary.Properties.Resources.dict2.Length}");
 
             for (uint dictNum = 1; dictNum < 2; dictNum++)
             {
@@ -53,42 +53,6 @@ namespace WordamentTests
                 {
                     Assert.AreEqual(lstWords[i], newlstWord[i]);
                 }
-            }
-
-
-            //var mm = new MakeDictionary.MakeDictionary();
-            //foreach (var tentry in mm.dictHeader.lookupTab1)
-            //{
-            //    Console.WriteLine($"x {tentry}");
-            //}
-
-            //uint dictNum = 1;
-            //int cnt = 0;
-            //var x = new MakeDictionary.OldDictWrapper(dictNum);
-            //var sb = new StringBuilder();
-            //foreach (var wrd in  x.GetWords("*"))
-            //{
-            //    cnt++;
-            //    sb.AppendLine(wrd);
-            //    Console.WriteLine($"{wrd}");
-            //}
-            //Assert.Fail($"Got {cnt} words len= {sb.ToString().Length}");
-
-        }
-
-
-        DictHeader ReadDictHeaderFromFile(string fileName)
-        {
-            using (var fs = File.OpenRead(fileName))
-            {
-                var size = Marshal.SizeOf<DictHeader>();
-                var bytes = new byte[size];
-                var nbytes = fs.Read(bytes, 0, size);
-                var newheader = DictHeader.MakeHeaderFromBytes(bytes);
-
-                //var txt = fs.Read(bytes, 0, 10);
-                //var tt= System.Text.ASCIIEncoding.ASCII.GetString(bytes, 0,10);
-                return newheader;
             }
         }
 
