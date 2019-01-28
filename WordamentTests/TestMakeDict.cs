@@ -50,9 +50,11 @@ namespace WordamentTests
         public void TestRandWord()
         {
             var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, randSeed: 1);
-            var r = dict.RandomWord();
-            Console.WriteLine($"rand {r}");
-
+            for (int i = 0; i < 1000; i++)
+            {
+                var r = dict.RandomWord();
+                Console.WriteLine($"rand {r}");
+            }
         }
 
         [TestMethod]
@@ -60,7 +62,7 @@ namespace WordamentTests
         {
             Console.WriteLine($"{TestContext.TestName}  {DateTime.Now.ToString("MM/dd/yy hh:mm:ss")}");
 
-            for (uint dictNum = 2; dictNum <= 2; dictNum++)
+            for (uint dictNum = 1; dictNum <= 2; dictNum++)
             {
                 var lstWords = GetOldDictWords(dictNum);
                 Console.WriteLine($"DictSect {dictNum} NumWords = {lstWords.Count}");

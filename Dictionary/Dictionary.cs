@@ -152,7 +152,7 @@ namespace Dictionary
                                 isWord = true;
                                 break;
                             }
-                            else if (cmp >0)
+                            else if (cmp > 0)
                             {
                                 break;
                             }
@@ -164,9 +164,6 @@ namespace Dictionary
         }
         void SetDictPosition(string word)
         {
-            _wordSoFar = word.Substring(0,2);
-            _havePartialNib = false;
-
             if (!string.IsNullOrEmpty(word))
             {
                 var let1 = word[0] - 97;
@@ -175,11 +172,17 @@ namespace Dictionary
                 {
                     let2 = word[1] - 97;
                 }
-                _nibndx = _dictHeader.nibPairPtr[let1 * 26 + let2].nibbleOffset;
-                if ((int)(_nibndx & 1)>0)
-                {
-                    GetNextNib();
-                }
+                SetDictPosition(let1, let2);
+            }
+        }
+        void SetDictPosition(int let1, int let2)
+        {
+            _havePartialNib = false;
+            _nibndx = _dictHeader.nibPairPtr[let1 * 26 + let2].nibbleOffset;
+            _wordSoFar = new string(new[] { Convert.ToChar(let1 + 97), Convert.ToChar(let2 + 97) });
+            if ((int)(_nibndx & 1) > 0)
+            {
+                GetNextNib();
             }
         }
         public string GetNextWord()
@@ -227,7 +230,55 @@ namespace Dictionary
         }
         public string RandomWord()
         {
-            return "";
+
+            /*
+	nRand = (int)(m_nDictionaryTotalWordCount * (((double)rand()) / RAND_MAX));
+	int *WordCounts = (int *)(m_DictBase + (26*26+1)*4);
+
+	for (i =fGotit=ndx= 0 ; i < 26 ; i++) {
+		for (j = 0 ; j<26 ; j++) {
+			if (nCnt + WordCounts[ndx] < nRand) {
+				nCnt+= WordCounts[ndx];
+			} else {
+				fGotit=1;
+				break;
+			}
+			ndx++;
+		}
+		if (fGotit)
+			break;
+	}
+	StartDict(97+i,97+j);
+	while (nCnt < nRand) {
+		nRand--;
+		GetNextWord();
+	}
+             * */
+            var rnum = _random.Next(_dictHeader.wordCount);
+            var fGotIt = false;
+            int sum = 0, i = 0, j = 0;
+            for (i = 0; i < 26 && !fGotIt; i++)
+            {
+                for (j = 0; j < 26; j++)
+                {
+                    var cnt = _dictHeader.nibPairPtr[i * 26 + j].cnt;
+                    if (sum + cnt < rnum)
+                    {
+                        sum += cnt;
+                    }
+                    else
+                    {
+                        fGotIt = true;
+                        SetDictPosition(i, j);
+                        while (sum++ < rnum)
+                        {
+                            GetNextWord();
+                        }
+                        return GetNextWord();
+                    }
+                }
+            }
+            throw new InvalidOperationException();
         }
 
         public DictionaryResult GetNextWord2(int nibOffset)
