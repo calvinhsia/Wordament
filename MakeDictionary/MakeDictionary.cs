@@ -22,6 +22,7 @@ namespace MakeDictionary
         {
             // output: "C:\Users\calvinh\Source\Repos\Wordament\WordamentTests\bin\Debug\dict1.bin"
             // xfer "C:\Users\calvinh\Source\Repos\Wordament\Dictionary\Resources\dict1.bin"
+            // XCOPY /dy C:\Users\calvinh\Source\Repos\Wordament\WordamentTests\bin\Debug\*.bin C:\Users\calvinh\Source\Repos\Wordament\Dictionary\Resources
             if (File.Exists(fileName))
             {
                 File.Delete(fileName);
@@ -33,19 +34,18 @@ namespace MakeDictionary
             };
             dictHeader.nibPairPtr = new DictHeaderNibbleEntry[26 * 26];
             var nibpairNdx = 0;
-            var letndx1 = 97; // from 'a'
-            var letndx2 = 97; // from 'a'
-            var let1 = Convert.ToChar(letndx1);
-            var let2 = Convert.ToChar(letndx2);
+            var let1 = 'a';
+            var let2 = 'a';
             var wordSofar = string.Empty;
             var curNibNdx = 0;
-            var priorNibNdx = 0;
+            var nibsAdded = new List<byte>();
             using (var fs = File.Open(fileName, FileMode.CreateNew))
             {
                 var havePartialByte = false;
                 byte partialByte = 0;
                 void AddNib(byte nib)
                 {
+                    nibsAdded.Add(nib);
                     Debug.Assert(nib < 16);
                     //                    Console.WriteLine($"   Adding nib {curNibNdx} {nib}");
                     curNibNdx++;
@@ -92,11 +92,24 @@ namespace MakeDictionary
                 foreach (var word in words)
                 {
                     dictHeader.wordCount++;
+                    var curWordNdx = curNibNdx;
+                    if (word[0] == let1 && (word.Length < 2 || word[1] == let2))
+                    {
+                        // same bucket
+                        dictHeader.nibPairPtr[nibpairNdx].cnt++;
+                    }
+                    else
+                    { // diff bucket
+                        let1 = word[0];
+                        let2 = word.Length > 1 ? word[1] : 'a';
+                        nibpairNdx = (let1 - 97) * 26 + let2 - 97;
+                        dictHeader.nibPairPtr[nibpairNdx].nibbleOffset = curNibNdx;
+                        Console.WriteLine($"AddBucket  {let1} {let2} {wordSofar} {curNibNdx:x4}");
+                    }
                     // each word starts with the length to keep from the prior word. e.g. from "common" to "computer", the 1st 3 letters are the same, so lenToKeep = 3
                     // All the encoded data after the header 
                     // encoding an int length 
                     // So the length consists of a nib indicating how many chars to keep from prior word. If that nibPrior == 15, then the keep = nibPrior + the next nib
-
                     var nkeepSoFar = 0;
                     for (int i = 0; i < wordSofar.Length; i++)
                     {
@@ -118,8 +131,6 @@ namespace MakeDictionary
                     }
                     AddNib((byte)tempKeepSoFar);
 
-                    Console.WriteLine($"Adding word {dictHeader.wordCount,6} {nkeepSoFar,3:n0} {word.Length,3} {word}");
-
                     wordSofar = word;
                     for (int i = nkeepSoFar; i < word.Length; i++)
                     {
@@ -127,28 +138,14 @@ namespace MakeDictionary
                     }
                     addChar((char)0);// indicate EndOfWord
 
-                    if (word[0] == let1 && (word.Length < 2 || word[1] == let2))
+                    var strNibsAdded = string.Empty;
+                    foreach (var nib in nibsAdded)
                     {
-                        // same bucket
-                        dictHeader.nibPairPtr[nibpairNdx].cnt++;
-                        dictHeader.nibPairPtr[nibpairNdx].nibbleOffset = priorNibNdx;
+                        strNibsAdded += $" {nib:x}";
                     }
-                    else
-                    { // diff bucket
-                      //                    Console.WriteLine($"Add  {let1} {let2} {wordSofar} {curnibbleEntry}");
-                        priorNibNdx = curNibNdx;
-                        ++nibpairNdx;
-                        if (let2 == 'z')
-                        {
-                            let2 = 'a';
-                            letndx2 = Convert.ToInt32('a');
-                            let1 = Convert.ToChar(++letndx1);
-                        }
-                        else
-                        {
-                            let2 = Convert.ToChar(++letndx2);
-                        }
-                    }
+                    Console.WriteLine($"Adding word {dictHeader.wordCount,6} {curWordNdx,5:x4} {nkeepSoFar,3:n0} {word.Length,3} {word} {strNibsAdded}");
+                    nibsAdded.Clear();
+
                 }
                 if (havePartialByte)
                 {

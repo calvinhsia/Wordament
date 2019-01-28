@@ -18,8 +18,29 @@ namespace WordamentTests
         [TestMethod]
         public void TestDictIsWord()
         {
+            var lstOldWords = GetOldDictWords(2);
             var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small);
+
+            var w=dict.IsWord("our");
+            Assert.IsTrue(w);
+            foreach (var word in lstOldWords)
+            {
+                if (word.Length > 1)
+                {
+                    //Assert.IsTrue(dict.IsWord(word), $"{word}");
+                    Console.WriteLine($"{dict.IsWord(word)} {word}");
+                }
+            }
+
             Assert.IsTrue(dict.IsWord("Abandon"));
+            var sentence = "four score and seven years ago our fathers brought forth on this continent a new nation conceived in liberty and dedicated to the proposition that all men are created equal";
+
+            foreach (var wrd in sentence.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                Assert.IsTrue(dict.IsWord(wrd), $"{wrd}");
+                Assert.IsFalse(dict.IsWord("dd" + wrd), $"{wrd}");
+            }
+
             Assert.IsTrue(dict.IsWord("contemporary"));
             Assert.IsTrue(dict.IsWord("police"));
             Assert.IsFalse(dict.IsWord("pollice"));
@@ -39,13 +60,9 @@ namespace WordamentTests
         {
             Console.WriteLine($"{TestContext.TestName}  {DateTime.Now.ToString("MM/dd/yy hh:mm:ss")}");
 
-            for (uint dictNum = 1; dictNum <= 2; dictNum++)
+            for (uint dictNum = 2; dictNum <= 2; dictNum++)
             {
-                var lstWords = new List<string>();
-                using (var dictWrapper = new OldDictWrapper(dictNum))
-                {
-                    lstWords.AddRange(dictWrapper.GetWords("*"));
-                }
+                var lstWords = GetOldDictWords(dictNum);
                 Console.WriteLine($"DictSect {dictNum} NumWords = {lstWords.Count}");
                 //            var fileName = @"C:\Users\calvinh\Source\Repos\Wordament\MakeDictionary\Resources\dict.bin";
                 var fileName = Path.Combine(Environment.CurrentDirectory, $@"dict{dictNum}.bin");
@@ -80,6 +97,16 @@ namespace WordamentTests
                     Assert.AreEqual(lstWords[i], newlstWord[i]);
                 }
             }
+        }
+
+        private List<string> GetOldDictWords(uint dictNum)
+        {
+            var lstWords = new List<string>();
+            using (var dictWrapper = new OldDictWrapper(dictNum))
+            {
+                lstWords.AddRange(dictWrapper.GetWords("*"));
+            }
+            return lstWords;
         }
 
         public string DumpBytes(byte[] bytes, bool fIncludeCharRep = true)
