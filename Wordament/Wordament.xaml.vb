@@ -3,7 +3,7 @@ Imports System.ComponentModel
 Imports System.Windows.Threading
 Imports System.Threading
 
-Class MainWindow
+Class WordamentWindow
     '.......................................... A  B  C  D  E  F  G  H  I  J   K  L  M  N  O  P  Q   R  S  T  U  V  W  X  Y  Z
     Public Shared _LetterValues() As Integer = {2, 5, 3, 3, 1, 5, 4, 4, 2, 10, 6, 3, 2, 2, 2, 4, 12, 2, 2, 2, 2, 4, 6, 9, 5, 8}
     Public Shared _Random As Random
@@ -242,7 +242,7 @@ Class MainWindow
             )
         _pnl.Children.Add(
             New ListView With {
-                .ItemsSource = MainWindow._LetterValues,
+                .ItemsSource = WordamentWindow._LetterValues,
                 .ToolTip = "Points per letter"}
             )
         _pnl.Children.Add(
