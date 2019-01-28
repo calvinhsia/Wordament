@@ -16,12 +16,55 @@ namespace WordamentTests
         public TestContext TestContext { get; set; }
 
         [TestMethod]
+        public void TestPerf()
+        {
+            var oldDict = new OldDictWrapper(1);
+            var newdict = new Dictionary.Dictionary(Dictionary.DictionaryType.Large, randSeed: 0);
+            var sw = new Stopwatch();
+            sw.Start();
+            var nCnt = 100000;
+            for (int i = 0; i < nCnt; i++)
+            {
+                var r = oldDict.RandWord(0);
+            }
+            Console.WriteLine($"Olddict {sw.Elapsed.TotalSeconds}");
+            sw.Restart();
+            for (int i = 0; i < nCnt; i++)
+            {
+                var r = newdict.RandomWord();
+            }
+            Console.WriteLine($"Newdict {sw.Elapsed.TotalSeconds}");
+        }
+
+        [TestMethod]
+        public void TestPerfForTrace()
+        {
+            var oldDict = new OldDictWrapper(1);
+            var newdict = new Dictionary.Dictionary(Dictionary.DictionaryType.Large, randSeed: 0);
+            var sw = new Stopwatch();
+            sw.Start();
+            var nCnt = 100000;
+            //for (int i = 0; i < nCnt; i++)
+            //{
+            //    var r = oldDict.RandWord(0);
+            //}
+            //Console.WriteLine($"Olddict {sw.Elapsed.TotalSeconds}");
+            sw.Restart();
+            for (int i = 0; i < nCnt; i++)
+            {
+                var r = newdict.RandomWord();
+            }
+            Console.WriteLine($"Newdict {sw.Elapsed.TotalSeconds}");
+
+        }
+
+        [TestMethod]
         public void TestDictIsWord()
         {
             var lstOldWords = GetOldDictWords(2);
             var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small);
 
-            var w=dict.IsWord("our");
+            var w = dict.IsWord("our");
             Assert.IsTrue(w);
             foreach (var word in lstOldWords)
             {

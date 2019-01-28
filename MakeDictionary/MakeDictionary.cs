@@ -203,6 +203,10 @@ namespace MakeDictionary
                 yield return wrd;
             }
         }
+        public string RandWord(int seed)
+        {
+            return _dict.RandWord(seed);
+        }
 
         public void Dispose()
         {

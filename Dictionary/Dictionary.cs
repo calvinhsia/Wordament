@@ -38,7 +38,7 @@ namespace Dictionary
             }
             else
             {
-                var ndx = Marshal.SizeOf(dictionary._dictHeader) + nibndx / 2;
+                var ndx = Marshal.SizeOf<DictHeader>() + nibndx / 2;
                 if (ndx < dictionary._dictBytes.Length)
                 {
                     partialNib = dictionary._dictBytes[ndx];
@@ -71,6 +71,7 @@ namespace Dictionary
     public class Dictionary
     {
         internal DictHeader _dictHeader;
+        internal int _dictHeaderSize;
         internal DictionaryType _dictionaryType;
         internal byte[] _dictBytes;
         internal Random _random;
@@ -96,6 +97,7 @@ namespace Dictionary
             }
             _random = new Random(randSeed);
             _dictHeader = DictionaryData.DictHeader.MakeHeaderFromBytes(_dictBytes);
+            _dictHeaderSize = Marshal.SizeOf<DictHeader>();
         }
         public List<string> FindMatch(string strMatch)
         {
@@ -203,6 +205,7 @@ namespace Dictionary
             {
                 _wordSoFar = _wordSoFar.Substring(0, lenSoFar);
             }
+            var sb = new StringBuilder(_wordSoFar);
             while ((nib = GetNextNib()) != 0)
             {
                 char newchar;
@@ -220,8 +223,9 @@ namespace Dictionary
                     }
                     newchar = _dictHeader.tab1[nib];
                 }
-                _wordSoFar += newchar;
+                sb.Append(newchar);
             }
+            _wordSoFar = sb.ToString();
             if (nib == DictHeader.EOFChar)
             {
                 return string.Empty;
@@ -310,7 +314,7 @@ namespace Dictionary
             }
             else
             {
-                var ndx = Marshal.SizeOf(_dictHeader) + _nibndx / 2;
+                var ndx = _dictHeaderSize + _nibndx / 2;
                 if (ndx < _dictBytes.Length)
                 {
                     _partialNib = _dictBytes[ndx];
