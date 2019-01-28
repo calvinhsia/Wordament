@@ -16,6 +16,15 @@ namespace WordamentTests
         public TestContext TestContext { get; set; }
 
         [TestMethod]
+        public void TestFindMatch()
+        {
+            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, randSeed: 0);
+            var res = dict.FindMatch("aband*");
+            throw new NotImplementedException();
+        }
+
+
+        [TestMethod]
         public void TestPerf()
         {
             var oldDict = new OldDictWrapper(1);
