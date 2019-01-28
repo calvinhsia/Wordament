@@ -207,6 +207,10 @@ namespace MakeDictionary
         {
             return _dict.RandWord(seed);
         }
+        public bool IsWord(string word)
+        {
+            return _dict.IsWord(word);
+        }
 
         public void Dispose()
         {

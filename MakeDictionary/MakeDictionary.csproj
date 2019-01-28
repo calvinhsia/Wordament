@@ -62,6 +62,7 @@
   <ItemGroup>
     <Content Include="Dict.cpp" />
     <Content Include="Dict.h" />
+    <Content Include="DictDump.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

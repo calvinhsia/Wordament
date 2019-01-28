@@ -19,13 +19,27 @@ namespace WordamentTests
         public void TestFindMatch()
         {
             var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, randSeed: 0);
-            var res = dict.FindMatch("aband*");
+            foreach (var str in new[] { "me*","aband*", "*", "z*", "mel*", "asdf*"})
+            {
+                var res = dict.FindMatch(str);
+                Console.WriteLine($"FindMatch {str}, {res}");
+            }
+            Assert.AreEqual(dict.FindMatch("me*"), "mea");
+            Assert.AreEqual(dict.FindMatch("mel*"), "melancholia");
+            Assert.AreEqual(dict.FindMatch("aband*"), "abandon");
+            Assert.AreEqual(dict.FindMatch("asdf*"), string.Empty);
+        }
+
+        [TestMethod]
+        public void TestDoAnagram()
+        {
+            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, randSeed: 0);
             throw new NotImplementedException();
         }
 
 
         [TestMethod]
-        public void TestPerf()
+        public void TestPerfRandWord()
         {
             var oldDict = new OldDictWrapper(1);
             var newdict = new Dictionary.Dictionary(Dictionary.DictionaryType.Large, randSeed: 0);
@@ -36,13 +50,42 @@ namespace WordamentTests
             {
                 var r = oldDict.RandWord(0);
             }
+            var olddictTime = sw.Elapsed.TotalSeconds;
             Console.WriteLine($"Olddict {sw.Elapsed.TotalSeconds}");
             sw.Restart();
             for (int i = 0; i < nCnt; i++)
             {
                 var r = newdict.RandomWord();
             }
-            Console.WriteLine($"Newdict {sw.Elapsed.TotalSeconds}");
+            var newdictTime = sw.Elapsed.TotalSeconds;
+            Console.WriteLine($"Newdict {newdictTime}");
+            Assert.Fail($"OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  {newdictTime/olddictTime:n1}");
+        }
+        [TestMethod]
+        public void TestPerfIsWord()
+        {
+            var oldDict = new OldDictWrapper(1);
+            var newdict = new Dictionary.Dictionary(Dictionary.DictionaryType.Large, randSeed: 0);
+            var sw = new Stopwatch();
+            sw.Start();
+            var nCnt = 10000;
+            var word = "computer";
+            for (int i = 0; i < nCnt; i++)
+            {
+                var r = oldDict.IsWord(word);
+                Assert.IsTrue(r);
+            }
+            var olddictTime = sw.Elapsed.TotalSeconds;
+            Console.WriteLine($"Olddict {sw.Elapsed.TotalSeconds}");
+            sw.Restart();
+            for (int i = 0; i < nCnt; i++)
+            {
+                var r = newdict.IsWord(word);
+                Assert.IsTrue(r);
+            }
+            var newdictTime = sw.Elapsed.TotalSeconds;
+            Console.WriteLine($"Newdict {newdictTime}");
+            Assert.Fail($"OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  {newdictTime / olddictTime:n1}");
         }
 
         [TestMethod]
@@ -64,7 +107,6 @@ namespace WordamentTests
                 var r = newdict.RandomWord();
             }
             Console.WriteLine($"Newdict {sw.Elapsed.TotalSeconds}");
-
         }
 
         [TestMethod]
@@ -131,9 +173,13 @@ namespace WordamentTests
 
 
                 var dict = new Dictionary.Dictionary((Dictionary.DictionaryType)dictNum);
-                //var newlstWord = new List<string>();
-                var newlstWord = dict.FindMatch("*");
-                //newlstWord.Add(result.Word);
+                var newlstWord = new List<string>();
+                var word = dict.FindMatch("*");
+                while (!string.IsNullOrEmpty(word))
+                {
+                    newlstWord.Add(word);
+                    word = dict.GetNextWord();
+                }
                 //while (true)
                 //{
                 //    result = result.GetNextResult();

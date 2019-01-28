@@ -99,14 +99,63 @@ namespace Dictionary
             _dictHeader = DictionaryData.DictHeader.MakeHeaderFromBytes(_dictBytes);
             _dictHeaderSize = Marshal.SizeOf<DictHeader>();
         }
-        public List<string> FindMatch(string strMatch)
+        public string FindMatch(string strMatch)
         {
-            List<string> lstResults = null;
-            if (strMatch == "*")
+            var result = string.Empty;
+            if (!string.IsNullOrEmpty(strMatch))
             {
-                lstResults = ReadDict();
+                if (!strMatch.Contains("*"))
+                {
+                    if (IsWord(strMatch))
+                    {
+                        result = strMatch;
+                    }
+                }
+                else
+                {
+                    if (strMatch[0] == '*')
+                    {
+                        SetDictPosition(0);
+                        result = GetNextWord();
+                    }
+                    else
+                    {
+                        if (strMatch.Length == 1)
+                        {
+                            SetDictPosition(strMatch);
+                            result = GetNextWord();
+                        }
+                        else
+                        {
+                            if (strMatch[1] == '*')
+                            {
+                                SetDictPosition(strMatch[0] - 97);
+                                result = GetNextWord();
+                            }
+                            else
+                            {
+                                SetDictPosition(strMatch[0] - 97, strMatch[1] - 97);
+                                var ndx = strMatch.IndexOf('*');
+                                strMatch = strMatch.Substring(0, ndx);
+                                while (true)
+                                {
+                                    var tempResult = GetNextWord();
+                                    if (tempResult.Length > ndx && tempResult.Substring(0, ndx) == strMatch)
+                                    {
+                                        result = tempResult;
+                                        break;
+                                    }
+                                    if (tempResult.CompareTo(strMatch) > 0)
+                                    {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            return lstResults;
+            return result;
         }
 
         public DictionaryResult FindMatch2(string strMatch)
@@ -134,7 +183,7 @@ namespace Dictionary
             bool isWord = false;
             if (!string.IsNullOrEmpty(word))
             {
-                word = word.ToLower();
+                //            word = word.ToLower();
                 switch (word.Length)
                 {
                     case 1:
@@ -177,7 +226,7 @@ namespace Dictionary
                 SetDictPosition(let1, let2);
             }
         }
-        void SetDictPosition(int let1, int let2)
+        void SetDictPosition(int let1, int let2 = 0)
         {
             _havePartialNib = false;
             _nibndx = _dictHeader.nibPairPtr[let1 * 26 + let2].nibbleOffset;
@@ -187,6 +236,8 @@ namespace Dictionary
                 GetNextNib();
             }
         }
+        StringBuilder _sbuilder = new StringBuilder();
+
         public string GetNextWord()
         {
             byte nib = 0;
@@ -197,7 +248,7 @@ namespace Dictionary
             }
             if (nib == DictHeader.EOFChar)
             {
-                Console.WriteLine($"Got EOD {_nibndx}");
+                //              Console.WriteLine($"Got EOD {_nibndx}");
                 return string.Empty;
             }
             lenSoFar += nib;
@@ -205,7 +256,8 @@ namespace Dictionary
             {
                 _wordSoFar = _wordSoFar.Substring(0, lenSoFar);
             }
-            var sb = new StringBuilder(_wordSoFar);
+            _sbuilder.Clear();
+            _sbuilder.Append(_wordSoFar);
             while ((nib = GetNextNib()) != 0)
             {
                 char newchar;
@@ -218,18 +270,18 @@ namespace Dictionary
                 {
                     if (nib == DictHeader.EOFChar)
                     {
-                        Console.WriteLine($"GOT EODCHAR {_nibndx:x2}");
+                        //                        Console.WriteLine($"GOT EODCHAR {_nibndx:x2}");
                         break;
                     }
                     newchar = _dictHeader.tab1[nib];
                 }
-                sb.Append(newchar);
+                _sbuilder.Append(newchar);
             }
-            _wordSoFar = sb.ToString();
             if (nib == DictHeader.EOFChar)
             {
                 return string.Empty;
             }
+            _wordSoFar = _sbuilder.ToString();
             return _wordSoFar;
         }
         public string RandomWord()
