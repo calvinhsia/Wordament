@@ -254,9 +254,7 @@ Class WordamentWindow
     End Sub
 
     Private Function FillGridWithLongWord() As Integer(,)
-        Dim spellDict = New Dictionary.CDict With {
-            .DictNum = 2
-        }
+        Dim spellDict = New Dictionary.Dictionary(Dictionary.DictionaryType.Small)
         ' create a list of random directions (N,S, SE, etc) which can be tried in sequence til success
         Dim directions(7) As Integer ' 8 directions
         For i = 0 To 7
@@ -270,7 +268,7 @@ Class WordamentWindow
             Dim nTries = 0
             Do
                 nTries += 1
-                randLongWord = spellDict.RandWord(IIf(_seed = 0, 0, 1))
+                randLongWord = spellDict.RandomWord()
                 If randLongWord.Length > 16 Then
                     AddStatusMsg($"Got word too long {randLongWord}")
                     randLongWord = String.Empty
@@ -379,12 +377,10 @@ Class WordamentWindow
     End Sub
 
     Private _visitedarr(,) As Boolean
-    Private _spellDict As Dictionary.CDict
+    Private _spellDict As Dictionary.Dictionary
 
     Private Function CalcWordList(dictnum As Integer) As Dictionary(Of String, LetterList)
-        _spellDict = New Dictionary.CDict With {
-            .DictNum = dictnum
-        }
+        _spellDict = New Dictionary.Dictionary(CType(dictnum, Dictionary.DictionaryType))
         _resultWords = New Dictionary(Of String, LetterList)
         ReDim _visitedarr(_nRows - 1, _nCols - 1)
         For iRow = 0 To _nRows - 1

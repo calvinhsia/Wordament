@@ -102,6 +102,7 @@ namespace Dictionary
         public string FindMatch(string strMatch)
         {
             var result = string.Empty;
+            strMatch = strMatch.ToLower();
             if (!string.IsNullOrEmpty(strMatch))
             {
                 if (!strMatch.Contains("*"))
@@ -183,7 +184,7 @@ namespace Dictionary
             bool isWord = false;
             if (!string.IsNullOrEmpty(word))
             {
-                //            word = word.ToLower();
+                word = word.ToLower();
                 switch (word.Length)
                 {
                     case 1:
