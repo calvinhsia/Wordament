@@ -54,6 +54,9 @@ namespace DictionaryData
 
         [MarshalAs(UnmanagedType.I4)]
         public int wordCount; //total # of words in dictionary
+        [MarshalAs(UnmanagedType.I4)]
+        public int maxWordLen; //longest word length in dictionary
+
 
         /// <summary>
         /// 26*26 array of DictHeaderNibbleEntry 

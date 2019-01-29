@@ -89,9 +89,14 @@ namespace MakeDictionary
                 fs.Seek(Marshal.SizeOf(dictHeader), SeekOrigin.Begin);
                 //var str = "this is a test";
                 //fs.Write(System.Text.ASCIIEncoding.ASCII.GetBytes(str), 0, str.Length);
+                var maxWordLen = 0;
                 foreach (var word in words)
                 {
                     dictHeader.wordCount++;
+                    if (word.Length>maxWordLen)
+                    {
+                        maxWordLen = word.Length;
+                    }
                     var curWordNdx = curNibNdx;
                     if (word[0] == let1 && (word.Length < 2 || word[1] == let2))
                     {
@@ -151,6 +156,7 @@ namespace MakeDictionary
                 {
                     AddNib(0); // write out last nibble
                 }
+                dictHeader.maxWordLen = maxWordLen;
                 var bytesHeader = dictHeader.GetBytes();
                 fs.Seek(0, SeekOrigin.Begin);
                 fs.Write(dictHeader.GetBytes(), 0, bytesHeader.Length);
@@ -161,8 +167,9 @@ namespace MakeDictionary
         {
             var dictBytes = File.ReadAllBytes(fileName);
             var dictHeader = DictHeader.MakeHeaderFromBytes(dictBytes);
-            Console.WriteLine($"{fileName} dump HdrSize= {Marshal.SizeOf(dictHeader)}  (0x{Marshal.SizeOf(dictHeader):x8})");
+            Console.WriteLine($"{fileName} dump HdrSize= {Marshal.SizeOf(dictHeader)}  (0x{Marshal.SizeOf(dictHeader):x8})  MaxWordLen = {dictHeader.maxWordLen}");
             Console.WriteLine($"Entire dump len= {dictBytes.Length}");
+
             var cntwrds = 0;
             for (int i = 0; i < 26; i++)
             {

@@ -404,5 +404,11 @@ namespace Dictionary
 
     }
 
+    internal class MyWord
+    {
+
+
+    }
+
 
 }
