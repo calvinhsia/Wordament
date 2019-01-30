@@ -15,7 +15,7 @@ Class WordamentWindow
     Public Property _nMinWordLen = 12
 
     Private _stkCtrls As StackPanel
-    Private _txtStatus As TextBox
+    Private Shared _txtStatus As TextBox
     Private _seed As Integer
     Private _randLetGenerator As RandLetterGenerator
     Private _resultWords As Dictionary(Of String, LetterList)
@@ -137,13 +137,13 @@ Class WordamentWindow
         End Try
     End Sub
 
-    Private Sub AddStatusMsg(msg As String)
+    Friend Shared Sub AddStatusMsg(msg As String)
         msg = $"{DateTime.Now.ToString("hh:mm:ss")} {Thread.CurrentThread.ManagedThreadId} {msg} {vbCrLf}"
-        Dim x = Me._txtStatus.Dispatcher
-        Me._txtStatus.Dispatcher.BeginInvoke(Sub()
-                                                 _txtStatus.AppendText(msg)
-                                                 _txtStatus.ScrollToEnd()
-                                             End Sub)
+        Dim x = _txtStatus.Dispatcher
+        _txtStatus.Dispatcher.BeginInvoke(Sub()
+                                              _txtStatus.AppendText(msg)
+                                              _txtStatus.ScrollToEnd()
+                                          End Sub)
     End Sub
 
     Async Function GetResultsAsync() As Task(Of List(Of Dictionary(Of String, LetterList)))
@@ -495,27 +495,45 @@ Class WordamentWindow
 
     Public Class LtrTile
         Inherits DockPanel
+        Shared g_lstItemsSelected As New List(Of LtrTile)
+        Shared g_MouseIsDown As Boolean = False
         Public _letter As SimpleLetter
         Public Sub New(ByVal letter As String, row As Integer, col As Integer, ByVal nTotalCols As Integer)
             _letter = New SimpleLetter(letter, row, col)
             Background = Brushes.DarkSlateBlue
 
-            Margin = New Thickness(2, 2, 2, 2)
+            Margin = New Thickness(2, 2, 2, 2) ' space between tiles
 
             Dim txt As New TextBlock With {
                 .Text = _letter._letter,
                 .FontSize = If(nTotalCols > 10, 10, 40 - (nTotalCols - 6) * 5),
                 .HorizontalAlignment = HorizontalAlignment.Center,
-                .Foreground = Brushes.White,
-                .Background = Me.Background
+                .Foreground = Brushes.White
             }
             Me.Children.Add(txt)
+
             AddHandler txt.MouseDown, Sub()
                                           Me.Background = Brushes.Red
+                                          WordamentWindow.AddStatusMsg($"md {Me}")
+                                          g_lstItemsSelected.Add(Me)
+                                          g_MouseIsDown = True
                                       End Sub
             AddHandler txt.MouseUp, Sub()
                                         Me.Background = Brushes.DarkSlateBlue
+                                        g_MouseIsDown = False
+                                        WordamentWindow.AddStatusMsg($"mu {Me}")
+                                        For Each t In g_lstItemsSelected
+                                            t.Background = Brushes.DarkSlateBlue
+                                        Next
+                                        g_lstItemsSelected.Clear()
                                     End Sub
+            AddHandler txt.MouseMove, Sub()
+                                          WordamentWindow.AddStatusMsg($"mm {Me}  MouseIsDown{g_MouseIsDown}")
+                                          If g_MouseIsDown Then
+                                              g_lstItemsSelected.Add(Me)
+                                              Me.Background = Brushes.Red
+                                          End If
+                                      End Sub
 
         End Sub
         Public ReadOnly Property _pts As Integer
