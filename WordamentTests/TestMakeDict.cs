@@ -19,15 +19,29 @@ namespace WordamentTests
         public void TestFindMatch()
         {
             var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, randSeed: 0);
-            foreach (var str in new[] { "me*","aband*", "*", "z*", "mel*", "asdf*"})
+            foreach (var str in new[] { "me*", "aband*", "*", "z*", "mel*", "asdf*" })
             {
                 var res = dict.FindMatch(str);
                 Console.WriteLine($"FindMatch {str}, {res}");
             }
-            Assert.AreEqual(dict.FindMatch("me*"), "mea");
+            Assert.AreEqual(dict.FindMatch("*"), "a");
+            Assert.AreEqual(dict.FindMatch("me*"), "me");
             Assert.AreEqual(dict.FindMatch("mel*"), "melancholia");
             Assert.AreEqual(dict.FindMatch("aband*"), "abandon");
             Assert.AreEqual(dict.FindMatch("asdf*"), string.Empty);
+        }
+
+
+        [TestMethod]
+        public void TestFindMatchQmark()
+        {
+            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, randSeed: 0);
+            foreach (var str in new[] { "me*", "aband*", "*", "z*", "mel*", "asdf*" })
+            {
+                var res = dict.FindMatch(str);
+                Console.WriteLine($"FindMatch {str}, {res}");
+            }
+            throw new NotImplementedException();
         }
 
         [TestMethod]
@@ -59,7 +73,7 @@ namespace WordamentTests
             }
             var newdictTime = sw.Elapsed.TotalSeconds;
             Console.WriteLine($"Newdict {newdictTime}");
-            Assert.Fail($"OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  {newdictTime/olddictTime:n1}");
+            Assert.Fail($"OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  {newdictTime / olddictTime:n1}");
         }
 
         [TestMethod]
@@ -96,7 +110,7 @@ namespace WordamentTests
             var newdict = new Dictionary.Dictionary(Dictionary.DictionaryType.Large, randSeed: 0);
             var sw = new Stopwatch();
             sw.Start();
-            var nCnt = 100000;
+            var nCnt = 500000;
             //for (int i = 0; i < nCnt; i++)
             //{
             //    var r = oldDict.RandWord(0);
@@ -106,8 +120,36 @@ namespace WordamentTests
             for (int i = 0; i < nCnt; i++)
             {
                 var r = newdict.RandomWord();
+                var x = newdict.FindMatch(r + "*");
+                var xx = newdict.IsWord(x);
             }
             Console.WriteLine($"Newdict {sw.Elapsed.TotalSeconds}");
+        }
+
+        [TestMethod]
+        public void TestDictLongWord()
+        {
+            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small);
+            var longwords = new[] { "nonparticipating", "precautionary" };
+            foreach (var longWord in longwords)
+            {
+                for (int i = longWord.Length; i >= 0; i--)
+                {
+                    var word = longWord.Substring(0, i) + "*";
+                    var findMatch = dict.FindMatch(word);
+                    Console.WriteLine($"findmatch {findMatch} '{word}'");
+                }
+            }
+
+            foreach (var longWord in longwords)
+            {
+                for (int i = longWord.Length; i >= 0; i--)
+                {
+                    var word = longWord.Substring(0, i);
+                    var isword = dict.IsWord(word);
+                    Console.WriteLine($"isword {isword} {word}");
+                }
+            }
         }
 
         [TestMethod]
@@ -192,7 +234,7 @@ namespace WordamentTests
                 //}
 
                 //                var newlstWord = DictionaryData.DictionaryUtil.ReadDict(dictBytes);
-                Assert.AreEqual(newlstWord.Count(), lstWords.Count(), $"dict num {dictNum} " );
+                Assert.AreEqual(newlstWord.Count(), lstWords.Count(), $"dict num {dictNum} ");
                 for (int i = 0; i < lstWords.Count; i++)
                 {
                     Assert.AreEqual(lstWords[i], newlstWord[i]);

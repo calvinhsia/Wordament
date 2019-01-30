@@ -110,6 +110,11 @@ namespace Dictionary
             _dictHeaderSize = Marshal.SizeOf<DictHeader>();
             _MyWordSoFar = new MyWord(_dictHeader.maxWordLen);
         }
+        /// <summary>
+        /// supports trailing "*" as wild card so far
+        /// </summary>
+        /// <param name="strMatch"></param>
+        /// <returns></returns>
         public string FindMatch(string strMatch)
         {
             var result = string.Empty;
@@ -127,33 +132,36 @@ namespace Dictionary
                 {
                     if (strMatch[0] == '*')
                     {
-                        SetDictPosition("a");
-                        result = GetNextWord();
+                        result = SetDictPosition("a");
                     }
                     else
                     {
                         if (strMatch[1] == '*')
                         {
-                            SetDictPosition(strMatch.Substring(0, 1));
-                            result = GetNextWord();
+                            result = SetDictPosition(strMatch.Substring(0, 1));
                         }
                         else
                         {
                             var ndx = strMatch.IndexOf('*');
                             strMatch = strMatch.Substring(0, ndx);
-                            SetDictPosition(strMatch);
+                            var tempResult = SetDictPosition(strMatch);
                             while (true)
                             {
-                                var tempResult = GetNextWord();
                                 if (tempResult.Length > ndx && tempResult.Substring(0, ndx) == strMatch)
                                 {
                                     result = tempResult;
                                     break;
                                 }
-                                if (tempResult.CompareTo(strMatch) > 0)
+                                var cmpResult = tempResult.CompareTo(strMatch);
+                                if (cmpResult >= 0)
                                 {
+                                    if (cmpResult == 0)
+                                    {
+                                        result = tempResult;
+                                    }
                                     break;
                                 }
+                                tempResult = GetNextWord();
                             }
                         }
                     }
@@ -208,6 +216,12 @@ namespace Dictionary
             }
             return isWord;
         }
+        /// <summary>
+        /// Seek in dictionary to provided "word". if word is indictionary,returns word.
+        /// else, returns word
+        /// </summary>
+        /// <param name="word"></param>
+        /// <returns></returns>
         string SetDictPosition(string word)
         {
             var result = string.Empty;
@@ -219,12 +233,12 @@ namespace Dictionary
                 {
                     let2 = word[1] - 97;
                 }
-                SetDictPosition(let1, let2);
-                result = GetNextWord(word);
+                SetDictPosTo2Letters(let1, let2);
+                result = GetNextWord(WordStop: word);
             }
             return result;
         }
-        void SetDictPosition(int let1, int let2 = 0)
+        void SetDictPosTo2Letters(int let1, int let2 = 0)
         {
             _havePartialNib = false;
             _nibndx = _dictHeader.nibPairPtr[let1 * 26 + let2].nibbleOffset;
@@ -318,7 +332,7 @@ namespace Dictionary
         /// must init dic first SetDictPosition.
         /// </summary>
         /// <param name="WordStop">must init dict first. then will stop when dict word >= WordStop</param>
-        /// <param name="cntSkip"> nonzero means skip this many words (used for RandWord). 
+        /// <param name="cntSkip"> nonzero means skip this many words (used for RandomWord). 
         /// 0 means return next word. 1 means skip one word. For perf: don't have to convert to string over and over</param>
         /// <returns></returns>
         internal string GetNextWord(string WordStop = null, int cntSkip = 0)
@@ -331,6 +345,7 @@ namespace Dictionary
                 stopAtWord = new MyWord(WordStop);
             }
             var done = false;
+            int loopCount = 0;
             while (!done)
             {
                 var lenSoFar = 0;
@@ -371,14 +386,27 @@ namespace Dictionary
                 {
                     return string.Empty;
                 }
-                if (stopAtWord == null)
+                if (stopAtWord != null)
                 {
-                    break;
+                    var cmp = _MyWordSoFar.CompareTo(stopAtWord);
+                    if (cmp >= 0)
+                    {
+                        break;
+                    }
                 }
-                var cmp = _MyWordSoFar.CompareTo(stopAtWord);
-                if (cmp >= 0)
+                else
                 {
-                    break;
+                    if (cntSkip != 0)
+                    {
+                        if (loopCount++ == cntSkip)
+                        {
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
             }
             return _MyWordSoFar.GetWord();
@@ -386,9 +414,8 @@ namespace Dictionary
         public string RandomWord()
         {
             var rnum = _random.Next(_dictHeader.wordCount);
-            var fGotIt = false;
             int sum = 0, i = 0, j = 0;
-            for (i = 0; i < 26 && !fGotIt; i++)
+            for (i = 0; i < 26; i++)
             {
                 for (j = 0; j < 26; j++)
                 {
@@ -399,13 +426,15 @@ namespace Dictionary
                     }
                     else
                     {
-                        fGotIt = true;
-                        SetDictPosition(i, j);
-                        while (sum++ < rnum)
-                        {
-                            GetNextWord();
-                        }
-                        return GetNextWord();
+                        SetDictPosTo2Letters(i, j);
+                        var r = GetNextWord(cntSkip: rnum - sum);
+                        return r;
+                        //SetDictPosition(i, j);
+                        //while (sum++ < rnum)
+                        //{
+                        //    GetNextWord();
+                        //}
+                        //return GetNextWord();
                     }
                 }
             }
