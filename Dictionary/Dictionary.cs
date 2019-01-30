@@ -81,7 +81,7 @@ namespace Dictionary
         int _nibndx;
 
         string _wordSoFar = string.Empty;
-        readonly MyWord _MywordSoFar;
+        readonly MyWord _MyWordSoFar;
         StringBuilder _sbuilder = new StringBuilder();
 
         /// <summary>
@@ -107,7 +107,7 @@ namespace Dictionary
             _random = new Random(randSeed);
             _dictHeader = DictionaryData.DictHeader.MakeHeaderFromBytes(_dictBytes);
             _dictHeaderSize = Marshal.SizeOf<DictHeader>();
-            _MywordSoFar = new MyWord(_dictHeader.maxWordLen);
+            _MyWordSoFar = new MyWord(_dictHeader.maxWordLen);
         }
         public string FindMatch(string strMatch)
         {
@@ -242,6 +242,8 @@ namespace Dictionary
             _havePartialNib = false;
             _nibndx = _dictHeader.nibPairPtr[let1 * 26 + let2].nibbleOffset;
             _wordSoFar = new string(new[] { Convert.ToChar(let1 + 97), Convert.ToChar(let2 + 97) });
+
+            _MyWordSoFar.SetWord(_wordSoFar);
             if ((int)(_nibndx & 1) > 0)
             {
                 GetNextNib();
@@ -277,6 +279,7 @@ namespace Dictionary
 
         public string GetNextWord()
         {
+            return GetNextWord2();
             byte nib = 0;
             var lenSoFar = 0;
             while ((nib = GetNextNib()) == 0xf)
@@ -321,6 +324,49 @@ namespace Dictionary
             _wordSoFar = _sbuilder.ToString();
             return _wordSoFar;
         }
+        public string GetNextWord2()
+        {
+            byte nib = 0;
+            var lenSoFar = 0;
+            while ((nib = GetNextNib()) == 0xf)
+            {
+                lenSoFar += nib;
+            }
+            if (nib == DictHeader.EOFChar)
+            {
+                //              Console.WriteLine($"Got EOD {_nibndx}");
+                return string.Empty;
+            }
+            lenSoFar += nib;
+            if (lenSoFar < _MyWordSoFar.WordLength)
+            {
+                _MyWordSoFar.SetLength(lenSoFar);
+            }
+            while ((nib = GetNextNib()) != 0)
+            {
+                char newchar;
+                if (nib == DictHeader.escapeChar)
+                {
+                    nib = GetNextNib();
+                    newchar = _dictHeader.tab2[nib];
+                }
+                else
+                {
+                    if (nib == DictHeader.EOFChar)
+                    {
+                        //                        Console.WriteLine($"GOT EODCHAR {_nibndx:x2}");
+                        break;
+                    }
+                    newchar = _dictHeader.tab1[nib];
+                }
+                _MyWordSoFar.AddByte(Convert.ToByte(newchar));
+            }
+            if (nib == DictHeader.EOFChar)
+            {
+                return string.Empty;
+            }
+            return _MyWordSoFar.GetWord();
+        }
         public string RandomWord()
         {
             var rnum = _random.Next(_dictHeader.wordCount);
@@ -341,9 +387,9 @@ namespace Dictionary
                         SetDictPosition(i, j);
                         while (sum++ < rnum)
                         {
-                            GetNextWord();
+                            GetNextWord2();
                         }
-                        return GetNextWord();
+                        return GetNextWord2();
                     }
                 }
             }
@@ -414,8 +460,9 @@ namespace Dictionary
         }
         public string GetWord()
         {
-            _wordBytes[_currentLength] = 0; // nullterm
-            return Convert.ToString(_wordBytes);
+            var xx = new ASCIIEncoding();
+            xx.GetString(_wordBytes);
+            return Encoding.ASCII.GetString(_wordBytes,0,_currentLength);
         }
         public void AddByte(byte b)
         {
