@@ -34,7 +34,7 @@ Class WordamentWindow
             Title = "Calvin's Wordament"
             _seed = Environment.TickCount
             If Debugger.IsAttached Then
-                _seed = 0
+                _seed = 1
             End If
             _Random = New Random(_seed)
             _randLetGenerator = New RandLetterGenerator
@@ -212,9 +212,9 @@ Class WordamentWindow
                                 Dim tile = _arrTiles(ltr._row, ltr._col)
                                 tile.Background = Brushes.Red
                                 Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.Background, Function() Nothing)
-                                System.Threading.Thread.Sleep(100)
+                                System.Threading.Thread.Sleep(200)
                             Next
-                            System.Threading.Thread.Sleep(500)
+                            System.Threading.Thread.Sleep(800)
                             For Each ltr In ltrLst
                                 Dim tile = _arrTiles(ltr._row, ltr._col)
                                 tile.Background = saveback
@@ -254,7 +254,7 @@ Class WordamentWindow
     End Sub
 
     Private Function FillGridWithLongWord() As Integer(,)
-        Dim spellDict = New Dictionary.Dictionary(Dictionary.DictionaryType.Small)
+        Dim spellDict = New Dictionary.Dictionary(Dictionary.DictionaryType.Small, _Random)
         ' create a list of random directions (N,S, SE, etc) which can be tried in sequence til success
         Dim directions(7) As Integer ' 8 directions
         For i = 0 To 7
@@ -380,7 +380,7 @@ Class WordamentWindow
     Private _spellDict As Dictionary.Dictionary
 
     Private Function CalcWordList(dictnum As Integer) As Dictionary(Of String, LetterList)
-        _spellDict = New Dictionary.Dictionary(CType(dictnum, Dictionary.DictionaryType))
+        _spellDict = New Dictionary.Dictionary(CType(dictnum, Dictionary.DictionaryType), _Random)
         _resultWords = New Dictionary(Of String, LetterList)
         ReDim _visitedarr(_nRows - 1, _nCols - 1)
         For iRow = 0 To _nRows - 1
@@ -506,9 +506,17 @@ Class WordamentWindow
                 .Text = _letter._letter,
                 .FontSize = If(nTotalCols > 10, 10, 40 - (nTotalCols - 6) * 5),
                 .HorizontalAlignment = HorizontalAlignment.Center,
-                .Foreground = Brushes.White
+                .Foreground = Brushes.White,
+                .Background = Me.Background
             }
             Me.Children.Add(txt)
+            AddHandler txt.MouseDown, Sub()
+                                          Me.Background = Brushes.Red
+                                      End Sub
+            AddHandler txt.MouseUp, Sub()
+                                        Me.Background = Brushes.DarkSlateBlue
+                                    End Sub
+
         End Sub
         Public ReadOnly Property _pts As Integer
             Get

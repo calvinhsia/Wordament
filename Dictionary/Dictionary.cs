@@ -56,8 +56,8 @@ namespace Dictionary
             //                Console.WriteLine($"  GetNextNib {nibndx} {result}");
             return result;
         }
-
     }
+
     public enum DictionaryType
     {
         /// <summary>
@@ -69,6 +69,7 @@ namespace Dictionary
         /// </summary>
         Small = 2
     }
+
     public class Dictionary
     {
         internal DictHeader _dictHeader;
@@ -81,16 +82,14 @@ namespace Dictionary
         bool _havePartialNib = false;
         int _nibndx;
 
-        string _wordSoFar = string.Empty;
         readonly MyWord _MyWordSoFar;
-        StringBuilder _sbuilder = new StringBuilder();
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="dictType"></param>
         /// <param name="randSeed">0 means random seed TickCount. >0 means use as seed </param>
-        public Dictionary(DictionaryType dictType, int randSeed = 0)
+        public Dictionary(DictionaryType dictType, Random random = null)
         {
             this._dictionaryType = dictType;
             if (dictType == DictionaryType.Large)
@@ -101,11 +100,14 @@ namespace Dictionary
             {
                 _dictBytes = Properties.Resources.dict2;
             }
-            if (randSeed == 0)
+            if (random == null)
             {
-                randSeed = Environment.TickCount;
+                _random = new Random(Environment.TickCount);
             }
-            _random = new Random(randSeed);
+            else
+            {
+                _random = random;
+            }
             _dictHeader = DictionaryData.DictHeader.MakeHeaderFromBytes(_dictBytes);
             _dictHeaderSize = Marshal.SizeOf<DictHeader>();
             _MyWordSoFar = new MyWord(_dictHeader.maxWordLen);
@@ -170,26 +172,6 @@ namespace Dictionary
             return result;
         }
 
-        public DictionaryResult FindMatch2(string strMatch)
-        {
-            DictionaryResult dictionaryResult = null;
-            if (strMatch == "*")
-            {
-                var dictState = new DictionaryState()
-                {
-                    dictionary = this,
-                    havePartialNib = false,
-                    nibndx = 0
-                };
-                dictionaryResult = new DictionaryResult()
-                {
-                    dictionaryState = dictState
-                };
-
-                //                lstResults = ReadDict();
-            }
-            return dictionaryResult;
-        }
         public bool IsWord(string word)
         {
             bool isWord = false;
@@ -242,9 +224,7 @@ namespace Dictionary
         {
             _havePartialNib = false;
             _nibndx = _dictHeader.nibPairPtr[let1 * 26 + let2].nibbleOffset;
-            _wordSoFar = new string(new[] { Convert.ToChar(let1 + 97), Convert.ToChar(let2 + 97) });
-
-            _MyWordSoFar.SetWord(_wordSoFar);
+            _MyWordSoFar.SetWord(new string(new[] { Convert.ToChar(let1 + 97), Convert.ToChar(let2 + 97) }));
             if ((int)(_nibndx & 1) > 0)
             {
                 GetNextNib();
@@ -275,53 +255,6 @@ namespace Dictionary
             _havePartialNib = !_havePartialNib;
             //                Console.WriteLine($"  GetNextNib {nibndx} {result}");
             return result;
-        }
-
-        public string GetNextWordold()
-        {
-            byte nib = 0;
-            var lenSoFar = 0;
-            while ((nib = GetNextNib()) == 0xf)
-            {
-                lenSoFar += nib;
-            }
-            if (nib == DictHeader.EOFChar)
-            {
-                //              Console.WriteLine($"Got EOD {_nibndx}");
-                return string.Empty;
-            }
-            lenSoFar += nib;
-            if (lenSoFar < _wordSoFar.Length)
-            {
-                _wordSoFar = _wordSoFar.Substring(0, lenSoFar);
-            }
-            _sbuilder.Clear();
-            _sbuilder.Append(_wordSoFar);
-            while ((nib = GetNextNib()) != 0)
-            {
-                char newchar;
-                if (nib == DictHeader.escapeChar)
-                {
-                    nib = GetNextNib();
-                    newchar = _dictHeader.tab2[nib];
-                }
-                else
-                {
-                    if (nib == DictHeader.EOFChar)
-                    {
-                        //                        Console.WriteLine($"GOT EODCHAR {_nibndx:x2}");
-                        break;
-                    }
-                    newchar = _dictHeader.tab1[nib];
-                }
-                _sbuilder.Append(newchar);
-            }
-            if (nib == DictHeader.EOFChar)
-            {
-                return string.Empty;
-            }
-            _wordSoFar = _sbuilder.ToString();
-            return _wordSoFar;
         }
         public string GetNextWord()
         {
@@ -455,22 +388,6 @@ namespace Dictionary
             };
 
             return res;
-        }
-        public List<string> ReadDict()
-        {
-            var lstWords = new List<string>();
-
-            while (true)
-            {
-                var word = GetNextWord();
-                if (string.IsNullOrEmpty(word))
-                {
-                    break;
-                }
-                lstWords.Add(_wordSoFar);
-                //                Console.WriteLine($"Got Word  {lstWords.Count,6} {_nibndx:x0} {lenSoFar,2}  {_wordSoFar.Length,3} {_wordSoFar}");
-            }
-            return lstWords;
         }
     }
 

@@ -18,8 +18,8 @@ namespace WordamentTests
         [TestMethod]
         public void TestFindMatch()
         {
-            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, randSeed: 0);
-            foreach (var str in new[] { "me*", "aband*", "*", "z*", "mel*", "asdf*" })
+            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, new Random(1));
+            foreach (var str in new[] { "zys","me*", "aband*", "*", "z*", "mel*", "asdf*" })
             {
                 var res = dict.FindMatch(str);
                 Console.WriteLine($"FindMatch {str}, {res}");
@@ -35,7 +35,7 @@ namespace WordamentTests
         [TestMethod]
         public void TestFindMatchQmark()
         {
-            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, randSeed: 0);
+            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, new Random(1));
             foreach (var str in new[] { "me*", "aband*", "*", "z*", "mel*", "asdf*" })
             {
                 var res = dict.FindMatch(str);
@@ -47,7 +47,7 @@ namespace WordamentTests
         [TestMethod]
         public void TestDoAnagram()
         {
-            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, randSeed: 0);
+            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, new Random(1));
             throw new NotImplementedException();
         }
 
@@ -56,7 +56,7 @@ namespace WordamentTests
         public void TestPerfRandWord()
         {
             var oldDict = new OldDictWrapper(1);
-            var newdict = new Dictionary.Dictionary(Dictionary.DictionaryType.Large, randSeed: 0);
+            var newdict = new Dictionary.Dictionary(Dictionary.DictionaryType.Large, new Random(1));
             var sw = new Stopwatch();
             sw.Start();
             var nCnt = 10000;
@@ -80,7 +80,7 @@ namespace WordamentTests
         public void TestPerfIsWord()
         {
             var oldDict = new OldDictWrapper(1);
-            var newdict = new Dictionary.Dictionary(Dictionary.DictionaryType.Large, randSeed: 0);
+            var newdict = new Dictionary.Dictionary(Dictionary.DictionaryType.Large, new Random(1));
             var sw = new Stopwatch();
             sw.Start();
             var nCnt = 10000;
@@ -107,7 +107,7 @@ namespace WordamentTests
         public void TestPerfForTrace()
         {
             var oldDict = new OldDictWrapper(1);
-            var newdict = new Dictionary.Dictionary(Dictionary.DictionaryType.Large, randSeed: 0);
+            var newdict = new Dictionary.Dictionary(Dictionary.DictionaryType.Large, new Random(1));
             var sw = new Stopwatch();
             sw.Start();
             var nCnt = 500000;
@@ -186,7 +186,7 @@ namespace WordamentTests
         [TestMethod]
         public void TestRandWord()
         {
-            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, randSeed: 1);
+            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, new Random(1));
             for (int i = 0; i < 1000; i++)
             {
                 var r = dict.RandomWord();
