@@ -1,6 +1,7 @@
 ﻿using DictionaryData;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -126,40 +127,32 @@ namespace Dictionary
                 {
                     if (strMatch[0] == '*')
                     {
-                        SetDictPosition(0);
+                        SetDictPosition("a");
                         result = GetNextWord();
                     }
                     else
                     {
-                        if (strMatch.Length == 1)
+                        if (strMatch[1] == '*')
                         {
-                            SetDictPosition(strMatch);
+                            SetDictPosition(strMatch.Substring(0, 1));
                             result = GetNextWord();
                         }
                         else
                         {
-                            if (strMatch[1] == '*')
+                            var ndx = strMatch.IndexOf('*');
+                            strMatch = strMatch.Substring(0, ndx);
+                            SetDictPosition(strMatch);
+                            while (true)
                             {
-                                SetDictPosition(strMatch[0] - 97);
-                                result = GetNextWord();
-                            }
-                            else
-                            {
-                                SetDictPosition(strMatch[0] - 97, strMatch[1] - 97);
-                                var ndx = strMatch.IndexOf('*');
-                                strMatch = strMatch.Substring(0, ndx);
-                                while (true)
+                                var tempResult = GetNextWord();
+                                if (tempResult.Length > ndx && tempResult.Substring(0, ndx) == strMatch)
                                 {
-                                    var tempResult = GetNextWord();
-                                    if (tempResult.Length > ndx && tempResult.Substring(0, ndx) == strMatch)
-                                    {
-                                        result = tempResult;
-                                        break;
-                                    }
-                                    if (tempResult.CompareTo(strMatch) > 0)
-                                    {
-                                        break;
-                                    }
+                                    result = tempResult;
+                                    break;
+                                }
+                                if (tempResult.CompareTo(strMatch) > 0)
+                                {
+                                    break;
                                 }
                             }
                         }
@@ -204,28 +197,20 @@ namespace Dictionary
                         }
                         break;
                     default:
-                        SetDictPosition(word);
-                        while (true)
+                        var testWord = SetDictPosition(word);
+                        var cmp = testWord.CompareTo(word);
+                        if (cmp == 0)
                         {
-                            var testWord = GetNextWord();
-                            var cmp = testWord.CompareTo(word);
-                            if (cmp == 0)
-                            {
-                                isWord = true;
-                                break;
-                            }
-                            else if (cmp > 0)
-                            {
-                                break;
-                            }
+                            isWord = true;
                         }
                         break;
                 }
             }
             return isWord;
         }
-        void SetDictPosition(string word)
+        string SetDictPosition(string word)
         {
+            var result = string.Empty;
             if (!string.IsNullOrEmpty(word))
             {
                 var let1 = word[0] - 97;
@@ -235,7 +220,9 @@ namespace Dictionary
                     let2 = word[1] - 97;
                 }
                 SetDictPosition(let1, let2);
+                result = GetNextWord(word);
             }
+            return result;
         }
         void SetDictPosition(int let1, int let2 = 0)
         {
@@ -249,7 +236,6 @@ namespace Dictionary
                 GetNextNib();
             }
         }
-
         byte GetNextNib()
         {
             byte result;
@@ -277,9 +263,8 @@ namespace Dictionary
             return result;
         }
 
-        public string GetNextWord()
+        public string GetNextWordold()
         {
-            return GetNextWord2();
             byte nib = 0;
             var lenSoFar = 0;
             while ((nib = GetNextNib()) == 0xf)
@@ -324,46 +309,77 @@ namespace Dictionary
             _wordSoFar = _sbuilder.ToString();
             return _wordSoFar;
         }
-        public string GetNextWord2()
+        public string GetNextWord()
         {
+            return GetNextWord(WordStop: null);
+        }
+
+        /// <summary>
+        /// must init dic first SetDictPosition.
+        /// </summary>
+        /// <param name="WordStop">must init dict first. then will stop when dict word >= WordStop</param>
+        /// <param name="cntSkip"> nonzero means skip this many words (used for RandWord). 
+        /// 0 means return next word. 1 means skip one word. For perf: don't have to convert to string over and over</param>
+        /// <returns></returns>
+        internal string GetNextWord(string WordStop = null, int cntSkip = 0)
+        {
+            Debug.Assert((WordStop == null) || cntSkip == 0);
             byte nib = 0;
-            var lenSoFar = 0;
-            while ((nib = GetNextNib()) == 0xf)
+            MyWord stopAtWord = null;
+            if (!string.IsNullOrEmpty(WordStop))
             {
+                stopAtWord = new MyWord(WordStop);
+            }
+            var done = false;
+            while (!done)
+            {
+                var lenSoFar = 0;
+                while ((nib = GetNextNib()) == 0xf)
+                {
+                    lenSoFar += nib;
+                }
+                if (nib == DictHeader.EOFChar)
+                {
+                    //              Console.WriteLine($"Got EOD {_nibndx}");
+                    return string.Empty;
+                }
                 lenSoFar += nib;
-            }
-            if (nib == DictHeader.EOFChar)
-            {
-                //              Console.WriteLine($"Got EOD {_nibndx}");
-                return string.Empty;
-            }
-            lenSoFar += nib;
-            if (lenSoFar < _MyWordSoFar.WordLength)
-            {
-                _MyWordSoFar.SetLength(lenSoFar);
-            }
-            while ((nib = GetNextNib()) != 0)
-            {
-                char newchar;
-                if (nib == DictHeader.escapeChar)
+                if (lenSoFar < _MyWordSoFar.WordLength)
                 {
-                    nib = GetNextNib();
-                    newchar = _dictHeader.tab2[nib];
+                    _MyWordSoFar.SetLength(lenSoFar);
                 }
-                else
+                while ((nib = GetNextNib()) != 0)
                 {
-                    if (nib == DictHeader.EOFChar)
+                    char newchar;
+                    if (nib == DictHeader.escapeChar)
                     {
-                        //                        Console.WriteLine($"GOT EODCHAR {_nibndx:x2}");
-                        break;
+                        nib = GetNextNib();
+                        newchar = _dictHeader.tab2[nib];
                     }
-                    newchar = _dictHeader.tab1[nib];
+                    else
+                    {
+                        if (nib == DictHeader.EOFChar)
+                        {
+                            //                        Console.WriteLine($"GOT EODCHAR {_nibndx:x2}");
+                            break;
+                        }
+                        newchar = _dictHeader.tab1[nib];
+                    }
+                    _MyWordSoFar.AddByte(Convert.ToByte(newchar));
                 }
-                _MyWordSoFar.AddByte(Convert.ToByte(newchar));
-            }
-            if (nib == DictHeader.EOFChar)
-            {
-                return string.Empty;
+                if (nib == DictHeader.EOFChar)
+                {
+                    return string.Empty;
+                }
+                if (stopAtWord == null)
+                {
+                    break;
+                }
+                var cmp = _MyWordSoFar.CompareTo(stopAtWord);
+                if (cmp >= 0)
+                {
+                    break;
+                }
             }
             return _MyWordSoFar.GetWord();
         }
@@ -387,9 +403,9 @@ namespace Dictionary
                         SetDictPosition(i, j);
                         while (sum++ < rnum)
                         {
-                            GetNextWord2();
+                            GetNextWord();
                         }
-                        return GetNextWord2();
+                        return GetNextWord();
                     }
                 }
             }
@@ -462,7 +478,7 @@ namespace Dictionary
         {
             var xx = new ASCIIEncoding();
             xx.GetString(_wordBytes);
-            return Encoding.ASCII.GetString(_wordBytes,0,_currentLength);
+            return Encoding.ASCII.GetString(_wordBytes, 0, _currentLength);
         }
         public void AddByte(byte b)
         {

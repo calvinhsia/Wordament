@@ -45,7 +45,7 @@ namespace WordamentTests
             var newdict = new Dictionary.Dictionary(Dictionary.DictionaryType.Large, randSeed: 0);
             var sw = new Stopwatch();
             sw.Start();
-            var nCnt = 100000;
+            var nCnt = 10000;
             for (int i = 0; i < nCnt; i++)
             {
                 var r = oldDict.RandWord(0);
@@ -61,6 +61,7 @@ namespace WordamentTests
             Console.WriteLine($"Newdict {newdictTime}");
             Assert.Fail($"OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  {newdictTime/olddictTime:n1}");
         }
+
         [TestMethod]
         public void TestPerfIsWord()
         {
