@@ -64,8 +64,6 @@ namespace DictionaryData
         /// </summary>
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 26 * 26)]
         public DictHeaderNibbleEntry[] nibPairPtr;
-        //[MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.I4, SizeConst =100)]
-        //public fixed int data[100];
 
         public byte[] GetBytes()
         {

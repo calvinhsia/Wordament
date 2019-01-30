@@ -167,7 +167,7 @@ namespace MakeDictionary
         {
             var dictBytes = File.ReadAllBytes(fileName);
             var dictHeader = DictHeader.MakeHeaderFromBytes(dictBytes);
-            Console.WriteLine($"{fileName} dump HdrSize= {Marshal.SizeOf(dictHeader)}  (0x{Marshal.SizeOf(dictHeader):x8})  MaxWordLen = {dictHeader.maxWordLen}");
+            Console.WriteLine($"{fileName} dump HdrSize= {Marshal.SizeOf(dictHeader)}  (0x{Marshal.SizeOf(dictHeader):x8}) MaxWordLen = {dictHeader.maxWordLen}");
             Console.WriteLine($"Entire dump len= {dictBytes.Length}");
 
             var cntwrds = 0;

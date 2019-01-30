@@ -75,6 +75,15 @@ namespace Dictionary
         internal DictionaryType _dictionaryType;
         internal byte[] _dictBytes;
         internal Random _random;
+
+        byte _partialNib = 0;
+        bool _havePartialNib = false;
+        int _nibndx;
+
+        string _wordSoFar = string.Empty;
+        readonly MyWord _MywordSoFar;
+        StringBuilder _sbuilder = new StringBuilder();
+
         /// <summary>
         /// 
         /// </summary>
@@ -98,6 +107,7 @@ namespace Dictionary
             _random = new Random(randSeed);
             _dictHeader = DictionaryData.DictHeader.MakeHeaderFromBytes(_dictBytes);
             _dictHeaderSize = Marshal.SizeOf<DictHeader>();
+            _MywordSoFar = new MyWord(_dictHeader.maxWordLen);
         }
         public string FindMatch(string strMatch)
         {
@@ -237,7 +247,33 @@ namespace Dictionary
                 GetNextNib();
             }
         }
-        StringBuilder _sbuilder = new StringBuilder();
+
+        byte GetNextNib()
+        {
+            byte result;
+            if (_havePartialNib)
+            {
+                result = _partialNib;
+            }
+            else
+            {
+                var ndx = _dictHeaderSize + _nibndx / 2;
+                if (ndx < _dictBytes.Length)
+                {
+                    _partialNib = _dictBytes[ndx];
+                    result = (byte)(_partialNib >> 4);
+                    _partialNib = (byte)(_partialNib & 0xf);
+                }
+                else
+                {
+                    result = DictHeader.EOFChar;
+                }
+            }
+            _nibndx++;
+            _havePartialNib = !_havePartialNib;
+            //                Console.WriteLine($"  GetNextNib {nibndx} {result}");
+            return result;
+        }
 
         public string GetNextWord()
         {
@@ -287,30 +323,6 @@ namespace Dictionary
         }
         public string RandomWord()
         {
-
-            /*
-	nRand = (int)(m_nDictionaryTotalWordCount * (((double)rand()) / RAND_MAX));
-	int *WordCounts = (int *)(m_DictBase + (26*26+1)*4);
-
-	for (i =fGotit=ndx= 0 ; i < 26 ; i++) {
-		for (j = 0 ; j<26 ; j++) {
-			if (nCnt + WordCounts[ndx] < nRand) {
-				nCnt+= WordCounts[ndx];
-			} else {
-				fGotit=1;
-				break;
-			}
-			ndx++;
-		}
-		if (fGotit)
-			break;
-	}
-	StartDict(97+i,97+j);
-	while (nCnt < nRand) {
-		nRand--;
-		GetNextWord();
-	}
-             * */
             var rnum = _random.Next(_dictHeader.wordCount);
             var fGotIt = false;
             int sum = 0, i = 0, j = 0;
@@ -353,37 +365,6 @@ namespace Dictionary
 
             return res;
         }
-
-        byte _partialNib = 0;
-        bool _havePartialNib = false;
-        int _nibndx;
-        string _wordSoFar = string.Empty;
-        byte GetNextNib()
-        {
-            byte result;
-            if (_havePartialNib)
-            {
-                result = _partialNib;
-            }
-            else
-            {
-                var ndx = _dictHeaderSize + _nibndx / 2;
-                if (ndx < _dictBytes.Length)
-                {
-                    _partialNib = _dictBytes[ndx];
-                    result = (byte)(_partialNib >> 4);
-                    _partialNib = (byte)(_partialNib & 0xf);
-                }
-                else
-                {
-                    result = DictHeader.EOFChar;
-                }
-            }
-            _nibndx++;
-            _havePartialNib = !_havePartialNib;
-            //                Console.WriteLine($"  GetNextNib {nibndx} {result}");
-            return result;
-        }
         public List<string> ReadDict()
         {
             var lstWords = new List<string>();
@@ -400,15 +381,83 @@ namespace Dictionary
             }
             return lstWords;
         }
-
-
     }
 
-    internal class MyWord
+    internal class MyWord : IComparable
     {
+        readonly private int maxWordLen;
+        readonly byte[] _wordBytes;
+        int _currentLength;
 
+        MyWord()
+        {
+            this.maxWordLen = 30;
+            this._wordBytes = new byte[this.maxWordLen];
+            _currentLength = 0;
+        }
+        public MyWord(int maxWordLen) : this()
+        {
+        }
 
+        public MyWord(string word) : this()
+        {
+            SetWord(word);
+        }
+
+        public void SetWord(string word)
+        {
+            _currentLength = word.Length;
+            for (int ndx = 0; ndx < word.Length; ndx++)
+            {
+                _wordBytes[ndx] = Convert.ToByte(word[ndx]);
+            }
+        }
+        public string GetWord()
+        {
+            _wordBytes[_currentLength] = 0; // nullterm
+            return Convert.ToString(_wordBytes);
+        }
+        public void AddByte(byte b)
+        {
+            _wordBytes[_currentLength++] = b;
+        }
+        public int WordLength { get { return _currentLength; } }
+        public void SetLength(int Length)
+        {
+            _currentLength = Length;
+        }
+
+        public int CompareTo(object obj)
+        {
+            int retval = 0;
+            if (obj is MyWord other)
+            {
+                for (int i = 0; i < Math.Min(this._currentLength, other._currentLength); i++)
+                {
+                    if (this._wordBytes[i] != other._wordBytes[i])
+                    {
+                        retval = this._wordBytes[i].CompareTo(other._wordBytes[i]);
+                        if (retval != 0)
+                        {
+                            break;
+                        }
+                    }
+                }
+                if (retval == 0)
+                {
+                    retval = this._currentLength.CompareTo(other._currentLength);
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException();
+            }
+            return retval;
+        }
+        public override string ToString()
+        {
+            return GetWord();
+        }
     }
-
 
 }

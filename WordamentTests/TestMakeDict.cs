@@ -162,7 +162,7 @@ namespace WordamentTests
                 Console.WriteLine($"DictSect {dictNum} NumWords = {lstWords.Count}");
                 //            var fileName = @"C:\Users\calvinh\Source\Repos\Wordament\MakeDictionary\Resources\dict.bin";
                 var fileName = Path.Combine(Environment.CurrentDirectory, $@"dict{dictNum}.bin");
-                MakeDictionary.MakeDictionary.MakeBinFile(lstWords.Take(10000000), fileName);
+                MakeDictionary.MakeDictionary.MakeBinFile(lstWords, fileName);
 
                 Console.WriteLine($"DictSect {dictNum}  Dictionary NibTable");
                 var dictBytes = File.ReadAllBytes(fileName);
@@ -171,7 +171,7 @@ namespace WordamentTests
                 Console.WriteLine($"DictSect {dictNum}  Raw Bytes");
                 Console.WriteLine(DumpBytes(dictBytes));
 
-
+                // note: this will now read the resources of Dictionary.dll, not the just generated dumpfile, so need to update it if dictHeader struct changes
                 var dict = new Dictionary.Dictionary((Dictionary.DictionaryType)dictNum);
                 var newlstWord = new List<string>();
                 var word = dict.FindMatch("*");
@@ -191,7 +191,7 @@ namespace WordamentTests
                 //}
 
                 //                var newlstWord = DictionaryData.DictionaryUtil.ReadDict(dictBytes);
-                Assert.AreEqual(newlstWord.Count(), lstWords.Count());
+                Assert.AreEqual(newlstWord.Count(), lstWords.Count(), $"dict num {dictNum} " );
                 for (int i = 0; i < lstWords.Count; i++)
                 {
                     Assert.AreEqual(lstWords[i], newlstWord[i]);
