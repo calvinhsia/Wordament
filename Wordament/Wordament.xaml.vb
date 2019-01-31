@@ -541,24 +541,33 @@ Class WordamentWindow
                                     End Sub
             AddHandler txt.MouseMove, Sub()
                                           WordamentWindow.AddStatusMsg($"mm {Me}  MouseIsDown{g_MouseIsDown}")
-                                          If g_MouseIsDown And Not _isSelected Then
+                                          If g_MouseIsDown Then
                                               Dim lastSelected As LtrTile = Nothing
                                               If g_lstItemsSelected.Count > 0 Then
                                                   lastSelected = g_lstItemsSelected(g_lstItemsSelected.Count - 1)
                                               End If
-                                              Dim okToSelect = False
-                                              If lastSelected Is Nothing Then
-                                                  okToSelect = True
-                                              Else
-                                                  If ((lastSelected._row = Me._row And (Math.Abs(lastSelected._col - Me._col) = 1) Or
-                                                       lastSelected._col = Me._col And (Math.Abs(lastSelected._row - Me._row) = 1))) Then
+                                              If Not _isSelected Then
+                                                  Dim okToSelect = False
+                                                  If lastSelected Is Nothing Then
                                                       okToSelect = True
+                                                  Else
+                                                      If (((Math.Abs(lastSelected._col - Me._col) <= 1) Or
+                                                       (Math.Abs(lastSelected._row - Me._row) <= 1))) Then
+                                                          okToSelect = True
+                                                      End If
                                                   End If
-                                              End If
-                                              If okToSelect Then
-                                                  _isSelected = True
-                                                  g_lstItemsSelected.Add(Me)
-                                                  Me.Background = Brushes.Red
+                                                  If okToSelect Then
+                                                      _isSelected = True
+                                                      g_lstItemsSelected.Add(Me)
+                                                      Me.Background = Brushes.Red
+                                                  End If
+                                              Else ' if it is selected, user, might have gone back to prior selection
+                                                  If (g_lstItemsSelected.Count > 2) Then
+                                                      Dim penult = g_lstItemsSelected(g_lstItemsSelected.Count - 2)
+                                                      If (penult._row = Me._row AndAlso penult._col = Me._col) Then 'moved back to prior 1
+
+                                                      End If
+                                                  End If
                                               End If
                                           End If
                                       End Sub
