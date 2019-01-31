@@ -19,7 +19,7 @@ namespace WordamentTests
         public void TestFindMatch()
         {
             var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, new Random(1));
-            foreach (var str in new[] { "zys","me*", "aband*", "*", "z*", "mel*", "asdf*" })
+            foreach (var str in new[] { "zys", "me*", "aband*", "*", "z*", "mel*", "asdf*" })
             {
                 var res = dict.FindMatch(str);
                 Console.WriteLine($"FindMatch {str}, {res}");
@@ -33,7 +33,7 @@ namespace WordamentTests
 
 
         [TestMethod]
-        public void TestFindMatchQmark()
+        public void TestFindMatchRegEx()
         {
             var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, new Random(1));
             foreach (var str in new[] { "me*", "aband*", "*", "z*", "mel*", "asdf*" })
@@ -45,10 +45,39 @@ namespace WordamentTests
         }
 
         [TestMethod]
+        public void TestDoAnagramOld()
+        {
+            var dict = new MakeDictionary.OldDictWrapper(1);
+            var lstAnagrams = new List<string>();
+
+            var x = dict.FindAnagrams("discounter");
+            foreach (var w in x)
+            {
+                Console.WriteLine($"xxxx  {w}");
+            }
+            foreach (var anagram in lstAnagrams)
+            {
+                Console.WriteLine(anagram);
+            }
+        }
+
+
+
+        [TestMethod]
         public void TestDoAnagram()
         {
             var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, new Random(1));
-            throw new NotImplementedException();
+            Console.WriteLine($"doing anagrams");
+            var lstAnagrams = new List<string>();
+            // relive, discounter, top
+            dict.FindAnagrams("discounter", (str) =>
+            {
+                lstAnagrams.Add(str);
+            });
+            foreach (var anagram in lstAnagrams)
+            {
+                Console.WriteLine(anagram);
+            }
         }
 
 

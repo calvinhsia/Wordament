@@ -112,92 +112,7 @@ namespace Dictionary
             _dictHeaderSize = Marshal.SizeOf<DictHeader>();
             _MyWordSoFar = new MyWord(_dictHeader.maxWordLen);
         }
-        /// <summary>
-        /// supports trailing "*" as wild card so far
-        /// </summary>
-        /// <param name="strMatch"></param>
-        /// <returns></returns>
-        public string FindMatch(string strMatch)
-        {
-            var result = string.Empty;
-            strMatch = strMatch.ToLower();
-            if (!string.IsNullOrEmpty(strMatch))
-            {
-                if (!strMatch.Contains("*"))
-                {
-                    if (IsWord(strMatch))
-                    {
-                        result = strMatch;
-                    }
-                }
-                else
-                {
-                    if (strMatch[0] == '*')
-                    {
-                        result = SetDictPosition("a");
-                    }
-                    else
-                    {
-                        if (strMatch[1] == '*')
-                        {
-                            result = SetDictPosition(strMatch.Substring(0, 1));
-                        }
-                        else
-                        {
-                            var ndx = strMatch.IndexOf('*');
-                            strMatch = strMatch.Substring(0, ndx);
-                            var tempResult = SetDictPosition(strMatch);
-                            while (true)
-                            {
-                                if (tempResult.Length > ndx && tempResult.Substring(0, ndx) == strMatch)
-                                {
-                                    result = tempResult;
-                                    break;
-                                }
-                                var cmpResult = tempResult.CompareTo(strMatch);
-                                if (cmpResult >= 0)
-                                {
-                                    if (cmpResult == 0)
-                                    {
-                                        result = tempResult;
-                                    }
-                                    break;
-                                }
-                                tempResult = GetNextWord();
-                            }
-                        }
-                    }
-                }
-            }
-            return result;
-        }
 
-        public bool IsWord(string word)
-        {
-            bool isWord = false;
-            if (!string.IsNullOrEmpty(word))
-            {
-                word = word.ToLower();
-                switch (word.Length)
-                {
-                    case 1:
-                        if (word == "a" || word == "i")
-                        {
-                            isWord = true;
-                        }
-                        break;
-                    default:
-                        var testWord = SetDictPosition(word);
-                        var cmp = testWord.CompareTo(word);
-                        if (cmp == 0)
-                        {
-                            isWord = true;
-                        }
-                        break;
-                }
-            }
-            return isWord;
-        }
         /// <summary>
         /// Seek in dictionary to provided "word". if word is indictionary,returns word.
         /// else, returns word
@@ -344,6 +259,144 @@ namespace Dictionary
             }
             return _MyWordSoFar.GetWord();
         }
+
+
+        public void FindAnagrams(string word, Action<string> act)
+        {
+            MyWord myWord = new MyWord(word);
+            // sort bytes
+            for (int i = 0; i < myWord.WordLength; i++)
+            {
+                for (int j = 0; j < i; j++)
+                {
+                    if (myWord._wordBytes[i] < myWord._wordBytes[j])
+                    {
+                        var tmp = myWord._wordBytes[i];
+                        myWord._wordBytes[i] = myWord._wordBytes[j];
+                        myWord._wordBytes[j] = tmp;
+                    }
+                }
+            }
+            RecurFindAnagram(0);
+            void RecurFindAnagram(int nLevel)
+            {
+                byte tmp;
+                int tryLen = myWord.WordLength - nLevel;
+                for (int i = 0; i < tryLen; i++)
+                {
+                    tmp = myWord._wordBytes[nLevel]; // swap nlevel and nlevel+i
+                    myWord._wordBytes[nLevel] = myWord._wordBytes[nLevel + i];
+                    myWord._wordBytes[nLevel + i] = tmp;
+                    if (nLevel < myWord.WordLength - 1)
+                    {
+                        RecurFindAnagram(nLevel + 1);
+                    }
+                    else
+                    { // got full anagram
+                        var candidate = myWord.GetWord();
+//                        Console.WriteLine($"Ana {candidate}");
+                        if (IsWord(candidate))
+                        {
+                            act(candidate);
+                        }
+                    }
+                    // restore swap
+                    myWord._wordBytes[nLevel + i] = myWord._wordBytes[nLevel];
+                    myWord._wordBytes[nLevel] = tmp;
+
+                }
+
+            }
+
+
+        }
+        /// <summary>
+        /// supports trailing "*" as wild card so far
+        /// </summary>
+        /// <param name="strMatch"></param>
+        /// <returns></returns>
+        public string FindMatch(string strMatch)
+        {
+            var result = string.Empty;
+            strMatch = strMatch.ToLower();
+            if (!string.IsNullOrEmpty(strMatch))
+            {
+                if (!strMatch.Contains("*"))
+                {
+                    if (IsWord(strMatch))
+                    {
+                        result = strMatch;
+                    }
+                }
+                else
+                {
+                    if (strMatch[0] == '*')
+                    {
+                        result = SetDictPosition("a");
+                    }
+                    else
+                    {
+                        if (strMatch[1] == '*')
+                        {
+                            result = SetDictPosition(strMatch.Substring(0, 1));
+                        }
+                        else
+                        {
+                            var ndx = strMatch.IndexOf('*');
+                            strMatch = strMatch.Substring(0, ndx);
+                            var tempResult = SetDictPosition(strMatch);
+                            while (true)
+                            {
+                                if (tempResult.Length > ndx && tempResult.Substring(0, ndx) == strMatch)
+                                {
+                                    result = tempResult;
+                                    break;
+                                }
+                                var cmpResult = tempResult.CompareTo(strMatch);
+                                if (cmpResult >= 0)
+                                {
+                                    if (cmpResult == 0)
+                                    {
+                                        result = tempResult;
+                                    }
+                                    break;
+                                }
+                                tempResult = GetNextWord(WordStop: null, cntSkip: 0);
+                            }
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
+        public bool IsWord(string word)
+        {
+            bool isWord = false;
+            if (!string.IsNullOrEmpty(word))
+            {
+                word = word.ToLower();
+                switch (word.Length)
+                {
+                    case 1:
+                        if (word == "a" || word == "i")
+                        {
+                            isWord = true;
+                        }
+                        break;
+                    default:
+                        var testWord = SetDictPosition(word);
+                        var cmp = testWord.CompareTo(word);
+                        if (cmp == 0)
+                        {
+                            isWord = true;
+                        }
+                        break;
+                }
+            }
+            return isWord;
+        }
+
         public string RandomWord()
         {
             var rnum = _random.Next(_dictHeader.wordCount);
@@ -373,28 +426,12 @@ namespace Dictionary
             }
             throw new InvalidOperationException();
         }
-
-        public DictionaryResult GetNextWord2(int nibOffset)
-        {
-            DictionaryResult dictionaryResult = new DictionaryResult();
-            return dictionaryResult;
-        }
-
-        public DictionaryResult RandomWord2()
-        {
-            var res = new DictionaryResult()
-            {
-                Word = "rand"
-            };
-
-            return res;
-        }
     }
 
     internal class MyWord : IComparable
     {
         readonly private int maxWordLen;
-        readonly byte[] _wordBytes;
+        internal byte[] _wordBytes;
         int _currentLength;
 
         MyWord()

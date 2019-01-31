@@ -93,7 +93,7 @@ namespace MakeDictionary
                 foreach (var word in words)
                 {
                     dictHeader.wordCount++;
-                    if (word.Length>maxWordLen)
+                    if (word.Length > maxWordLen)
                     {
                         maxWordLen = word.Length;
                     }
@@ -196,6 +196,14 @@ namespace MakeDictionary
 
         }
 
+        public IEnumerable<string> FindAnagrams(string word)
+        {
+            _dict.FindAnagram(word, nSubWords: 0);
+            foreach (var wrd in _dict.Words)
+            {
+                yield return wrd as string;
+            }
+        }
         public IEnumerable<string> GetWords(string start)
         {
             var wrd1 = _dict.FindMatch(start);

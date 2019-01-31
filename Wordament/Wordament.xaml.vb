@@ -99,6 +99,9 @@ Class WordamentWindow
                             }
                         '_randLetGenerator.PreSeed(2, 6, _nRows * _nCols)
                         _pnl.Children.Add(grd)
+                        AddHandler grd.MouseLeave, Sub()
+                                                       AddStatusMsg($"grd.mouseleave")
+                                                   End Sub
                         If Me._IsLongWrd Then
                             Dim arr = Await Task.Run(Function() FillGridWithLongWord())
                             _arrTiles = Array.CreateInstance(GetType(LtrTile), _nRows, _nCols)
@@ -497,9 +500,15 @@ Class WordamentWindow
         Inherits DockPanel
         Shared g_lstItemsSelected As New List(Of LtrTile)
         Shared g_MouseIsDown As Boolean = False
+        Dim _isSelected = False
+
+        ReadOnly _row As Integer
+        ReadOnly _col As Integer
         Public _letter As SimpleLetter
         Public Sub New(ByVal letter As String, row As Integer, col As Integer, ByVal nTotalCols As Integer)
             _letter = New SimpleLetter(letter, row, col)
+            _row = row
+            _col = col
             Background = Brushes.DarkSlateBlue
 
             Margin = New Thickness(2, 2, 2, 2) ' space between tiles
@@ -511,27 +520,46 @@ Class WordamentWindow
                 .Foreground = Brushes.White
             }
             Me.Children.Add(txt)
-
             AddHandler txt.MouseDown, Sub()
                                           Me.Background = Brushes.Red
                                           WordamentWindow.AddStatusMsg($"md {Me}")
-                                          g_lstItemsSelected.Add(Me)
-                                          g_MouseIsDown = True
+                                          If Not _isSelected Then
+                                              _isSelected = True
+                                              g_lstItemsSelected.Add(Me)
+                                              g_MouseIsDown = True
+                                          End If
                                       End Sub
             AddHandler txt.MouseUp, Sub()
                                         Me.Background = Brushes.DarkSlateBlue
                                         g_MouseIsDown = False
                                         WordamentWindow.AddStatusMsg($"mu {Me}")
                                         For Each t In g_lstItemsSelected
+                                            t._isSelected = False
                                             t.Background = Brushes.DarkSlateBlue
                                         Next
                                         g_lstItemsSelected.Clear()
                                     End Sub
             AddHandler txt.MouseMove, Sub()
                                           WordamentWindow.AddStatusMsg($"mm {Me}  MouseIsDown{g_MouseIsDown}")
-                                          If g_MouseIsDown Then
-                                              g_lstItemsSelected.Add(Me)
-                                              Me.Background = Brushes.Red
+                                          If g_MouseIsDown And Not _isSelected Then
+                                              Dim lastSelected As LtrTile = Nothing
+                                              If g_lstItemsSelected.Count > 0 Then
+                                                  lastSelected = g_lstItemsSelected(g_lstItemsSelected.Count - 1)
+                                              End If
+                                              Dim okToSelect = False
+                                              If lastSelected Is Nothing Then
+                                                  okToSelect = True
+                                              Else
+                                                  If ((lastSelected._row = Me._row And (Math.Abs(lastSelected._col - Me._col) = 1) Or
+                                                       lastSelected._col = Me._col And (Math.Abs(lastSelected._row - Me._row) = 1))) Then
+                                                      okToSelect = True
+                                                  End If
+                                              End If
+                                              If okToSelect Then
+                                                  _isSelected = True
+                                                  g_lstItemsSelected.Add(Me)
+                                                  Me.Background = Brushes.Red
+                                              End If
                                           End If
                                       End Sub
 
