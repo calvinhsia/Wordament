@@ -53,7 +53,7 @@ namespace Dictionary
             }
             nibndx++;
             havePartialNib = !havePartialNib;
-            //                Console.WriteLine($"  GetNextNib {nibndx} {result}");
+            //                LogMessage($"  GetNextNib {nibndx} {result}");
             return result;
         }
     }
@@ -83,6 +83,14 @@ namespace Dictionary
         int _nibndx;
 
         readonly MyWord _MyWordSoFar;
+        internal static Action<string> logMessageAction;
+        internal static void LogMessage(string msg)
+        {
+            if (logMessageAction != null)
+            {
+                logMessageAction(msg);
+            }
+        }
 
         /// <summary>
         /// 
@@ -187,12 +195,12 @@ namespace Dictionary
             }
             _nibndx++;
             _havePartialNib = !_havePartialNib;
-            //                Console.WriteLine($"  GetNextNib {nibndx} {result}");
+            //                LogMessage($"  GetNextNib {nibndx} {result}");
             return result;
         }
         public string GetNextWord()
         {
-            return GetNextWord(out int compareResult, WordStop: null, cntSkip:0);
+            return GetNextWord(out int compareResult, WordStop: null, cntSkip: 0);
         }
 
         internal string GetNextWord(string WordStop = null, int cntSkip = 0)
@@ -229,7 +237,7 @@ namespace Dictionary
                 }
                 if (nib == DictHeader.EOFChar)
                 {
-                    //              Console.WriteLine($"Got EOD {_nibndx}");
+                    //              LogMessage($"Got EOD {_nibndx}");
                     return string.Empty;
                 }
                 lenSoFar += nib;
@@ -249,7 +257,7 @@ namespace Dictionary
                     {
                         if (nib == DictHeader.EOFChar)
                         {
-                            //                        Console.WriteLine($"GOT EODCHAR {_nibndx:x2}");
+                            //                        LogMessage($"GOT EODCHAR {_nibndx:x2}");
                             break;
                         }
                         newchar = _dictHeader.tab1[nib];
@@ -305,13 +313,14 @@ namespace Dictionary
                 }
             }
             var lstAnagrams = new HashSet<string>();
+            LogMessage($"DoAnagrm {myWord}");
             RecurFindAnagram(0);
             void RecurFindAnagram(int nLevel)
             {
                 int tryLen = myWord.WordLength - nLevel;
                 for (int i = 0; i < tryLen; i++)
                 {
-                    //Console.WriteLine($"{nLevel} {myWord.GetWord()}");
+                    //LogMessage($"{nLevel} {myWord.GetWord()}");
                     if (nLevel < myWord.WordLength - 1)
                     {
                         if (nLevel > 1)// tree pruning
@@ -323,8 +332,8 @@ namespace Dictionary
                             myWord.SetLength(origLen);
                             if (!partial.StartsWith(testWord))
                             {
-                                Console.WriteLine($"prune {nLevel}  {testWord}  {partial}");
-                                continue;
+                                LogMessage($"prune {nLevel}  {testWord}  {partial}");
+                                return;
                             }
                         }
                         byte tmp = myWord._wordBytes[nLevel]; // swap nlevel and nlevel+i
@@ -338,11 +347,12 @@ namespace Dictionary
                     else
                     { // got full permutation
                         var candidate = myWord.GetWord();
-                        Console.WriteLine($"   cand {nLevel} {candidate}");
+                        LogMessage($"   cand {nLevel} {candidate}");
                         if (IsWord(candidate))
                         {
                             if (!lstAnagrams.Contains(candidate))
                             {
+                                LogMessage($"   GotAnag {nLevel} {candidate}");
                                 lstAnagrams.Add(candidate);
                                 act(candidate);
                             }

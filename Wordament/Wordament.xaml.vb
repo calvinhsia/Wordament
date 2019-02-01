@@ -256,6 +256,8 @@ Class WordamentWindow
         '_pnl.Children.Add(New ListView With {.ItemsSource = RandLetterGenerator._letDist})
     End Sub
 
+    Dim _lstLongWords As New List(Of String)
+
     Private Function FillGridWithLongWord() As Integer(,)
         Dim spellDict = New Dictionary.Dictionary(Dictionary.DictionaryType.Small, _Random)
         ' create a list of random directions (N,S, SE, etc) which can be tried in sequence til success
@@ -263,21 +265,35 @@ Class WordamentWindow
         For i = 0 To 7
             directions(i) = i
         Next
+        If _lstLongWords.Count = 0 Then
+            spellDict.SeekWord("a")
+            While True
+                Dim wrd = spellDict.GetNextWord
+                If String.IsNullOrEmpty(wrd) Then
+                    Exit While
+                End If
+                If wrd.Length >= _nMinWordLen Then
+                    _lstLongWords.Add(wrd)
+                End If
+            End While
+        End If
 
         Dim isGood = False
         Dim arr(,) As Integer = Nothing ' asc
         Do While Not isGood
             Dim randLongWord = String.Empty
-            Dim nTries = 0
-            Do
-                nTries += 1
-                randLongWord = spellDict.RandomWord()
-                If randLongWord.Length > 16 Then
-                    AddStatusMsg($"Got word too long {randLongWord}")
-                    randLongWord = String.Empty
-                End If
-            Loop While randLongWord.Length < _nMinWordLen
-            AddStatusMsg($"Got long word searching dict {nTries} tries")
+            Dim randnum = _Random.Next(_lstLongWords.Count)
+            randLongWord = _lstLongWords(randnum)
+            'Dim nTries = 0
+            'Do
+            '    nTries += 1
+            '    randLongWord = spellDict.RandomWord()
+            '    If randLongWord.Length > 16 Then
+            '        AddStatusMsg($"Got word too long {randLongWord}")
+            '        randLongWord = String.Empty
+            '    End If
+            'Loop While randLongWord.Length < _nMinWordLen
+            'AddStatusMsg($"Got long word searching dict {nTries} tries")
             '                randLongWord = "ABCDEFGHIJ"
             randLongWord = randLongWord.ToUpper
             ' now place the word in the grid. Start with a random
@@ -288,7 +304,6 @@ Class WordamentWindow
                 directions(j) = directions(r)
                 directions(r) = tmp
             Next
-            AddStatusMsg("Filling grid")
             Dim nCalls = 0
             arr = Array.CreateInstance(GetType(Integer), _nRows, _nCols)
             ' Given r,c of empty square with current letter index, put ltr in square
@@ -357,7 +372,7 @@ Class WordamentWindow
             Dim ncurRow = _Random.Next(_nRows)
             Dim ncurCol = _Random.Next(_nCols)
             isGood = recurLam(ncurRow, ncurCol, 0)
-            AddStatusMsg($"NRecurCalls= {nCalls} {randLongWord.Length}")
+            AddStatusMsg($"NRecurCalls= {nCalls} WrdLn={randLongWord.Length}")
             ' we recurred down and couldn't find a path
         Loop
         Return arr
