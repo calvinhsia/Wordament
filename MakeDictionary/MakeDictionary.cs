@@ -18,7 +18,7 @@ namespace MakeDictionary
     /// </summary>
     public class MakeDictionary
     {
-        public static void MakeBinFile(IEnumerable<string> words, string fileName)
+        public static void MakeBinFile(IEnumerable<string> words, string fileName, uint dictNum)
         {
             // output: "C:\Users\calvinh\Source\Repos\Wordament\WordamentTests\bin\Debug\dict1.bin"
             // xfer "C:\Users\calvinh\Source\Repos\Wordament\Dictionary\Resources\dict1.bin"
@@ -148,7 +148,7 @@ namespace MakeDictionary
                     {
                         strNibsAdded += $" {nib:x}";
                     }
-                    Console.WriteLine($"Adding word {dictHeader.wordCount,6} {curWordNdx,5:x4} {nkeepSoFar,3:n0} {word.Length,3} {word} {strNibsAdded}");
+                    Console.WriteLine($"Adding word {dictNum} {dictHeader.wordCount,6} {curWordNdx,5:x4} {nkeepSoFar,3:n0} {word.Length,3} {word} {strNibsAdded}");
                     nibsAdded.Clear();
 
                 }

@@ -113,28 +113,47 @@ namespace Dictionary
             _MyWordSoFar = new MyWord(_dictHeader.maxWordLen);
         }
 
+        public string SeekWord(string word)
+        {
+            return SeekWord(word, out var compResult);
+        }
+
         /// <summary>
         /// Seek in dictionary to provided "word". if word is indictionary,returns word.
-        /// else, returns word
+        /// if found in dict, returns the same string
+        /// if not found, returns the word just beyond where the word would be found.
+        /// IOW, 2 consecutive words in dictionary: abcdefone, abcdeftwo (and dict does not have abc,abcdefg)
+        /// Search for 
+        ///     abc => returns abcdef (abc not found)
+        ///     abcdef=> returns abcdef (match)
+        ///     abcdefg=> returns abcdefone
+        ///     acbdefs=> returns abcdeftwo
+        /// 
+        ///// </summary>
         /// </summary>
         /// <param name="word"></param>
         /// <returns></returns>
-        string SetDictPosition(string word)
+        public string SeekWord(string word, out int compResult)
         {
+            word = word.ToLower();
             var result = string.Empty;
-            if (!string.IsNullOrEmpty(word))
+            compResult = 0;
+            var let1 = 0;
+            var let2 = 0; //'a'
+            if (word.Length > 1)
             {
-                var let1 = word[0] - 97;
-                var let2 = 0; //'a'
-                if (word.Length > 1)
-                {
-                    let2 = word[1] - 97;
-                }
-                SetDictPosTo2Letters(let1, let2);
-                result = GetNextWord(WordStop: word);
+                let1 = word[0] - 97;
             }
+            let2 = 0; //'a'
+            if (word.Length > 1)
+            {
+                let2 = word[1] - 97;
+            }
+            SetDictPosTo2Letters(let1, let2);
+            result = GetNextWord(out compResult, WordStop: word);
             return result;
         }
+
         void SetDictPosTo2Letters(int let1, int let2 = 0)
         {
             _havePartialNib = false;
@@ -173,7 +192,12 @@ namespace Dictionary
         }
         public string GetNextWord()
         {
-            return GetNextWord(WordStop: null);
+            return GetNextWord(out int compareResult, WordStop: null, cntSkip:0);
+        }
+
+        internal string GetNextWord(string WordStop = null, int cntSkip = 0)
+        {
+            return GetNextWord(out int compareResult, WordStop, cntSkip);
         }
 
         /// <summary>
@@ -182,12 +206,14 @@ namespace Dictionary
         /// <param name="WordStop">must init dict first. then will stop when dict word >= WordStop</param>
         /// <param name="cntSkip"> nonzero means skip this many words (used for RandomWord). 
         /// 0 means return next word. 1 means skip one word. For perf: don't have to convert to string over and over</param>
+        /// <param name="compareResult">if provided, </param>
         /// <returns></returns>
-        internal string GetNextWord(string WordStop = null, int cntSkip = 0)
+        internal string GetNextWord(out int compareResult, string WordStop = null, int cntSkip = 0)
         {
             Debug.Assert((WordStop == null) || cntSkip == 0);
             byte nib = 0;
             MyWord stopAtWord = null;
+            compareResult = 0;
             if (!string.IsNullOrEmpty(WordStop))
             {
                 stopAtWord = new MyWord(WordStop);
@@ -239,6 +265,7 @@ namespace Dictionary
                     var cmp = _MyWordSoFar.CompareTo(stopAtWord);
                     if (cmp >= 0)
                     {
+                        compareResult = cmp;
                         break;
                     }
                 }
@@ -277,98 +304,97 @@ namespace Dictionary
                     }
                 }
             }
+            var lstAnagrams = new HashSet<string>();
             RecurFindAnagram(0);
             void RecurFindAnagram(int nLevel)
             {
-                byte tmp;
                 int tryLen = myWord.WordLength - nLevel;
                 for (int i = 0; i < tryLen; i++)
                 {
-                    tmp = myWord._wordBytes[nLevel]; // swap nlevel and nlevel+i
-                    myWord._wordBytes[nLevel] = myWord._wordBytes[nLevel + i];
-                    myWord._wordBytes[nLevel + i] = tmp;
+                    //Console.WriteLine($"{nLevel} {myWord.GetWord()}");
                     if (nLevel < myWord.WordLength - 1)
                     {
+                        if (nLevel > 1)// tree pruning
+                        {
+                            var origLen = myWord.WordLength;
+                            myWord.SetLength(nLevel);
+                            var testWord = myWord.GetWord();
+                            var partial = SeekWord(testWord, out var compResult);
+                            myWord.SetLength(origLen);
+                            if (!partial.StartsWith(testWord))
+                            {
+                                Console.WriteLine($"prune {nLevel}  {testWord}  {partial}");
+                                continue;
+                            }
+                        }
+                        byte tmp = myWord._wordBytes[nLevel]; // swap nlevel and nlevel+i
+                        myWord._wordBytes[nLevel] = myWord._wordBytes[nLevel + i];
+                        myWord._wordBytes[nLevel + i] = tmp;
                         RecurFindAnagram(nLevel + 1);
+                        // restore swap
+                        myWord._wordBytes[nLevel + i] = myWord._wordBytes[nLevel];
+                        myWord._wordBytes[nLevel] = tmp;
                     }
                     else
-                    { // got full anagram
+                    { // got full permutation
                         var candidate = myWord.GetWord();
-//                        Console.WriteLine($"Ana {candidate}");
+                        Console.WriteLine($"   cand {nLevel} {candidate}");
                         if (IsWord(candidate))
                         {
-                            act(candidate);
-                        }
-                    }
-                    // restore swap
-                    myWord._wordBytes[nLevel + i] = myWord._wordBytes[nLevel];
-                    myWord._wordBytes[nLevel] = tmp;
-
-                }
-
-            }
-
-
-        }
-        /// <summary>
-        /// supports trailing "*" as wild card so far
-        /// </summary>
-        /// <param name="strMatch"></param>
-        /// <returns></returns>
-        public string FindMatch(string strMatch)
-        {
-            var result = string.Empty;
-            strMatch = strMatch.ToLower();
-            if (!string.IsNullOrEmpty(strMatch))
-            {
-                if (!strMatch.Contains("*"))
-                {
-                    if (IsWord(strMatch))
-                    {
-                        result = strMatch;
-                    }
-                }
-                else
-                {
-                    if (strMatch[0] == '*')
-                    {
-                        result = SetDictPosition("a");
-                    }
-                    else
-                    {
-                        if (strMatch[1] == '*')
-                        {
-                            result = SetDictPosition(strMatch.Substring(0, 1));
-                        }
-                        else
-                        {
-                            var ndx = strMatch.IndexOf('*');
-                            strMatch = strMatch.Substring(0, ndx);
-                            var tempResult = SetDictPosition(strMatch);
-                            while (true)
+                            if (!lstAnagrams.Contains(candidate))
                             {
-                                if (tempResult.Length > ndx && tempResult.Substring(0, ndx) == strMatch)
-                                {
-                                    result = tempResult;
-                                    break;
-                                }
-                                var cmpResult = tempResult.CompareTo(strMatch);
-                                if (cmpResult >= 0)
-                                {
-                                    if (cmpResult == 0)
-                                    {
-                                        result = tempResult;
-                                    }
-                                    break;
-                                }
-                                tempResult = GetNextWord(WordStop: null, cntSkip: 0);
+                                lstAnagrams.Add(candidate);
+                                act(candidate);
                             }
                         }
                     }
+
                 }
+
             }
-            return result;
         }
+
+        ///// <summary>
+        ///// if found in dict, returns the same string
+        ///// if not found, returns the word just beyond where the word would be found.
+        ///// IOW, 2 consecutive words in dictionary: abcdefone, abcdeftwo (and dict does not have abc,abcdefg)
+        ///// Search for 
+        /////     abc => returns abcdef (abc not found)
+        /////     abcdef=> returns abcdef (match)
+        /////     abcdefg=> returns abcdefone
+        /////     acbdefs=> returns abcdeftwo
+        ///// 
+        ///// </summary>
+        ///// <param name="strMatch"></param>
+        ///// <returns></returns>
+        //public string SeekWord(string strMatch, SeekWordOptions seekOptions)
+        //{
+        //    var result = string.Empty;
+        //    strMatch = strMatch.ToLower();
+        //    if (!string.IsNullOrEmpty(strMatch))
+        //    {
+        //        var tempResult = SetDictPosition(strMatch);
+        //        while (true)
+        //        {
+        //            if (tempResult.Length > ndx && tempResult.Substring(0, ndx) == strMatch)
+        //            {
+        //                result = tempResult;
+        //                break;
+        //            }
+        //            var cmpResult = tempResult.CompareTo(strMatch);
+        //            if (cmpResult >= 0)
+        //            {
+        //                if (cmpResult == 0)
+        //                {
+        //                    result = tempResult;
+        //                }
+        //                break;
+        //            }
+        //            tempResult = GetNextWord(WordStop: null, cntSkip: 0);
+        //        }
+        //    }
+        //    return result;
+        //}
 
         public bool IsWord(string word)
         {
@@ -385,8 +411,7 @@ namespace Dictionary
                         }
                         break;
                     default:
-                        var testWord = SetDictPosition(word);
-                        var cmp = testWord.CompareTo(word);
+                        var testWord = SeekWord(word, out var cmp);
                         if (cmp == 0)
                         {
                             isWord = true;
@@ -426,6 +451,11 @@ namespace Dictionary
             }
             throw new InvalidOperationException();
         }
+
+        internal object FindMatchRegEx(string str)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     internal class MyWord : IComparable
@@ -459,8 +489,8 @@ namespace Dictionary
         }
         public string GetWord()
         {
-            var xx = new ASCIIEncoding();
-            xx.GetString(_wordBytes);
+            //var xx = new ASCIIEncoding();
+            //xx.GetString(_wordBytes);
             return Encoding.ASCII.GetString(_wordBytes, 0, _currentLength);
         }
         public void AddByte(byte b)

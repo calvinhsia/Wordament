@@ -16,19 +16,19 @@ namespace WordamentTests
         public TestContext TestContext { get; set; }
 
         [TestMethod]
-        public void TestFindMatch()
+        public void TestSeekWord()
         {
             var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, new Random(1));
-            foreach (var str in new[] { "zys", "me*", "aband*", "*", "z*", "mel*", "asdf*" })
+            foreach (var str in new[] { "zys", "me", "aband", "", "z", "mel", "asdf" })
             {
-                var res = dict.FindMatch(str);
-                Console.WriteLine($"FindMatch {str}, {res}");
+                var res = dict.SeekWord(str);
+                Console.WriteLine($"SeekWord {str}, {res}");
             }
-            Assert.AreEqual(dict.FindMatch("*"), "a");
-            Assert.AreEqual(dict.FindMatch("me*"), "me");
-            Assert.AreEqual(dict.FindMatch("mel*"), "melancholia");
-            Assert.AreEqual(dict.FindMatch("aband*"), "abandon");
-            Assert.AreEqual(dict.FindMatch("asdf*"), string.Empty);
+            Assert.AreEqual(dict.SeekWord(""), "a");
+            Assert.AreEqual(dict.SeekWord("me"), "me");
+            Assert.AreEqual(dict.SeekWord("mel"), "melancholia");
+            Assert.AreEqual(dict.SeekWord("aband"), "abandon");
+            Assert.AreEqual(dict.SeekWord("asdf"), "asdic");
         }
 
 
@@ -38,8 +38,8 @@ namespace WordamentTests
             var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, new Random(1));
             foreach (var str in new[] { "me*", "aband*", "*", "z*", "mel*", "asdf*" })
             {
-                var res = dict.FindMatch(str);
-                Console.WriteLine($"FindMatch {str}, {res}");
+                var res = dict.FindMatchRegEx(str);
+                Console.WriteLine($"FindMatchRegEx {str}, {res}");
             }
             throw new NotImplementedException();
         }
@@ -67,17 +67,21 @@ namespace WordamentTests
         public void TestDoAnagram()
         {
             var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, new Random(1));
-            Console.WriteLine($"doing anagrams");
             var lstAnagrams = new List<string>();
             // relive, discounter, top
-            dict.FindAnagrams("discounter", (str) =>
+            var word = "discounter";
+            Console.WriteLine($"doing anagrams {word}");
+            dict.FindAnagrams(word, (str) =>
             {
                 lstAnagrams.Add(str);
             });
             foreach (var anagram in lstAnagrams)
             {
-                Console.WriteLine(anagram);
+                Console.WriteLine($"Found anagram {anagram}");
             }
+            Assert.IsTrue(lstAnagrams.Contains("discounter"));
+            Assert.IsTrue(lstAnagrams.Contains("introduces"));
+            Assert.IsTrue(lstAnagrams.Contains("reductions"));
         }
 
 
@@ -149,7 +153,7 @@ namespace WordamentTests
             for (int i = 0; i < nCnt; i++)
             {
                 var r = newdict.RandomWord();
-                var x = newdict.FindMatch(r + "*");
+                var x = newdict.SeekWord(r);
                 var xx = newdict.IsWord(x);
             }
             Console.WriteLine($"Newdict {sw.Elapsed.TotalSeconds}");
@@ -164,9 +168,9 @@ namespace WordamentTests
             {
                 for (int i = longWord.Length; i >= 0; i--)
                 {
-                    var word = longWord.Substring(0, i) + "*";
-                    var findMatch = dict.FindMatch(word);
-                    Console.WriteLine($"findmatch {findMatch} '{word}'");
+                    var word = longWord.Substring(0, i);
+                    var SeekWord = dict.SeekWord(word);
+                    Console.WriteLine($"SeekWord {SeekWord} '{word}'");
                 }
             }
 
@@ -187,8 +191,8 @@ namespace WordamentTests
             var lstOldWords = GetOldDictWords(2);
             var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small);
 
-            var w = dict.IsWord("our");
-            Assert.IsTrue(w);
+            var w = dict.IsWord("sinoiaterrpze");
+            Assert.IsFalse(w);
             foreach (var word in lstOldWords)
             {
                 if (word.Length > 1)
@@ -234,7 +238,7 @@ namespace WordamentTests
                 Console.WriteLine($"DictSect {dictNum} NumWords = {lstWords.Count}");
                 //            var fileName = @"C:\Users\calvinh\Source\Repos\Wordament\MakeDictionary\Resources\dict.bin";
                 var fileName = Path.Combine(Environment.CurrentDirectory, $@"dict{dictNum}.bin");
-                MakeDictionary.MakeDictionary.MakeBinFile(lstWords, fileName);
+                MakeDictionary.MakeDictionary.MakeBinFile(lstWords, fileName, dictNum);
 
                 Console.WriteLine($"DictSect {dictNum}  Dictionary NibTable");
                 var dictBytes = File.ReadAllBytes(fileName);
@@ -246,7 +250,7 @@ namespace WordamentTests
                 // note: this will now read the resources of Dictionary.dll, not the just generated dumpfile, so need to update it if dictHeader struct changes
                 var dict = new Dictionary.Dictionary((Dictionary.DictionaryType)dictNum);
                 var newlstWord = new List<string>();
-                var word = dict.FindMatch("*");
+                var word = dict.SeekWord("");
                 while (!string.IsNullOrEmpty(word))
                 {
                     newlstWord.Add(word);

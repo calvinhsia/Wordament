@@ -59,7 +59,7 @@ Class WordamentWindow
 
             Dim btn = CType(_stkCtrls.FindName("btnNew"), Button)
             _txtStatus = CType(_stkCtrls.FindName("tbxStatus"), TextBox)
-            _txtStatus.MaxHeight = Math.Min(100, Me.Height - 150)
+            _txtStatus.MaxHeight = Math.Min(200, Me.Height - 150)
             AddStatusMsg("starting")
 
             'Dim tmpSpellDict = New Dictionary.CDict
@@ -402,12 +402,14 @@ Class WordamentWindow
         If iRow >= 0 AndAlso iCol >= 0 AndAlso iRow < _nRows AndAlso iCol < _nCols Then
             Dim ltr = _arrTiles(iRow, iCol)
             If Not _visitedarr(iRow, iCol) Then
-                wordSoFar += ltr._letter._letter
+                wordSoFar += ltr._letter._letter.ToLower
                 ptsSoFar += ltr._pts
                 ltrList.Add(_arrTiles(iRow, iCol)._letter)
                 If wordSoFar.Length >= _minWordLength Then
-                    If _spellDict.IsWord(wordSoFar) Then
-                        If Not _resultWords.ContainsKey(wordSoFar) Then
+                    Dim compResult = 0
+                    Dim isPartial = _spellDict.SeekWord(wordSoFar, compResult)
+                    If compResult = 0 Then
+                        If Not _resultWords.ContainsKey(wordSoFar.ToUpper()) Then
                             Dim pts As Double = ptsSoFar
                             If wordSoFar.Length >= 5 Then
                                 If wordSoFar.Length = 5 Then
@@ -418,12 +420,11 @@ Class WordamentWindow
                                     pts *= 2.5
                                 End If
                             End If
-                            _resultWords.Add(wordSoFar, New LetterList(ltrList, pts)) ' needs to be a copy
+                            _resultWords.Add(wordSoFar.ToUpper(), New LetterList(ltrList, pts)) ' needs to be a copy
                         End If
                     Else
                         ' not in dict so far: let's see if it's a partial match
-                        Dim isPartial = _spellDict.FindMatch(wordSoFar + "*")
-                        If String.IsNullOrEmpty(isPartial) Then
+                        If Not isPartial.StartsWith(wordSoFar) Then
                             ltrList.RemoveAt(ltrList.Count - 1)
                             Return
                         End If
@@ -494,6 +495,9 @@ Class WordamentWindow
             _row = row
             _col = col
         End Sub
+        Public Overrides Function ToString() As String
+            Return _letter
+        End Function
     End Class
 
     Public Class LtrTile
