@@ -71,6 +71,15 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
             Dim isShowingResult = False
             Dim taskGetResults As Task(Of List(Of Dictionary(Of String, LetterList))) = Nothing
+            Dim fdidFinish = False
+            Dim lamShowResults = Async Sub()
+                                     isShowingResult = True
+                                     btn.Content = "calculating..."
+                                     Dim res = Await taskGetResults
+                                     ShowResults(res)
+                                     btn.Content = "_New"
+                                     isShowingResult = False
+                                 End Sub
             AddHandler btn.Click,
                 Async Sub()
                     If Not isShowingResult Then
@@ -84,7 +93,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                             .Height = 300
                             }
                         _pnl.Children.Add(grd)
-
+                        fdidFinish = False
                         Dim lstTilesSelected As New List(Of LtrTile)
                         Dim IsMouseDown As Boolean = False
                         Dim funcUpdateWordSoFar As Action =
@@ -93,18 +102,18 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                 For Each til In lstTilesSelected
                                     str += til.ToString()
                                 Next
-                                _txtWordSoFar.Text = str
+                                _txtWordSoFar.Text = $"{str}"
                                 If _IsLongWrd AndAlso taskGetResults.IsCompleted AndAlso str.Length >= _nMinWordLen Then
-                                    Dim res = From kvp In taskGetResults.Result(0)
-                                              Order By kvp.Key.Length Descending
-
                                     Dim max = taskGetResults.Result(0).OrderByDescending(Function(kvp) kvp.Key.Length).FirstOrDefault
                                     If max.Key.Length = str.Length Then
                                         If max.Value.Word = str Then
-                                            btn.RaiseEvent(New RoutedEventArgs With {.RoutedEvent = Button.ClickEvent})
+                                            fdidFinish = True
+
+                                            lamShowResults()
+
+                                            '                                            btn.RaiseEvent(New RoutedEventArgs With {.RoutedEvent = Button.ClickEvent})
                                         End If
                                     End If
-
                                 End If
                             End Sub
                         Dim funcGetTileUnderMouse As Func(Of MouseEventArgs, LtrTile) =
@@ -144,7 +153,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                                     IsMouseDown = False
                                                 End Sub
                         AddHandler grd.MouseMove, Sub(o, ev)
-                                                      If IsMouseDown Then
+                                                      If IsMouseDown AndAlso Not fdidFinish Then
                                                           Dim ltrTile = funcGetTileUnderMouse(ev)
                                                           If ltrTile IsNot Nothing Then
                                                               Dim lastSelected As LtrTile = Nothing
@@ -179,6 +188,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
                                                       End If
                                                       funcUpdateWordSoFar()
+
                                                   End Sub
                         AddHandler grd.MouseLeave, Sub()
                                                        AddStatusMsg($"grd.MouseLeave")
@@ -205,14 +215,11 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         Else
                             FillGridWithRandomletters(grd)
                         End If
+                        isShowingResult = False
                         taskGetResults = GetResultsAsync()
                     Else
-                        btn.Content = "calculating..."
-                        Dim res = Await taskGetResults
-                        ShowResults(res)
-                        btn.Content = "_New"
+                        lamShowResults()
                     End If
-                    isShowingResult = Not isShowingResult
                     Me.Content = _pnl
                     'Width = 800
                     'Height = 800
