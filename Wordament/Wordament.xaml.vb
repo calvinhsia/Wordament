@@ -35,7 +35,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     Private Sub Window_Loaded(ByVal sender As System.Object, ByVal e As System.Windows.RoutedEventArgs) Handles MyBase.Loaded
         Try
             Height = 800
-            Width = 1000
+            Width = 1200
             Title = "Calvin's Wordament"
             _seed = Environment.TickCount
             If Debugger.IsAttached Then
@@ -67,30 +67,38 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             _txtStatus = CType(_stkCtrls.FindName("tbxStatus"), TextBox)
             _txtStatus.MaxHeight = Math.Min(200, Me.Height - 150)
             _txtWordSoFar = CType(_stkCtrls.FindName("tbxWordSoFar"), TextBox)
-            AddStatusMsg("starting")
 
-            Dim isShowingResult = False
-            Dim taskGetResults As Task(Of List(Of Dictionary(Of String, LetterList))) = Nothing
+            Dim isShowingResult = True ' either is showing a board without results, or board with results
             Dim fdidFinish = False
-            Dim lamShowResults = Async Sub()
-                                     isShowingResult = True
-                                     btn.Content = "calculating..."
-                                     Dim res = Await taskGetResults
-                                     ShowResults(res)
-                                     btn.Content = "_New"
-                                     isShowingResult = False
-                                 End Sub
+            Dim taskGetResults As Task(Of List(Of Dictionary(Of String, LetterList))) = Nothing
             AddHandler btn.Click,
                 Async Sub()
+
+                    Dim lamShowResults = Async Sub()
+                                             isShowingResult = True
+                                             btn.Content = "calculating..."
+                                             Dim res = Await taskGetResults
+                                             taskGetResults = Nothing
+                                             ShowResults(res)
+                                             btn.Content = "_New"
+                                             '                                             isShowingResult = False
+                                         End Sub
+                    AddStatusMsg($"click {isShowingResult}")
+                    isShowingResult = Not isShowingResult
                     If Not isShowingResult Then
+                        fdidFinish = False
+                        If taskGetResults IsNot Nothing Then
+                            Await taskGetResults
+                            taskGetResults = Nothing
+                        End If
                         btn.Content = "_Show Results"
                         _pnl.Children.Clear()
                         _pnl.Children.Add(_stkCtrls)
                         Dim grd = New UniformGrid With {
                             .Background = Brushes.Black,
-                            .Width = 300,
+                            .Width = 500,
                             .VerticalAlignment = VerticalAlignment.Top,
-                            .Height = 300
+                            .Height = 500
                             }
                         _pnl.Children.Add(grd)
                         fdidFinish = False
@@ -103,7 +111,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                     str += til.ToString()
                                 Next
                                 _txtWordSoFar.Text = $"{str}"
-                                If _IsLongWrd AndAlso taskGetResults.IsCompleted AndAlso str.Length >= _nMinWordLen Then
+                                If _IsLongWrd AndAlso taskGetResults IsNot Nothing AndAlso taskGetResults.IsCompleted AndAlso str.Length >= _nMinWordLen Then
                                     Dim max = taskGetResults.Result(0).OrderByDescending(Function(kvp) kvp.Key.Length).FirstOrDefault
                                     If max.Key.Length = str.Length Then
                                         If max.Value.Word = str Then
@@ -119,7 +127,14 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         Dim funcGetTileUnderMouse As Func(Of MouseEventArgs, LtrTile) =
                                 Function(ev)
                                     Dim ltrTile As LtrTile = Nothing
-                                    Dim elem = grd.InputHitTest(ev.GetPosition(grd))
+                                    Dim pos = ev.GetPosition(grd)
+                                    'AddStatusMsg($"x={pos.X:n2} y={pos.Y:n2}")
+
+                                    ' determine which tile within grd.ActaulWidth, ActualHeight
+                                    ' Using hittest makes the corners of tiles active, causing diagonals to be difficult
+                                    ' with fat fingers, so make a tile "hit" smaller than the tile
+                                    Dim pixY = grd.ActualHeight / _nRows
+                                    Dim elem = grd.InputHitTest(pos)
                                     If elem IsNot Nothing AndAlso elem IsNot grd Then
                                         Do While elem.GetType <> GetType(LtrTile)
                                             elem = CType(elem, FrameworkElement).Parent
@@ -211,11 +226,10 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                     grd.Children.Add(_arrTiles(iRow, iCol))
                                 Next
                             Next
-
                         Else
                             FillGridWithRandomletters(grd)
                         End If
-                        isShowingResult = False
+                        '                        isShowingResult = False
                         taskGetResults = GetResultsAsync()
                     Else
                         lamShowResults()
@@ -632,7 +646,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
             Dim txt As New TextBlock With {
                 .Text = _letter._letter,
-                .FontSize = If(nTotalCols > 10, 10, 40 - (nTotalCols - 6) * 5),
+                .FontSize = If(nTotalCols > 10, 10, 60 - (nTotalCols - 6) * 5),
                 .HorizontalAlignment = HorizontalAlignment.Center,
                 .Foreground = Brushes.White
             }
