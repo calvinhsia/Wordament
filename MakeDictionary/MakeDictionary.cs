@@ -18,6 +18,11 @@ namespace MakeDictionary
     /// </summary>
     public class MakeDictionary
     {
+        internal static Action<string> logMessageAction;
+        internal static void LogMessage(string msg)
+        {
+            logMessageAction?.Invoke(msg);
+        }
         public static void MakeBinFile(IEnumerable<string> words, string fileName, uint dictNum)
         {
             // output: "C:\Users\calvinh\Source\Repos\Wordament\WordamentTests\bin\Debug\dict1.bin"
@@ -47,7 +52,7 @@ namespace MakeDictionary
                 {
                     nibsAdded.Add(nib);
                     Debug.Assert(nib < 16);
-                    //                    Console.WriteLine($"   Adding nib {curNibNdx} {nib}");
+                    //                    LogMessage($"   Adding nib {curNibNdx} {nib}");
                     curNibNdx++;
                     if (!havePartialByte)
                     {
@@ -108,7 +113,7 @@ namespace MakeDictionary
                         let2 = word.Length > 1 ? word[1] : 'a';
                         nibpairNdx = (let1 - 97) * 26 + let2 - 97;
                         dictHeader.nibPairPtr[nibpairNdx].nibbleOffset = curNibNdx;
-                        Console.WriteLine($"AddBucket  {let1} {let2} {word} {curNibNdx:x4}");
+                        LogMessage($"AddBucket  {let1} {let2} {word} {curNibNdx:x4}");
                     }
                     dictHeader.nibPairPtr[nibpairNdx].cnt++;
                     // each word starts with the length to keep from the prior word. e.g. from "common" to "computer", the 1st 3 letters are the same, so lenToKeep = 3
@@ -131,7 +136,7 @@ namespace MakeDictionary
                     while (tempKeepSoFar >= 15)
                     {
                         AddNib(15);
-                        Console.WriteLine($"Long word {word}");
+                        LogMessage($"Long word {word}");
                         tempKeepSoFar -= 15;
                     }
                     AddNib((byte)tempKeepSoFar);
@@ -148,7 +153,7 @@ namespace MakeDictionary
                     {
                         strNibsAdded += $" {nib:x}";
                     }
-                    Console.WriteLine($"Adding word {dictNum} {dictHeader.wordCount,6} {curWordNdx,5:x4} {nkeepSoFar,3:n0} {word.Length,3} {word} {strNibsAdded}");
+                    LogMessage($"Adding word {dictNum} {dictHeader.wordCount,6} {curWordNdx,5:x4} {nkeepSoFar,3:n0} {word.Length,3} {word} {strNibsAdded}");
                     nibsAdded.Clear();
 
                 }
@@ -167,8 +172,8 @@ namespace MakeDictionary
         {
             var dictBytes = File.ReadAllBytes(fileName);
             var dictHeader = DictHeader.MakeHeaderFromBytes(dictBytes);
-            Console.WriteLine($"{fileName} dump HdrSize= {Marshal.SizeOf(dictHeader)}  (0x{Marshal.SizeOf(dictHeader):x8}) MaxWordLen = {dictHeader.maxWordLen}");
-            Console.WriteLine($"Entire dump len= {dictBytes.Length}");
+            LogMessage($"{fileName} dump HdrSize= {Marshal.SizeOf(dictHeader)}  (0x{Marshal.SizeOf(dictHeader):x8}) MaxWordLen = {dictHeader.maxWordLen}");
+            LogMessage($"Entire dump len= {dictBytes.Length}");
 
             var cntwrds = 0;
             for (int i = 0; i < 26; i++)
@@ -176,10 +181,10 @@ namespace MakeDictionary
                 for (int j = 0; j < 26; j++)
                 {
                     cntwrds += dictHeader.nibPairPtr[i * 26 + j].cnt;
-                    Console.WriteLine($"{Convert.ToChar(i + 65)} {Convert.ToChar(j + 65)} {dictHeader.nibPairPtr[i * 26 + j].nibbleOffset:x4}  {dictHeader.nibPairPtr[i * 26 + j].cnt}");
+                    LogMessage($"{Convert.ToChar(i + 65)} {Convert.ToChar(j + 65)} {dictHeader.nibPairPtr[i * 26 + j].nibbleOffset:x4}  {dictHeader.nibPairPtr[i * 26 + j].cnt}");
                 }
             }
-            Console.WriteLine($"TotWrds = {dictHeader.wordCount}   TotNibtblcnt={cntwrds}");
+            LogMessage($"TotWrds = {dictHeader.wordCount}   TotNibtblcnt={cntwrds}");
             return dictBytes;
         }
     }

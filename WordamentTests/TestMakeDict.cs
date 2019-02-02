@@ -19,10 +19,9 @@ namespace WordamentTests
         }
         public TestBase()
         {
-            Dictionary.Dictionary.logMessageAction = (msg) =>
-            {
-                LogMessage(msg);
-            };
+            void LogMsgAction(string str) => LogMessage(str);
+            Dictionary.Dictionary.logMessageAction = LogMsgAction;
+            MakeDictionary.MakeDictionary.logMessageAction = LogMsgAction;
         }
     }
 

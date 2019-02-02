@@ -86,10 +86,7 @@ namespace Dictionary
         internal static Action<string> logMessageAction;
         internal static void LogMessage(string msg)
         {
-            if (logMessageAction != null)
-            {
-                logMessageAction(msg);
-            }
+            logMessageAction?.Invoke(msg);
         }
 
         /// <summary>

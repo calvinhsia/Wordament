@@ -2,8 +2,10 @@
 Imports System.ComponentModel
 Imports System.Windows.Threading
 Imports System.Threading
+Imports System.Runtime.CompilerServices
 
-Class WordamentWindow
+Class WordamentWindow : Implements INotifyPropertyChanged
+
     '.......................................... A  B  C  D  E  F  G  H  I  J   K  L  M  N  O  P  Q   R  S  T  U  V  W  X  Y  Z
     Public Shared _LetterValues() As Integer = {2, 5, 3, 3, 1, 5, 4, 4, 2, 10, 6, 3, 2, 2, 2, 4, 12, 2, 2, 2, 2, 4, 6, 9, 5, 8}
     Public Shared _Random As Random
@@ -16,6 +18,7 @@ Class WordamentWindow
 
     Private _stkCtrls As StackPanel
     Private Shared _txtStatus As TextBox
+    Private _txtWordSoFar As TextBox
     Private _seed As Integer
     Private _randLetGenerator As RandLetterGenerator
     Private _resultWords As Dictionary(Of String, LetterList)
@@ -26,6 +29,8 @@ Class WordamentWindow
         .Orientation = Orientation.Horizontal,
         .DataContext = Me
     }
+
+    Public Event PropertyChanged As PropertyChangedEventHandler Implements INotifyPropertyChanged.PropertyChanged
 
     Private Sub Window_Loaded(ByVal sender As System.Object, ByVal e As System.Windows.RoutedEventArgs) Handles MyBase.Loaded
         Try
@@ -53,6 +58,7 @@ Class WordamentWindow
                     <StackPanel Orientation="Horizontal">
                         <CheckBox Name="chkLongWord" IsChecked="{Binding Path=_IsLongWrd}">LongWord</CheckBox><TextBox Text="{Binding Path=_nMinWordLen}" ToolTip="When doing long words, must be at least this length"></TextBox>
                     </StackPanel>
+                    <TextBox Name="tbxWordSoFar" IsReadOnly="true" Text="{Binding Path=_txtWordSoFar}"></TextBox>
                     <TextBox Name="tbxStatus" Width="300" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Left"></TextBox>
                 </StackPanel>.CreateReader
             ), StackPanel)
@@ -60,28 +66,8 @@ Class WordamentWindow
             Dim btn = CType(_stkCtrls.FindName("btnNew"), Button)
             _txtStatus = CType(_stkCtrls.FindName("tbxStatus"), TextBox)
             _txtStatus.MaxHeight = Math.Min(200, Me.Height - 150)
+            _txtWordSoFar = CType(_stkCtrls.FindName("tbxWordSoFar"), TextBox)
             AddStatusMsg("starting")
-
-            'Dim tmpSpellDict = New Dictionary.CDict
-            'Dim ff = Sub()
-            '             For i = 1 To 100
-            '                 Dim r = tmpSpellDict.RandWord(1)
-            '                 For j = 1 To 1000
-            '                     Dim iss = tmpSpellDict.IsWord(r)
-            '                 Next
-            '             Next
-            '         End Sub
-            'Dim sw = New Stopwatch()
-            'sw.Restart()
-            'Dim tt = Task.Run(Sub()
-            '                      ff.Invoke
-            '                  End Sub)
-            'tt.Wait()
-            'Dim bthread = sw.Elapsed
-            'sw.Start()
-            'ff.Invoke()
-            'Dim mthread = sw.Elapsed
-            'AddStatusMsg($"mt={mthread.TotalSeconds} bg = {bthread.TotalSeconds}")
 
             Dim isShowingResult = False
             Dim taskGetResults As Task(Of List(Of Dictionary(Of String, LetterList))) = Nothing
@@ -97,10 +83,108 @@ Class WordamentWindow
                             .VerticalAlignment = VerticalAlignment.Top,
                             .Height = 300
                             }
-                        '_randLetGenerator.PreSeed(2, 6, _nRows * _nCols)
                         _pnl.Children.Add(grd)
+
+                        Dim lstTilesSelected As New List(Of LtrTile)
+                        Dim IsMouseDown As Boolean = False
+                        Dim funcUpdateWordSoFar As Action =
+                            Sub()
+                                Dim str = String.Empty
+                                For Each til In lstTilesSelected
+                                    str += til.ToString()
+                                Next
+                                _txtWordSoFar.Text = str
+                                If _IsLongWrd AndAlso taskGetResults.IsCompleted AndAlso str.Length >= _nMinWordLen Then
+                                    Dim res = From kvp In taskGetResults.Result(0)
+                                              Order By kvp.Key.Length Descending
+
+                                    Dim max = taskGetResults.Result(0).OrderByDescending(Function(kvp) kvp.Key.Length).FirstOrDefault
+                                    If max.Key.Length = str.Length Then
+                                        If max.Value.Word = str Then
+                                            btn.RaiseEvent(New RoutedEventArgs With {.RoutedEvent = Button.ClickEvent})
+                                        End If
+                                    End If
+
+                                End If
+                            End Sub
+                        Dim funcGetTileUnderMouse As Func(Of MouseEventArgs, LtrTile) =
+                                Function(ev)
+                                    Dim ltrTile As LtrTile = Nothing
+                                    Dim elem = grd.InputHitTest(ev.GetPosition(grd))
+                                    If elem IsNot Nothing AndAlso elem IsNot grd Then
+                                        Do While elem.GetType <> GetType(LtrTile)
+                                            elem = CType(elem, FrameworkElement).Parent
+                                        Loop
+                                        ltrTile = CType(elem, LtrTile)
+                                    End If
+                                    'AddStatusMsg($"hit tile  {elem?.GetType().Name}   {elem.ToString()}")
+                                    Return ltrTile
+                                End Function
+
+                        AddHandler grd.MouseDown, Sub(o, ev)
+                                                      'AddStatusMsg($"grd.MouseDown")
+                                                      Dim ltrTile = funcGetTileUnderMouse(ev)
+                                                      If ltrTile IsNot Nothing Then
+                                                          If ltrTile._isSelected Then ' already selected
+                                                          Else
+                                                              ltrTile.SelectTile()
+                                                              lstTilesSelected.Add(ltrTile)
+                                                              funcUpdateWordSoFar()
+                                                          End If
+                                                          IsMouseDown = True
+                                                      End If
+                                                  End Sub
+                        AddHandler grd.MouseUp, Sub()
+                                                    'AddStatusMsg($"grd.MouseUp")
+                                                    For Each itm In lstTilesSelected
+                                                        itm.UnSelectTile()
+                                                    Next
+                                                    lstTilesSelected.Clear()
+                                                    funcUpdateWordSoFar()
+                                                    IsMouseDown = False
+                                                End Sub
+                        AddHandler grd.MouseMove, Sub(o, ev)
+                                                      If IsMouseDown Then
+                                                          Dim ltrTile = funcGetTileUnderMouse(ev)
+                                                          If ltrTile IsNot Nothing Then
+                                                              Dim lastSelected As LtrTile = Nothing
+                                                              If lstTilesSelected.Count > 0 Then
+                                                                  lastSelected = lstTilesSelected(lstTilesSelected.Count - 1)
+                                                              End If
+                                                              If ltrTile._isSelected Then ' already selected: ' if it is selected, user, might have gone back to prior selection
+                                                                  If (lstTilesSelected.Count > 1) Then
+                                                                      Dim penult = lstTilesSelected(lstTilesSelected.Count - 2)
+                                                                      If (penult._row = ltrTile._row AndAlso penult._col = ltrTile._col) Then 'moved back to prior 1. unselect last one
+                                                                          lastSelected.UnSelectTile()
+                                                                          lstTilesSelected.RemoveAt(lstTilesSelected.Count - 1)
+                                                                      End If
+                                                                  End If
+                                                              Else
+                                                                  Dim okToSelect = False
+
+                                                                  If lastSelected Is Nothing Then
+                                                                      okToSelect = True
+                                                                  Else
+                                                                      If (((Math.Abs(lastSelected._col - ltrTile._col) <= 1) Or
+                                                                           (Math.Abs(lastSelected._row - ltrTile._row) <= 1))) Then
+                                                                          okToSelect = True
+                                                                      End If
+                                                                  End If
+                                                                  If okToSelect Then
+                                                                      ltrTile.SelectTile()
+                                                                      lstTilesSelected.Add(ltrTile)
+                                                                  End If
+                                                              End If
+                                                          End If
+
+                                                      End If
+                                                      funcUpdateWordSoFar()
+                                                  End Sub
                         AddHandler grd.MouseLeave, Sub()
-                                                       AddStatusMsg($"grd.mouseleave")
+                                                       AddStatusMsg($"grd.MouseLeave")
+                                                   End Sub
+                        AddHandler grd.MouseEnter, Sub()
+                                                       AddStatusMsg($"grd.MouseEnter")
                                                    End Sub
                         If Me._IsLongWrd Then
                             Dim arr = Await Task.Run(Function() FillGridWithLongWord())
@@ -140,6 +224,12 @@ Class WordamentWindow
         End Try
     End Sub
 
+    Sub RaisePropertyChanged(<CallerMemberName> Optional propName As String = "")
+        'If PropertyChanged IsNot Nothing Then
+
+        'End If
+
+    End Sub
     Friend Shared Sub AddStatusMsg(msg As String)
         msg = $"{DateTime.Now.ToString("hh:mm:ss")} {Thread.CurrentThread.ManagedThreadId} {msg} {vbCrLf}"
         Dim x = _txtStatus.Dispatcher
@@ -397,6 +487,7 @@ Class WordamentWindow
     Private _visitedarr(,) As Boolean
     Private _spellDict As Dictionary.Dictionary
 
+
     Private Function CalcWordList(dictnum As Integer) As Dictionary(Of String, LetterList)
         _spellDict = New Dictionary.Dictionary(CType(dictnum, Dictionary.DictionaryType), _Random)
         _resultWords = New Dictionary(Of String, LetterList)
@@ -517,20 +608,20 @@ Class WordamentWindow
 
     Public Class LtrTile
         Inherits DockPanel
-        Shared g_lstItemsSelected As New List(Of LtrTile)
-        Shared g_MouseIsDown As Boolean = False
-        Dim _isSelected = False
+        Shared ReadOnly g_backBrush = Brushes.DarkSlateBlue
+        Shared ReadOnly g_backBrushSelected = Brushes.Red
+        Friend _isSelected = False
 
-        ReadOnly _row As Integer
-        ReadOnly _col As Integer
+        Friend ReadOnly _row As Integer
+        Friend ReadOnly _col As Integer
         Public _letter As SimpleLetter
         Public Sub New(ByVal letter As String, row As Integer, col As Integer, ByVal nTotalCols As Integer)
             _letter = New SimpleLetter(letter, row, col)
             _row = row
             _col = col
-            Background = Brushes.DarkSlateBlue
+            Background = g_backBrush
 
-            Margin = New Thickness(2, 2, 2, 2) ' space between tiles
+            Margin = New Thickness(6, 6, 6, 6) ' space between tiles
 
             Dim txt As New TextBlock With {
                 .Text = _letter._letter,
@@ -539,59 +630,22 @@ Class WordamentWindow
                 .Foreground = Brushes.White
             }
             Me.Children.Add(txt)
-            AddHandler txt.MouseDown, Sub()
-                                          Me.Background = Brushes.Red
-                                          WordamentWindow.AddStatusMsg($"md {Me}")
-                                          If Not _isSelected Then
-                                              _isSelected = True
-                                              g_lstItemsSelected.Add(Me)
-                                              g_MouseIsDown = True
-                                          End If
-                                      End Sub
-            AddHandler txt.MouseUp, Sub()
-                                        Me.Background = Brushes.DarkSlateBlue
-                                        g_MouseIsDown = False
-                                        WordamentWindow.AddStatusMsg($"mu {Me}")
-                                        For Each t In g_lstItemsSelected
-                                            t._isSelected = False
-                                            t.Background = Brushes.DarkSlateBlue
-                                        Next
-                                        g_lstItemsSelected.Clear()
-                                    End Sub
-            AddHandler txt.MouseMove, Sub()
-                                          WordamentWindow.AddStatusMsg($"mm {Me}  MouseIsDown{g_MouseIsDown}")
-                                          If g_MouseIsDown Then
-                                              Dim lastSelected As LtrTile = Nothing
-                                              If g_lstItemsSelected.Count > 0 Then
-                                                  lastSelected = g_lstItemsSelected(g_lstItemsSelected.Count - 1)
-                                              End If
-                                              If Not _isSelected Then
-                                                  Dim okToSelect = False
-                                                  If lastSelected Is Nothing Then
-                                                      okToSelect = True
-                                                  Else
-                                                      If (((Math.Abs(lastSelected._col - Me._col) <= 1) Or
-                                                       (Math.Abs(lastSelected._row - Me._row) <= 1))) Then
-                                                          okToSelect = True
-                                                      End If
-                                                  End If
-                                                  If okToSelect Then
-                                                      _isSelected = True
-                                                      g_lstItemsSelected.Add(Me)
-                                                      Me.Background = Brushes.Red
-                                                  End If
-                                              Else ' if it is selected, user, might have gone back to prior selection
-                                                  If (g_lstItemsSelected.Count > 2) Then
-                                                      Dim penult = g_lstItemsSelected(g_lstItemsSelected.Count - 2)
-                                                      If (penult._row = Me._row AndAlso penult._col = Me._col) Then 'moved back to prior 1
-
-                                                      End If
-                                                  End If
-                                              End If
-                                          End If
-                                      End Sub
 
         End Sub
+
+        Public Sub SelectTile()
+            If Not _isSelected Then
+                Me.Background = g_backBrushSelected
+                _isSelected = True
+            End If
+        End Sub
+        Public Sub UnSelectTile()
+            If _isSelected Then
+                Me.Background = g_backBrush
+                _isSelected = False
+            End If
+        End Sub
+
         Public ReadOnly Property _pts As Integer
             Get
                 Return _letter._pts
@@ -623,36 +677,6 @@ Class WordamentWindow
 
         Private ReadOnly _seedArray() As String
         Private _seedIndex As Integer
-        'Public Sub PreSeed(ByVal nWords As Integer, ByVal nWordLen As Integer, ByVal nTiles As Integer)
-        '    Dim strSeeded = String.Empty
-        '    _seedIndex = 0
-        '    For i = 1 To nWords
-        '        Dim wrd = String.Empty
-        '        Do While wrd.Length <> nWordLen
-        '            wrd = MainWindow._spellDict.RandWord(Environment.TickCount)
-        '        Loop
-        '        strSeeded += wrd.ToUpper
-        '    Next
-        '    For i = strSeeded.Length To nTiles
-        '        strSeeded += _letDist.Substring(_Random.Next(_letDist.Length), 1)
-        '    Next
-        '    ReDim _seedArray(nTiles)
-        '    For i = 0 To nTiles - 1
-        '        _seedArray(i) = strSeeded(i)
-        '    Next
-        '    For i = 0 To nTiles - 1
-        '        Dim rnd = _Random.Next(nTiles)
-        '        Dim tmp = _seedArray(i)
-        '        _seedArray(i) = _seedArray(rnd)
-        '        _seedArray(rnd) = tmp
-        '    Next
-        '    'For i = 0 To strSeeded.Length - 1
-        '    '    Dim rnd = _Random.Next(strSeeded.Length)
-        '    '    Dim tmp = strSeeded(rnd)
-        '    '    strSeeded = strSeeded.Substring(0, i - 1) + tmp + strSeeded(i + 1)
-
-        '    'Next
-        'End Sub
 
         Public Function GetRandLet() As String ' letter, score
             Dim rndLet = String.Empty
