@@ -56,7 +56,8 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         <Label>Cols</Label><TextBox Name="tbxCols" Text="{Binding Path=_nCols}" HorizontalAlignment="Right" Width="50"></TextBox>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <CheckBox Name="chkLongWord" IsChecked="{Binding Path=_IsLongWrd}">LongWord</CheckBox><TextBox Text="{Binding Path=_nMinWordLen}" ToolTip="When doing long words, must be at least this length"></TextBox>
+                        <CheckBox Name="chkLongWord" IsChecked="{Binding Path=_IsLongWrd}">LongWord</CheckBox>
+                        <TextBox Text="{Binding Path=_nMinWordLen}" ToolTip="When doing long words, must be at least this length"></TextBox>
                     </StackPanel>
                     <TextBox Name="tbxWordSoFar" IsReadOnly="true" Text="{Binding Path=_txtWordSoFar}"></TextBox>
                     <TextBox Name="tbxStatus" Width="300" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Left"></TextBox>
@@ -73,15 +74,16 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             Dim taskGetResults As Task(Of List(Of Dictionary(Of String, LetterList))) = Nothing
             AddHandler btn.Click,
                 Async Sub()
-
+                    Dim IsMouseDown As Boolean = False
                     Dim lamShowResults = Async Sub()
+                                             fdidFinish = False
+                                             IsMouseDown = False
                                              isShowingResult = True
                                              btn.Content = "calculating..."
                                              Dim res = Await taskGetResults
                                              taskGetResults = Nothing
                                              ShowResults(res)
                                              btn.Content = "_New"
-                                             '                                             isShowingResult = False
                                          End Sub
                     AddStatusMsg($"click {isShowingResult}")
                     isShowingResult = Not isShowingResult
@@ -103,7 +105,6 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         _pnl.Children.Add(grd)
                         fdidFinish = False
                         Dim lstTilesSelected As New List(Of LtrTile)
-                        Dim IsMouseDown As Boolean = False
                         Dim funcUpdateWordSoFar As Action =
                             Sub()
                                 Dim str = String.Empty
@@ -115,11 +116,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                     Dim max = taskGetResults.Result(0).OrderByDescending(Function(kvp) kvp.Key.Length).FirstOrDefault
                                     If max.Key.Length = str.Length Then
                                         If max.Value.Word = str Then
-                                            fdidFinish = True
-
                                             lamShowResults()
-
-                                            '                                            btn.RaiseEvent(New RoutedEventArgs With {.RoutedEvent = Button.ClickEvent})
                                         End If
                                     End If
                                 End If
@@ -127,13 +124,8 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         Dim funcGetTileUnderMouse As Func(Of MouseEventArgs, LtrTile) =
                                 Function(ev)
                                     Dim ltrTile As LtrTile = Nothing
+                                    ' Determine which tile within grd.ActaulWidth, ActualHeight
                                     Dim pos = ev.GetPosition(grd)
-                                    'AddStatusMsg($"x={pos.X:n2} y={pos.Y:n2}")
-
-                                    ' determine which tile within grd.ActaulWidth, ActualHeight
-                                    ' Using hittest makes the corners of tiles active, causing diagonals to be difficult
-                                    ' with fat fingers, so make a tile "hit" smaller than the tile
-                                    Dim pixY = grd.ActualHeight / _nRows
                                     Dim elem = grd.InputHitTest(pos)
                                     If elem IsNot Nothing AndAlso elem IsNot grd Then
                                         Do While elem.GetType <> GetType(LtrTile)
@@ -141,7 +133,20 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                         Loop
                                         ltrTile = CType(elem, LtrTile)
                                     End If
-                                    'AddStatusMsg($"hit tile  {elem?.GetType().Name}   {elem.ToString()}")
+                                    If (ltrTile IsNot Nothing) Then
+                                        ' Using hittest makes the corners of tiles active, causing diagonals to be difficult
+                                        ' with fat fingers, so make a tile "hit" smaller than the tile
+                                        ' calculate position of center of tile, and distance from mouse
+                                        Dim pixX = pos.X / grd.ActualWidth
+                                        Dim pixY = pos.Y / grd.ActualHeight
+                                        Dim ctrX = ltrTile._col * grd.ActualWidth / _nCols + ltrTile.ActualWidth / 2
+                                        Dim ctrY = ltrTile._row * grd.ActualHeight / _nRows + ltrTile.ActualHeight / 2
+                                        Dim distToCtrOfTileSquared = Math.Pow((pos.X - ctrX), 2) + Math.Pow((pos.Y - ctrY), 2)
+                                        '                                        AddStatusMsg($"x={pos.X:n2} y={pos.Y:n2}  {distToCtrOfTileSquared:n0}  {ltrTile}")
+                                        If (distToCtrOfTileSquared > ltrTile.ActualHeight * ltrTile.ActualWidth / 4) Then
+                                            ltrTile = Nothing
+                                        End If
+                                    End If
                                     Return ltrTile
                                 End Function
 
@@ -167,44 +172,46 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                                     funcUpdateWordSoFar()
                                                     IsMouseDown = False
                                                 End Sub
-                        AddHandler grd.MouseMove, Sub(o, ev)
-                                                      If IsMouseDown AndAlso Not fdidFinish Then
-                                                          Dim ltrTile = funcGetTileUnderMouse(ev)
-                                                          If ltrTile IsNot Nothing Then
-                                                              Dim lastSelected As LtrTile = Nothing
-                                                              If lstTilesSelected.Count > 0 Then
-                                                                  lastSelected = lstTilesSelected(lstTilesSelected.Count - 1)
-                                                              End If
-                                                              If ltrTile._isSelected Then ' already selected: ' if it is selected, user, might have gone back to prior selection
-                                                                  If (lstTilesSelected.Count > 1) Then
-                                                                      Dim penult = lstTilesSelected(lstTilesSelected.Count - 2)
-                                                                      If (penult._row = ltrTile._row AndAlso penult._col = ltrTile._col) Then 'moved back to prior 1. unselect last one
-                                                                          lastSelected.UnSelectTile()
-                                                                          lstTilesSelected.RemoveAt(lstTilesSelected.Count - 1)
-                                                                      End If
-                                                                  End If
-                                                              Else
-                                                                  Dim okToSelect = False
+                        AddHandler grd.MouseMove,
+                                Sub(o, ev)
+                                    '                                                      AddStatusMsg($"mm {IsMouseDown} {fdidFinish}")
+                                    If IsMouseDown AndAlso Not fdidFinish Then
+                                        Dim ltrTile = funcGetTileUnderMouse(ev)
+                                        If ltrTile IsNot Nothing Then
+                                            Dim lastSelected As LtrTile = Nothing
+                                            If lstTilesSelected.Count > 0 Then
+                                                lastSelected = lstTilesSelected(lstTilesSelected.Count - 1)
+                                            End If
+                                            If ltrTile._isSelected Then ' already selected: ' if it is selected, user, might have gone back to prior selection
+                                                If (lstTilesSelected.Count > 1) Then
+                                                    Dim penult = lstTilesSelected(lstTilesSelected.Count - 2)
+                                                    If (penult._row = ltrTile._row AndAlso penult._col = ltrTile._col) Then 'moved back to prior 1. unselect last one
+                                                        lastSelected.UnSelectTile()
+                                                        lstTilesSelected.RemoveAt(lstTilesSelected.Count - 1)
+                                                    End If
+                                                End If
+                                            Else
+                                                Dim okToSelect = False
 
-                                                                  If lastSelected Is Nothing Then
-                                                                      okToSelect = True
-                                                                  Else
-                                                                      If (((Math.Abs(lastSelected._col - ltrTile._col) <= 1) Or
-                                                                           (Math.Abs(lastSelected._row - ltrTile._row) <= 1))) Then
-                                                                          okToSelect = True
-                                                                      End If
-                                                                  End If
-                                                                  If okToSelect Then
-                                                                      ltrTile.SelectTile()
-                                                                      lstTilesSelected.Add(ltrTile)
-                                                                  End If
-                                                              End If
-                                                          End If
+                                                If lastSelected Is Nothing Then
+                                                    okToSelect = True
+                                                Else
+                                                    If (((Math.Abs(lastSelected._col - ltrTile._col) <= 1) Or
+                                                         (Math.Abs(lastSelected._row - ltrTile._row) <= 1))) Then
+                                                        okToSelect = True
+                                                    End If
+                                                End If
+                                                If okToSelect Then
+                                                    ltrTile.SelectTile()
+                                                    lstTilesSelected.Add(ltrTile)
+                                                End If
+                                            End If
+                                        End If
 
-                                                      End If
-                                                      funcUpdateWordSoFar()
+                                    End If
+                                    funcUpdateWordSoFar()
 
-                                                  End Sub
+                                End Sub
                         AddHandler grd.MouseLeave, Sub()
                                                        AddStatusMsg($"grd.MouseLeave")
                                                    End Sub
@@ -376,6 +383,8 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         For i = 0 To 7
             directions(i) = i
         Next
+        _lstLongWords.Clear()
+
         If _lstLongWords.Count = 0 Then
             spellDict.SeekWord("a")
             While True
