@@ -49,6 +49,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     >
                     <Button Name="btnNew" Height="60">_New</Button>
+                    <Button Name="btnHint" Height="40" Width="100" ToolTip="new hint available after 30 seconds">Hint</Button>
                     <StackPanel Orientation="Horizontal" Width="300">
                         <Label>Rows</Label><TextBox Name="tbxRows" Text="{Binding Path=_nRows}" HorizontalAlignment="Right" Width="50"></TextBox>
                     </StackPanel>
@@ -66,12 +67,28 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
             Dim btn = CType(_stkCtrls.FindName("btnNew"), Button)
             _txtStatus = CType(_stkCtrls.FindName("tbxStatus"), TextBox)
+            Dim btnHint = CType(_stkCtrls.FindName("btnHint"), Button)
             _txtStatus.MaxHeight = Math.Min(200, Me.Height - 150)
             _txtWordSoFar = CType(_stkCtrls.FindName("tbxWordSoFar"), TextBox)
 
             Dim isShowingResult = True ' either is showing a board without results, or board with results
             Dim fdidFinish = False
             Dim taskGetResults As Task(Of List(Of Dictionary(Of String, LetterList))) = Nothing
+            Dim dtLastHint As DateTime = DateTime.Now
+            Dim nLastHintNum = 0
+            AddHandler btnHint.Click, Sub()
+                                          If taskGetResults?.IsCompleted Then
+                                              Dim max = taskGetResults.Result(0).OrderByDescending(Function(kvp) kvp.Key.Length).FirstOrDefault
+                                              Dim secsSinceLastHInt = (DateTime.Now - dtLastHint).TotalSeconds
+                                              If (secsSinceLastHInt > 30 AndAlso nLastHintNum < max.Value.ToString.Length - 1) Then
+                                                  AddStatusMsg($"Hint {nLastHintNum + 1} {max.Value.ToString(nLastHintNum)}")
+                                                  nLastHintNum += 1
+                                                  dtLastHint = DateTime.Now
+                                              Else
+                                                  AddStatusMsg($"Secs since last int = {secsSinceLastHInt}")
+                                              End If
+                                          End If
+                                      End Sub
             AddHandler btn.Click,
                 Async Sub()
                     Dim IsMouseDown As Boolean = False
@@ -93,6 +110,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                             Await taskGetResults
                             taskGetResults = Nothing
                         End If
+                        nLastHintNum = 0
                         btn.Content = "_Show Results"
                         _pnl.Children.Clear()
                         _pnl.Children.Add(_stkCtrls)
@@ -392,7 +410,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                 If String.IsNullOrEmpty(wrd) Then
                     Exit While
                 End If
-                If wrd.Length >= _nMinWordLen Then
+                If wrd.Length >= _nMinWordLen AndAlso wrd.Length <= _nCols * _nRows Then
                     _lstLongWords.Add(wrd)
                 End If
             End While
