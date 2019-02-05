@@ -97,6 +97,17 @@ namespace Dictionary
         public Dictionary(DictionaryType dictType, Random random = null)
         {
             this._dictionaryType = dictType;
+
+            //var asm = System.Reflection.Assembly.GetExecutingAssembly();
+            //var names = asm.GetManifestResourceNames(); // "Dictionary.Properties.Resources.resources"
+
+            //var res = asm.GetManifestResourceInfo(names[0]);
+
+            //var resdata = asm.GetManifestResourceStream(names[0]);
+
+            //var resman = new System.Resources.ResourceManager("Dictionary.Properties.Resources", typeof(Dictionary).Assembly);
+            //var dict1 = (byte[])resman.GetObject("dict1");
+
             if (dictType == DictionaryType.Large)
             {
                 _dictBytes = Properties.Resources.dict1;

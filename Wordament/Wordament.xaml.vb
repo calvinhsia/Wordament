@@ -23,6 +23,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         End Get
         Set(value)
             _HintAvailable = value
+            '            AddStatusMsg($"hintavail {value}")
             Me.OnMyPropertyChanged()
         End Set
     End Property
@@ -156,7 +157,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                     str += til.ToString()
                                 Next
                                 _txtWordSoFar.Text = $"{str}"
-                                If _IsLongWrd AndAlso taskGetResults IsNot Nothing AndAlso taskGetResults.IsCompleted AndAlso str.Length >= _nMinWordLen Then
+                                If _IsLongWrd AndAlso taskGetResults IsNot Nothing AndAlso str.Length >= _nMinWordLen Then
                                     Dim max = taskGetResults.Result(0).OrderByDescending(Function(kvp) kvp.Key.Length).FirstOrDefault
                                     If max.Key.Length = str.Length Then
                                         If max.Value.Word = str Then

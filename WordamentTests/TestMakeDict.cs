@@ -80,10 +80,18 @@ namespace WordamentTests
         [TestMethod]
         public void TestDoAnagram()
         {
-            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, new Random(1));
+            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Large, new Random(1));
             var lstAnagrams = new List<string>();
             // relive, discounter, top
             var word = "discounter";
+            //word = "aeivlsd";
+            ////            word = "aughnnd";
+            ////          word = "aeuyrqv";
+            //word = "eauttsp";
+            //word = "aeidlvr";
+            //word = "aioutds";
+            //word = "harigds";
+            //word = "keepdan";
             LogMessage($"doing anagrams {word}");
             dict.FindAnagrams(word, (str) =>
             {
@@ -91,9 +99,10 @@ namespace WordamentTests
             });
             foreach (var anagram in lstAnagrams)
             {
-                LogMessage($"Found anagram {anagram}");
+                Console.WriteLine($"Found anagram {anagram}");
             }
             Assert.IsTrue(lstAnagrams.Contains("discounter"));
+            Assert.IsTrue(lstAnagrams.Contains("rediscount"));
             Assert.IsTrue(lstAnagrams.Contains("introduces"));
             Assert.IsTrue(lstAnagrams.Contains("reductions"));
         }
