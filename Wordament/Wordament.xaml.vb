@@ -15,8 +15,18 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     Public Property _nCols As Integer = 4
     Public Property _IsLongWrd = True
     Public Property _nMinWordLen = 12
+    Private _HintAvailable As Boolean
+    Private HintDelay As Integer
+    Public Property HintAvailable
+        Get
+            Return _HintAvailable
+        End Get
+        Set(value)
+            _HintAvailable = value
+            Me.OnMyPropertyChanged()
+        End Set
+    End Property
 
-    Private _stkCtrls As StackPanel
     Private Shared _txtStatus As TextBox
     Private _txtWordSoFar As TextBox
     Private _seed As Integer
@@ -40,16 +50,18 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             _seed = Environment.TickCount
             If Debugger.IsAttached Then
                 _seed = 1
+                HintDelay = 15
+            Else
+                HintDelay = 15
             End If
             _Random = New Random(_seed)
             _randLetGenerator = New RandLetterGenerator
-            _stkCtrls = CType(Markup.XamlReader.Load(
+            Dim stkCtrls = CType(Markup.XamlReader.Load(
                 <StackPanel
                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     >
                     <Button Name="btnNew" Height="60">_New</Button>
-                    <Button Name="btnHint" Height="40" Width="100" ToolTip="new hint available after 30 seconds">Hint</Button>
                     <StackPanel Orientation="Horizontal" Width="300">
                         <Label>Rows</Label><TextBox Name="tbxRows" Text="{Binding Path=_nRows}" HorizontalAlignment="Right" Width="50"></TextBox>
                     </StackPanel>
@@ -60,39 +72,38 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         <CheckBox Name="chkLongWord" IsChecked="{Binding Path=_IsLongWrd}">LongWord</CheckBox>
                         <TextBox Text="{Binding Path=_nMinWordLen}" ToolTip="When doing long words, must be at least this length"></TextBox>
                     </StackPanel>
-                    <TextBox Name="tbxWordSoFar" IsReadOnly="true" Text="{Binding Path=_txtWordSoFar}"></TextBox>
                     <TextBox Name="tbxStatus" Width="300" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Left"></TextBox>
+                    <Button Name="btnHint" Height="40" Width="100" IsEnabled="{Binding Path=HintAvailable}" ToolTip="new hint available after 30 seconds">Hint</Button>
                 </StackPanel>.CreateReader
             ), StackPanel)
+            '                    <TextBox Name = "tbxWordSoFar" IsReadOnly="true" Text="{Binding Path=_txtWordSoFar}"></TextBox>
 
-            Dim btn = CType(_stkCtrls.FindName("btnNew"), Button)
-            _txtStatus = CType(_stkCtrls.FindName("tbxStatus"), TextBox)
-            Dim btnHint = CType(_stkCtrls.FindName("btnHint"), Button)
+            Dim btn = CType(stkCtrls.FindName("btnNew"), Button)
+            _txtStatus = CType(stkCtrls.FindName("tbxStatus"), TextBox)
+            Dim btnHint = CType(stkCtrls.FindName("btnHint"), Button)
             _txtStatus.MaxHeight = Math.Min(200, Me.Height - 150)
-            _txtWordSoFar = CType(_stkCtrls.FindName("tbxWordSoFar"), TextBox)
 
             Dim isShowingResult = True ' either is showing a board without results, or board with results
             Dim fdidFinish = False
             Dim taskGetResults As Task(Of List(Of Dictionary(Of String, LetterList))) = Nothing
             Dim dtLastHint As DateTime = DateTime.Now
             Dim nLastHintNum = 0
-            AddHandler btnHint.Click, Sub()
-                                          If taskGetResults?.IsCompleted Then
-                                              Dim max = taskGetResults.Result(0).OrderByDescending(Function(kvp) kvp.Key.Length).FirstOrDefault
-                                              Dim secsSinceLastHInt = (DateTime.Now - dtLastHint).TotalSeconds
-                                              If (secsSinceLastHInt > 30 AndAlso nLastHintNum < max.Value.ToString.Length - 1) Then
-                                                  AddStatusMsg($"Hint {nLastHintNum + 1} {max.Value.ToString(nLastHintNum)}")
-                                                  nLastHintNum += 1
-                                                  dtLastHint = DateTime.Now
-                                              Else
-                                                  AddStatusMsg($"Secs since last int = {secsSinceLastHInt}")
-                                              End If
+
+            AddHandler btnHint.Click, Async Sub()
+                                          Dim max = taskGetResults.Result(0).OrderByDescending(Function(kvp) kvp.Key.Length).FirstOrDefault
+                                          AddStatusMsg($"Hint {nLastHintNum + 1} {max.Value.ToString(nLastHintNum)}")
+                                          nLastHintNum += 1
+                                          HintAvailable = False
+                                          If (nLastHintNum < max.Value.ToString.Length - 1) Then
+                                              Await Task.Delay(TimeSpan.FromSeconds(HintDelay))
+                                              HintAvailable = True
                                           End If
                                       End Sub
             AddHandler btn.Click,
                 Async Sub()
                     Dim IsMouseDown As Boolean = False
                     Dim lamShowResults = Async Sub()
+                                             HintAvailable = False
                                              fdidFinish = False
                                              IsMouseDown = False
                                              isShowingResult = True
@@ -113,14 +124,25 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         nLastHintNum = 0
                         btn.Content = "_Show Results"
                         _pnl.Children.Clear()
-                        _pnl.Children.Add(_stkCtrls)
+                        _pnl.Children.Add(stkCtrls)
+
+                        Dim spVert = New StackPanel With
+                            {
+                            .Orientation = Orientation.Vertical
+                            }
+                        _pnl.Children.Add(spVert)
+                        _txtWordSoFar = New TextBox With {
+                            .IsReadOnly = True,
+                            .FontSize = 24
+                        }
+                        spVert.Children.Add(_txtWordSoFar)
                         Dim grd = New UniformGrid With {
                             .Background = Brushes.Black,
                             .Width = 500,
                             .VerticalAlignment = VerticalAlignment.Top,
                             .Height = 500
                             }
-                        _pnl.Children.Add(grd)
+                        spVert.Children.Add(grd)
                         fdidFinish = False
                         Dim lstTilesSelected As New List(Of LtrTile)
                         Dim funcUpdateWordSoFar As Action =
@@ -231,10 +253,14 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
                                 End Sub
                         AddHandler grd.MouseLeave, Sub()
+#If DEBUG Then
                                                        AddStatusMsg($"grd.MouseLeave")
+#End If
                                                    End Sub
                         AddHandler grd.MouseEnter, Sub()
+#If DEBUG Then
                                                        AddStatusMsg($"grd.MouseEnter")
+#End If
                                                    End Sub
                         If Me._IsLongWrd Then
                             Dim arr = Await Task.Run(Function() FillGridWithLongWord())
@@ -256,6 +282,10 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         End If
                         '                        isShowingResult = False
                         taskGetResults = GetResultsAsync()
+                        Await taskGetResults.ContinueWith(Async Function(prev)
+                                                              Await Task.Delay(TimeSpan.FromSeconds(HintDelay))
+                                                              HintAvailable = True
+                                                          End Function)
                     Else
                         lamShowResults()
                     End If
@@ -270,12 +300,16 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         End Try
     End Sub
 
-    Sub RaisePropertyChanged(<CallerMemberName> Optional propName As String = "")
-        'If PropertyChanged IsNot Nothing Then
-
-        'End If
-
+    Protected Sub OnMyPropertyChanged(<CallerMemberName> Optional propname As String = "")
+        Dim args = New PropertyChangedEventArgs(propname)
+        RaiseEvent PropertyChanged(Me, args)
     End Sub
+    'Sub RaisePropertyChanged(<CallerMemberName> Optional propName As String = "")
+    '    If PropertyChanged IsNot Nothing Then
+    '        RaiseEvent PropertyChanged() IsNot Nothing Then
+
+    '    End If
+    'End Sub
     Friend Shared Sub AddStatusMsg(msg As String)
         msg = $"{DateTime.Now.ToString("hh:mm:ss")} {Thread.CurrentThread.ManagedThreadId} {msg} {vbCrLf}"
         Dim x = _txtStatus.Dispatcher
@@ -669,7 +703,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             _col = col
             Background = g_backBrush
 
-            Margin = New Thickness(6, 6, 6, 6) ' space between tiles
+            Margin = New Thickness(4, 4, 4, 4) ' space between tiles
 
             Dim txt As New TextBlock With {
                 .Text = _letter._letter,
