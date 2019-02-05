@@ -90,13 +90,17 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             Dim nLastHintNum = 0
 
             AddHandler btnHint.Click, Async Sub()
-                                          Dim max = taskGetResults.Result(0).OrderByDescending(Function(kvp) kvp.Key.Length).FirstOrDefault
-                                          AddStatusMsg($"Hint {nLastHintNum + 1} {max.Value.ToString(nLastHintNum)}")
-                                          nLastHintNum += 1
-                                          HintAvailable = False
-                                          If (nLastHintNum < max.Value.ToString.Length - 1) Then
-                                              Await Task.Delay(TimeSpan.FromSeconds(HintDelay))
-                                              HintAvailable = True
+                                          If taskGetResults?.IsCompleted Then
+                                              Dim max = taskGetResults.Result(0).OrderByDescending(Function(kvp) kvp.Key.Length).FirstOrDefault
+                                              If (nLastHintNum < max.Key.ToString.Length - 1) Then
+                                                  AddStatusMsg($"Hint {nLastHintNum + 1} {max.Key(nLastHintNum)}")
+                                                  nLastHintNum += 1
+                                                  HintAvailable = False
+                                                  If (nLastHintNum < max.Key.ToString.Length - 1) Then
+                                                      Await Task.Delay(TimeSpan.FromSeconds(HintDelay))
+                                                      HintAvailable = True
+                                                  End If
+                                              End If
                                           End If
                                       End Sub
             AddHandler btn.Click,
