@@ -142,7 +142,7 @@ namespace WordamentTests
             }
             var newdictTime = sw.Elapsed.TotalSeconds;
             LogMessage($"Newdict {newdictTime}");
-            Assert.Fail($"OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  {newdictTime / olddictTime:n1}");
+            Assert.Fail($"This test is supposed to fail to show perf results: OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  Ratio {newdictTime / olddictTime:n1}");
         }
 
         [TestMethod]
@@ -169,7 +169,7 @@ namespace WordamentTests
             }
             var newdictTime = sw.Elapsed.TotalSeconds;
             LogMessage($"Newdict {newdictTime}");
-            Assert.Fail($"OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  {newdictTime / olddictTime:n1}");
+            Assert.Fail($"This test is supposed to fail to show perf results: OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  Ratio {newdictTime / olddictTime:n1}");
         }
 
         [TestMethod]

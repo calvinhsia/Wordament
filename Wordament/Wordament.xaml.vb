@@ -47,13 +47,14 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         Try
             Height = 800
             Width = 1200
+            Background = Brushes.SteelBlue
             Title = "Calvin's Wordament"
             _seed = Environment.TickCount
             If Debugger.IsAttached Then
                 _seed = 1
-                HintDelay = 15
+                HintDelay = 5
             Else
-                HintDelay = 15
+                HintDelay = 5
             End If
             _Random = New Random(_seed)
             _randLetGenerator = New RandLetterGenerator
@@ -241,8 +242,9 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                                 If lastSelected Is Nothing Then
                                                     okToSelect = True
                                                 Else
-                                                    If (((Math.Abs(lastSelected._col - ltrTile._col) <= 1) AndAlso
-                                                         (Math.Abs(lastSelected._row - ltrTile._row) <= 1))) Then
+                                                    ' the distance between the current pos and the last should be 1
+                                                    Dim dist = Math.Pow(lastSelected._col - ltrTile._col, 2) + Math.Pow(lastSelected._row - ltrTile._row, 2)
+                                                    If dist <= 2 Then
                                                         okToSelect = True
                                                     End If
                                                 End If
@@ -685,7 +687,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
     Public Class LtrTile
         Inherits DockPanel
-        Shared ReadOnly g_backBrush = Brushes.DarkSlateBlue
+        Shared ReadOnly g_backBrush = Brushes.DarkCyan
         Shared ReadOnly g_backBrushSelected = Brushes.Red
         Friend _isSelected = False
 
