@@ -135,7 +135,7 @@ namespace Dictionary
         }
 
         /// <summary>
-        /// Seek in dictionary to provided "word". if word is indictionary,returns word.
+        /// Seek in dictionary to provided "word".
         /// if found in dict, returns the same string
         /// if not found, returns the word just beyond where the word would be found.
         /// IOW, 2 consecutive words in dictionary: abcdefone, abcdeftwo (and dict does not have abc,abcdefg)
@@ -217,7 +217,7 @@ namespace Dictionary
         }
 
         /// <summary>
-        /// must init dic first SetDictPosition.
+        /// must init dic first SeekWord.
         /// </summary>
         /// <param name="WordStop">must init dict first. then will stop when dict word >= WordStop</param>
         /// <param name="cntSkip"> nonzero means skip this many words (used for RandomWord). 
@@ -303,7 +303,6 @@ namespace Dictionary
             return _MyWordSoFar.GetWord();
         }
 
-
         public void FindAnagrams(string word, Action<string> act)
         {
             MyWord myWord = new MyWord(word);
@@ -372,48 +371,6 @@ namespace Dictionary
             }
         }
 
-        ///// <summary>
-        ///// if found in dict, returns the same string
-        ///// if not found, returns the word just beyond where the word would be found.
-        ///// IOW, 2 consecutive words in dictionary: abcdefone, abcdeftwo (and dict does not have abc,abcdefg)
-        ///// Search for 
-        /////     abc => returns abcdef (abc not found)
-        /////     abcdef=> returns abcdef (match)
-        /////     abcdefg=> returns abcdefone
-        /////     acbdefs=> returns abcdeftwo
-        ///// 
-        ///// </summary>
-        ///// <param name="strMatch"></param>
-        ///// <returns></returns>
-        //public string SeekWord(string strMatch, SeekWordOptions seekOptions)
-        //{
-        //    var result = string.Empty;
-        //    strMatch = strMatch.ToLower();
-        //    if (!string.IsNullOrEmpty(strMatch))
-        //    {
-        //        var tempResult = SetDictPosition(strMatch);
-        //        while (true)
-        //        {
-        //            if (tempResult.Length > ndx && tempResult.Substring(0, ndx) == strMatch)
-        //            {
-        //                result = tempResult;
-        //                break;
-        //            }
-        //            var cmpResult = tempResult.CompareTo(strMatch);
-        //            if (cmpResult >= 0)
-        //            {
-        //                if (cmpResult == 0)
-        //                {
-        //                    result = tempResult;
-        //                }
-        //                break;
-        //            }
-        //            tempResult = GetNextWord(WordStop: null, cntSkip: 0);
-        //        }
-        //    }
-        //    return result;
-        //}
-
         public bool IsWord(string word)
         {
             bool isWord = false;
@@ -458,24 +415,29 @@ namespace Dictionary
                         SetDictPosTo2Letters(i, j);
                         var r = GetNextWord(cntSkip: rnum - sum);
                         return r;
-                        //SetDictPosition(i, j);
-                        //while (sum++ < rnum)
-                        //{
-                        //    GetNextWord();
-                        //}
-                        //return GetNextWord();
                     }
                 }
             }
             throw new InvalidOperationException();
         }
 
-        internal object FindMatchRegEx(string str)
+        internal IEnumerable<string> FindMatchRegEx(string strPattern)
         {
-            throw new NotImplementedException();
+            var wrd = SeekWord("a");
+            while (!string.IsNullOrEmpty(wrd = GetNextWord()))
+            {
+                if (System.Text.RegularExpressions.Regex.IsMatch(wrd, strPattern))
+                {
+                    yield return wrd;
+                }
+            }
         }
     }
 
+
+    /// <summary>
+    /// represent a word as a byte array, reducing need to convert to char/string for perf
+    /// </summary>
     internal class MyWord : IComparable
     {
         readonly private int maxWordLen;

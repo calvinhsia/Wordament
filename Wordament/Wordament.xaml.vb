@@ -86,13 +86,13 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
             Dim isShowingResult = True ' either is showing a board without results, or board with results
             Dim fdidFinish = False
-            Dim taskGetResults As Task(Of List(Of Dictionary(Of String, LetterList))) = Nothing
+            Dim taskGetResultsAsync As Task(Of List(Of Dictionary(Of String, LetterList))) = Nothing
             Dim dtLastHint As DateTime = DateTime.Now
             Dim nLastHintNum = 0
 
             AddHandler btnHint.Click, Async Sub()
-                                          If taskGetResults?.IsCompleted Then
-                                              Dim max = taskGetResults.Result(0).OrderByDescending(Function(kvp) kvp.Key.Length).FirstOrDefault
+                                          If taskGetResultsAsync?.IsCompleted Then
+                                              Dim max = taskGetResultsAsync.Result(0).OrderByDescending(Function(kvp) kvp.Key.Length).FirstOrDefault
                                               If (nLastHintNum < max.Key.ToString.Length - 1) Then
                                                   AddStatusMsg($"Hint {nLastHintNum + 1} {max.Key(nLastHintNum)}")
                                                   nLastHintNum += 1
@@ -113,8 +113,8 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                              IsMouseDown = False
                                              isShowingResult = True
                                              btn.Content = "calculating..."
-                                             Dim res = Await taskGetResults
-                                             taskGetResults = Nothing
+                                             Dim res = Await taskGetResultsAsync
+                                             taskGetResultsAsync = Nothing
                                              ShowResults(res)
                                              btn.Content = "_New"
                                          End Sub
@@ -122,9 +122,9 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                     isShowingResult = Not isShowingResult
                     If Not isShowingResult Then
                         fdidFinish = False
-                        If taskGetResults IsNot Nothing Then
-                            Await taskGetResults
-                            taskGetResults = Nothing
+                        If taskGetResultsAsync IsNot Nothing Then
+                            Await taskGetResultsAsync
+                            taskGetResultsAsync = Nothing
                         End If
                         nLastHintNum = 0
                         btn.Content = "_Show Results"
@@ -157,8 +157,8 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                     str += til.ToString()
                                 Next
                                 _txtWordSoFar.Text = $"{str}"
-                                If _IsLongWrd AndAlso taskGetResults IsNot Nothing AndAlso str.Length >= _nMinWordLen Then
-                                    Dim max = taskGetResults.Result(0).OrderByDescending(Function(kvp) kvp.Key.Length).FirstOrDefault
+                                If _IsLongWrd AndAlso taskGetResultsAsync IsNot Nothing AndAlso str.Length >= _nMinWordLen Then
+                                    Dim max = taskGetResultsAsync.Result(0).OrderByDescending(Function(kvp) kvp.Key.Length).FirstOrDefault
                                     If max.Key.Length = str.Length Then
                                         If max.Value.Word = str Then
                                             lamShowResults()
@@ -241,7 +241,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                                 If lastSelected Is Nothing Then
                                                     okToSelect = True
                                                 Else
-                                                    If (((Math.Abs(lastSelected._col - ltrTile._col) <= 1) Or
+                                                    If (((Math.Abs(lastSelected._col - ltrTile._col) <= 1) AndAlso
                                                          (Math.Abs(lastSelected._row - ltrTile._row) <= 1))) Then
                                                         okToSelect = True
                                                     End If
@@ -257,16 +257,6 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                     funcUpdateWordSoFar()
 
                                 End Sub
-                        AddHandler grd.MouseLeave, Sub()
-#If DEBUG Then
-                                                       AddStatusMsg($"grd.MouseLeave")
-#End If
-                                                   End Sub
-                        AddHandler grd.MouseEnter, Sub()
-#If DEBUG Then
-                                                       AddStatusMsg($"grd.MouseEnter")
-#End If
-                                                   End Sub
                         If Me._IsLongWrd Then
                             Dim arr = Await Task.Run(Function() FillGridWithLongWord())
                             _arrTiles = Array.CreateInstance(GetType(LtrTile), _nRows, _nCols)
@@ -286,11 +276,11 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                             FillGridWithRandomletters(grd)
                         End If
                         '                        isShowingResult = False
-                        taskGetResults = GetResultsAsync()
-                        Await taskGetResults.ContinueWith(Async Function(prev)
-                                                              Await Task.Delay(TimeSpan.FromSeconds(HintDelay))
-                                                              HintAvailable = True
-                                                          End Function)
+                        taskGetResultsAsync = GetResultsAsync()
+                        Await taskGetResultsAsync.ContinueWith(Async Function(prev)
+                                                                   Await Task.Delay(TimeSpan.FromSeconds(HintDelay))
+                                                                   HintAvailable = True
+                                                               End Function)
                     Else
                         lamShowResults()
                     End If

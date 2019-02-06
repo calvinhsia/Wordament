@@ -50,12 +50,25 @@ namespace WordamentTests
         public void TestFindMatchRegEx()
         {
             var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, new Random(1));
-            foreach (var str in new[] { "me*", "aband*", "*", "z*", "mel*", "asdf*" })
+
+            var result = dict.FindMatchRegEx("melt*").ToList();
+            Assert.AreEqual(131,result.Count );
+            Assert.IsTrue(result.Contains("wholesomely"));
+
+            result = dict.FindMatchRegEx("zz.*").ToList(); // all words with "zz"
+            Assert.AreEqual(109, result.Count);
+            Assert.IsTrue(result.Contains("jazz"));
+
+            foreach (var str in new[] { "aband*", "^x.*", "asdfg*" })
             {
                 var res = dict.FindMatchRegEx(str);
-                LogMessage($"FindMatchRegEx {str}, {res}");
+                LogMessage($"FindMatchRegEx {str}");
+                int ndx = 0;
+                foreach (var wrd in res)
+                {
+                    LogMessage($"           {ndx++,6}          {wrd}");
+                }
             }
-            throw new NotImplementedException();
         }
 
         [TestMethod]
