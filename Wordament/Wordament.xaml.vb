@@ -13,6 +13,30 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     Public Property _nRows As Integer = 4
 
     Public Property _nCols As Integer = 4
+
+    Private _CountDownTime As Integer
+    Public Property CountDownTime As Integer
+        Get
+            Return _CountDownTime
+        End Get
+        Set(value As Integer)
+            _CountDownTime = value
+            Me.OnMyPropertyChanged()
+        End Set
+    End Property
+    Dim _strWordSofar As String
+    Public Property StrWordSoFar As String
+        Get
+            Return _strWordSofar
+        End Get
+        Set(value As String)
+            If value <> _strWordSofar Then
+                _strWordSofar = value
+                Me.OnMyPropertyChanged()
+            End If
+        End Set
+    End Property
+
     Public Property _IsLongWrd = True
     Public Property _nMinWordLen = 12
     Private _HintAvailable As Boolean
@@ -29,7 +53,8 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     End Property
 
     Private Shared _txtStatus As TextBox
-    Private _txtWordSoFar As TextBox
+    Private _gridUni As UniformGrid
+    Private _spResults As StackPanel
     Private _seed As Integer
     Private _randLetGenerator As RandLetterGenerator
     Private _resultWords As Dictionary(Of String, LetterList)
@@ -37,8 +62,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     Private _arrTiles(,) As LtrTile
     Private _minWordLength As Integer = 3
     Private _pnl As StackPanel = New StackPanel With {
-        .Orientation = Orientation.Horizontal,
-        .DataContext = Me
+        .Orientation = Orientation.Horizontal
     }
 
     Public Event PropertyChanged As PropertyChangedEventHandler Implements INotifyPropertyChanged.PropertyChanged
@@ -58,32 +82,62 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             End If
             _Random = New Random(_seed)
             _randLetGenerator = New RandLetterGenerator
-            Dim stkCtrls = CType(Markup.XamlReader.Load(
-                <StackPanel
+            Dim mainGrid = CType(Markup.XamlReader.Load(
+                <Grid
                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     >
-                    <Button Name="btnNew" Height="60">_New</Button>
-                    <StackPanel Orientation="Horizontal" Width="300">
-                        <Label>Rows</Label><TextBox Name="tbxRows" Text="{Binding Path=_nRows}" HorizontalAlignment="Right" Width="50"></TextBox>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="300"/>
+                        <ColumnDefinition Width="500"/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <Button Name="btnNew" Height="60">_New</Button>
+                        <StackPanel Orientation="Horizontal" Width="300">
+                            <Label>Rows</Label><TextBox Name="tbxRows" Text="{Binding Path=_nRows}" HorizontalAlignment="Right" Width="50"></TextBox>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Label>Cols</Label><TextBox Name="tbxCols" Text="{Binding Path=_nCols}" HorizontalAlignment="Right" Width="50"></TextBox>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <CheckBox Name="chkLongWord" IsChecked="{Binding Path=_IsLongWrd}">LongWord</CheckBox>
+                            <TextBox Text="{Binding Path=_nMinWordLen}" ToolTip="When doing long words, must be at least this length"></TextBox>
+                        </StackPanel>
+                        <TextBox Name="tbxStatus" Width="300" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Left"></TextBox>
+                        <Button Name="btnHint" Height="40" Width="100" IsEnabled="{Binding Path=HintAvailable}" ToolTip="new hint available after 30 seconds">Hint</Button>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <Label>Cols</Label><TextBox Name="tbxCols" Text="{Binding Path=_nCols}" HorizontalAlignment="Right" Width="50"></TextBox>
+                    <StackPanel Grid.Column="1" Orientation="Vertical">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBox Name="tbxWordSoFar" Width="300" FontSize="24" IsReadOnly="True" Text="{Binding Path=StrWordSoFar}"/>
+                            <TextBox Name="tbxCountDownTimer" Width="40" FontSize="24" IsReadOnly="True" Text="{Binding Path=CountDownTime}"/>
+                        </StackPanel>
+                        <UniformGrid Name="grdUniform" Height="500" Width="500" Background="#FF000000" HorizontalAlignment="Left"></UniformGrid>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <CheckBox Name="chkLongWord" IsChecked="{Binding Path=_IsLongWrd}">LongWord</CheckBox>
-                        <TextBox Text="{Binding Path=_nMinWordLen}" ToolTip="When doing long words, must be at least this length"></TextBox>
+                    <StackPanel Grid.Column="2" Name="spResults" Orientation="Horizontal">
+                        <Label>asdfaf</Label>
                     </StackPanel>
-                    <TextBox Name="tbxStatus" Width="300" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Left"></TextBox>
-                    <Button Name="btnHint" Height="40" Width="100" IsEnabled="{Binding Path=HintAvailable}" ToolTip="new hint available after 30 seconds">Hint</Button>
-                </StackPanel>.CreateReader
-            ), StackPanel)
+                </Grid>.CreateReader
+            ), Grid)
             '                    <TextBox Name = "tbxWordSoFar" IsReadOnly="true" Text="{Binding Path=_txtWordSoFar}"></TextBox>
-
-            Dim btn = CType(stkCtrls.FindName("btnNew"), Button)
-            _txtStatus = CType(stkCtrls.FindName("tbxStatus"), TextBox)
-            Dim btnHint = CType(stkCtrls.FindName("btnHint"), Button)
+            mainGrid.DataContext = Me
+            Me.Content = mainGrid
+            Dim btnNew = CType(mainGrid.FindName("btnNew"), Button)
+            _txtStatus = CType(mainGrid.FindName("tbxStatus"), TextBox)
             _txtStatus.MaxHeight = Math.Min(200, Me.Height - 150)
+            Dim btnHint = CType(mainGrid.FindName("btnHint"), Button)
+            _gridUni = CType(mainGrid.FindName("grdUniform"), UniformGrid)
+            _spResults = CType(mainGrid.FindName("spResults"), StackPanel)
+
+            Dim timerEnabled = False
+            Dim timer = New DispatcherTimer(TimeSpan.FromSeconds(1),
+                                            DispatcherPriority.Normal,
+                                            Sub()
+                                                If timerEnabled Then
+                                                    CountDownTime += 1
+                                                End If
+                                            End Sub,
+                                             _txtStatus.Dispatcher)
 
             Dim isShowingResult = True ' either is showing a board without results, or board with results
             Dim fdidFinish = False
@@ -105,7 +159,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                               End If
                                           End If
                                       End Sub
-            AddHandler btn.Click,
+            AddHandler btnNew.Click,
                 Async Sub()
                     Dim IsMouseDown As Boolean = False
                     Dim lamShowResults = Async Sub()
@@ -113,13 +167,13 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                              fdidFinish = False
                                              IsMouseDown = False
                                              isShowingResult = True
-                                             btn.Content = "calculating..."
+                                             timerEnabled = False
+                                             btnNew.Content = "calculating..."
                                              Dim res = Await taskGetResultsAsync
                                              taskGetResultsAsync = Nothing
                                              ShowResults(res)
-                                             btn.Content = "_New"
+                                             btnNew.Content = "_New"
                                          End Sub
-                    AddStatusMsg($"click {isShowingResult}")
                     isShowingResult = Not isShowingResult
                     If Not isShowingResult Then
                         fdidFinish = False
@@ -128,27 +182,10 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                             taskGetResultsAsync = Nothing
                         End If
                         nLastHintNum = 0
-                        btn.Content = "_Show Results"
+                        _spResults.Children.Clear()
+                        btnNew.Content = "_Show Results"
                         _pnl.Children.Clear()
-                        _pnl.Children.Add(stkCtrls)
-
-                        Dim spVert = New StackPanel With
-                            {
-                            .Orientation = Orientation.Vertical
-                            }
-                        _pnl.Children.Add(spVert)
-                        _txtWordSoFar = New TextBox With {
-                            .IsReadOnly = True,
-                            .FontSize = 24
-                        }
-                        spVert.Children.Add(_txtWordSoFar)
-                        Dim grd = New UniformGrid With {
-                            .Background = Brushes.Black,
-                            .Width = 500,
-                            .VerticalAlignment = VerticalAlignment.Top,
-                            .Height = 500
-                            }
-                        spVert.Children.Add(grd)
+                        _gridUni.Children.Clear()
                         fdidFinish = False
                         Dim lstTilesSelected As New List(Of LtrTile)
                         Dim funcUpdateWordSoFar As Action =
@@ -157,11 +194,12 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                 For Each til In lstTilesSelected
                                     str += til.ToString()
                                 Next
-                                _txtWordSoFar.Text = $"{str}"
+                                StrWordSoFar = $"{str}"
                                 If _IsLongWrd AndAlso taskGetResultsAsync IsNot Nothing AndAlso str.Length >= _nMinWordLen Then
                                     Dim max = taskGetResultsAsync.Result(0).OrderByDescending(Function(kvp) kvp.Key.Length).FirstOrDefault
                                     If max.Key.Length = str.Length Then
                                         If max.Value.Word = str Then
+                                            AddStatusMsg($"Got answer in {CountDownTime}")
                                             lamShowResults()
                                         End If
                                     End If
@@ -171,9 +209,9 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                 Function(ev)
                                     Dim ltrTile As LtrTile = Nothing
                                     ' Determine which tile within grd.ActaulWidth, ActualHeight
-                                    Dim pos = ev.GetPosition(grd)
-                                    Dim elem = grd.InputHitTest(pos)
-                                    If elem IsNot Nothing AndAlso elem IsNot grd Then
+                                    Dim pos = ev.GetPosition(_gridUni)
+                                    Dim elem = _gridUni.InputHitTest(pos)
+                                    If elem IsNot Nothing AndAlso elem IsNot _gridUni Then
                                         Do While elem.GetType <> GetType(LtrTile)
                                             elem = CType(elem, FrameworkElement).Parent
                                         Loop
@@ -183,10 +221,10 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                         ' Using hittest makes the corners of tiles active, causing diagonals to be difficult
                                         ' with fat fingers, so make a tile "hit" smaller than the tile
                                         ' calculate position of center of tile, and distance from mouse
-                                        Dim pixX = pos.X / grd.ActualWidth
-                                        Dim pixY = pos.Y / grd.ActualHeight
-                                        Dim ctrX = ltrTile._col * grd.ActualWidth / _nCols + ltrTile.ActualWidth / 2
-                                        Dim ctrY = ltrTile._row * grd.ActualHeight / _nRows + ltrTile.ActualHeight / 2
+                                        Dim pixX = pos.X / _gridUni.ActualWidth
+                                        Dim pixY = pos.Y / _gridUni.ActualHeight
+                                        Dim ctrX = ltrTile._col * _gridUni.ActualWidth / _nCols + ltrTile.ActualWidth / 2
+                                        Dim ctrY = ltrTile._row * _gridUni.ActualHeight / _nRows + ltrTile.ActualHeight / 2
                                         Dim distToCtrOfTileSquared = Math.Pow((pos.X - ctrX), 2) + Math.Pow((pos.Y - ctrY), 2)
                                         '                                        AddStatusMsg($"x={pos.X:n2} y={pos.Y:n2}  {distToCtrOfTileSquared:n0}  {ltrTile}")
                                         If (distToCtrOfTileSquared > ltrTile.ActualHeight * ltrTile.ActualWidth / 4) Then
@@ -196,29 +234,29 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                     Return ltrTile
                                 End Function
 
-                        AddHandler grd.MouseDown, Sub(o, ev)
-                                                      'AddStatusMsg($"grd.MouseDown")
-                                                      Dim ltrTile = funcGetTileUnderMouse(ev)
-                                                      If ltrTile IsNot Nothing Then
-                                                          If ltrTile._isSelected Then ' already selected
-                                                          Else
-                                                              ltrTile.SelectTile()
-                                                              lstTilesSelected.Add(ltrTile)
-                                                              funcUpdateWordSoFar()
-                                                          End If
-                                                          IsMouseDown = True
-                                                      End If
-                                                  End Sub
-                        AddHandler grd.MouseUp, Sub()
-                                                    'AddStatusMsg($"grd.MouseUp")
-                                                    For Each itm In lstTilesSelected
-                                                        itm.UnSelectTile()
-                                                    Next
-                                                    lstTilesSelected.Clear()
-                                                    funcUpdateWordSoFar()
-                                                    IsMouseDown = False
-                                                End Sub
-                        AddHandler grd.MouseMove,
+                        AddHandler _gridUni.MouseDown, Sub(o, ev)
+                                                           'AddStatusMsg($"grd.MouseDown")
+                                                           Dim ltrTile = funcGetTileUnderMouse(ev)
+                                                           If ltrTile IsNot Nothing Then
+                                                               If ltrTile._isSelected Then ' already selected
+                                                               Else
+                                                                   ltrTile.SelectTile()
+                                                                   lstTilesSelected.Add(ltrTile)
+                                                                   funcUpdateWordSoFar()
+                                                               End If
+                                                               IsMouseDown = True
+                                                           End If
+                                                       End Sub
+                        AddHandler _gridUni.MouseUp, Sub()
+                                                         'AddStatusMsg($"grd.MouseUp")
+                                                         For Each itm In lstTilesSelected
+                                                             itm.UnSelectTile()
+                                                         Next
+                                                         lstTilesSelected.Clear()
+                                                         funcUpdateWordSoFar()
+                                                         IsMouseDown = False
+                                                     End Sub
+                        AddHandler _gridUni.MouseMove,
                                 Sub(o, ev)
                                     '                                                      AddStatusMsg($"mm {IsMouseDown} {fdidFinish}")
                                     If IsMouseDown AndAlso Not fdidFinish Then
@@ -234,6 +272,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                                     If (penult._row = ltrTile._row AndAlso penult._col = ltrTile._col) Then 'moved back to prior 1. unselect last one
                                                         lastSelected.UnSelectTile()
                                                         lstTilesSelected.RemoveAt(lstTilesSelected.Count - 1)
+                                                        funcUpdateWordSoFar()
                                                     End If
                                                 End If
                                             Else
@@ -251,13 +290,11 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                                 If okToSelect Then
                                                     ltrTile.SelectTile()
                                                     lstTilesSelected.Add(ltrTile)
+                                                    funcUpdateWordSoFar()
                                                 End If
                                             End If
                                         End If
-
                                     End If
-                                    funcUpdateWordSoFar()
-
                                 End Sub
                         If Me._IsLongWrd Then
                             Dim arr = Await Task.Run(Function() FillGridWithLongWord())
@@ -271,27 +308,33 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                         ltr = Chr(arr(iRow, iCol))
                                     End If
                                     _arrTiles(iRow, iCol) = New LtrTile(ltr, iRow, iCol, _nCols)
-                                    grd.Children.Add(_arrTiles(iRow, iCol))
+                                    _gridUni.Children.Add(_arrTiles(iRow, iCol))
                                 Next
                             Next
                         Else
-                            FillGridWithRandomletters(grd)
+                            FillGridWithRandomletters(_gridUni)
                         End If
-                        '                        isShowingResult = False
+                        btnNew.IsEnabled = False
+                        CountDownTime = 0
+                        timerEnabled = True
+                        HintAvailable = False
                         taskGetResultsAsync = GetResultsAsync()
-                        Await taskGetResultsAsync.ContinueWith(Async Function(prev)
-                                                                   Await Task.Delay(TimeSpan.FromSeconds(HintDelay))
-                                                                   HintAvailable = True
-                                                               End Function)
+                        Await taskGetResultsAsync
+                        btnNew.IsEnabled = True
+                        Await Task.Delay(TimeSpan.FromSeconds(HintDelay))
+                        HintAvailable = True
+                        'Await taskGetResultsAsync.ContinueWith(Async Function(prev)
+                        '                                           Await Task.Delay(TimeSpan.FromSeconds(HintDelay))
+                        '                                           HintAvailable = True
+                        '                                       End Function)
                     Else
                         lamShowResults()
                     End If
-                    Me.Content = _pnl
                     'Width = 800
                     'Height = 800
                 End Sub
             '            btn.AddHandler(Button.ClickEvent, New RoutedEventHandler(AddressOf BtnClick))
-            btn.RaiseEvent(New RoutedEventArgs With {.RoutedEvent = Button.ClickEvent})
+            btnNew.RaiseEvent(New RoutedEventArgs With {.RoutedEvent = Button.ClickEvent})
         Catch ex As Exception
             Me.Content = ex.ToString
         End Try
@@ -301,12 +344,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         Dim args = New PropertyChangedEventArgs(propname)
         RaiseEvent PropertyChanged(Me, args)
     End Sub
-    'Sub RaisePropertyChanged(<CallerMemberName> Optional propName As String = "")
-    '    If PropertyChanged IsNot Nothing Then
-    '        RaiseEvent PropertyChanged() IsNot Nothing Then
 
-    '    End If
-    'End Sub
     Friend Shared Sub AddStatusMsg(msg As String)
         msg = $"{DateTime.Now.ToString("hh:mm:ss")} {Thread.CurrentThread.ManagedThreadId} {msg} {vbCrLf}"
         Dim x = _txtStatus.Dispatcher
@@ -320,19 +358,22 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         Dim res = New List(Of Dictionary(Of String, LetterList))
         Await Task.Run(Sub()
                            For dictnum = 1 To 2
-                               AddStatusMsg($"getres {dictnum}")
+                               '                               AddStatusMsg($"getres {dictnum}")
                                res.Add(CalcWordList(dictnum))
                            Next
-                           AddStatusMsg($"getres endtask")
+                           '                          AddStatusMsg($"getres endtask")
                        End Sub)
         Return res
     End Function
 
     Sub ShowResults(results As List(Of Dictionary(Of String, LetterList)))
         Dim dictnum = 0
+        _spResults.Children.Clear()
         For Each result In results
             dictnum += 1
-            Dim spResult = New StackPanel With {.Orientation = Orientation.Vertical}
+            Dim spSingleResult = New StackPanel() With {.Orientation = Orientation.Vertical}
+            _spResults.Children.Add(spSingleResult)
+
             Dim lv As New ListView
             Dim sortedlist = From wrd In result
                              Select wrd.Key,
@@ -361,10 +402,10 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                           )
             Dim score = Aggregate wrd In result Select pts = wrd.Value.Points Into Sum()
 
-            spResult.Children.Add(New TextBlock With {
+            spSingleResult.Children.Add(New TextBlock With {
                                   .Text = String.Format("Dict# {0} Score = {1:n0}" + vbCrLf + "#Words={2}", dictnum, CInt(score), result.Count)
                               })
-            spResult.Children.Add(lv)
+            spSingleResult.Children.Add(lv)
             Dim fInHandler = False
             AddHandler lv.SelectionChanged,
                 Sub()
@@ -393,8 +434,6 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         End If
                     End If
                 End Sub
-
-            _pnl.Children.Add(spResult)
         Next
 
         Dim arrLetDist(25) As Integer ' calc letter dist
@@ -405,17 +444,17 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         For i = 0 To 25
             letDist += String.Format("{0}={1}" + vbCrLf, Chr(65 + i), arrLetDist(i))
         Next
-        _pnl.Children.Add(
+        _spResults.Children.Add(
             New TextBlock With {
                     .Text = letDist,
                     .ToolTip = "Current Grid letter distribution"}
             )
-        _pnl.Children.Add(
+        _spResults.Children.Add(
             New ListView With {
                 .ItemsSource = WordamentWindow._LetterValues,
                 .ToolTip = "Points per letter"}
             )
-        _pnl.Children.Add(
+        _spResults.Children.Add(
             New ListView With {
                 .ItemsSource = RandLetterGenerator._letDistArr,
                 .ToolTip = "#letters in RandLetterGenerator"}
@@ -704,7 +743,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
             Dim txt As New TextBlock With {
                 .Text = _letter._letter,
-                .FontSize = If(nTotalCols > 10, 10, 60 - (nTotalCols - 6) * 5),
+                .FontSize = If(nTotalCols > 10, 14, 60 - (nTotalCols - 6) * 5),
                 .HorizontalAlignment = HorizontalAlignment.Center,
                 .Foreground = Brushes.White
             }
