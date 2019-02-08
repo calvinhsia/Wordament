@@ -110,7 +110,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                     <StackPanel Grid.Column="1" Orientation="Vertical">
                         <StackPanel Orientation="Horizontal">
                             <TextBox Name="tbxWordSoFar" Width="300" FontSize="24" IsReadOnly="True" Text="{Binding Path=StrWordSoFar}"/>
-                            <TextBox Name="tbxCountDownTimer" Width="40" FontSize="24" IsReadOnly="True" Text="{Binding Path=CountDownTime}"/>
+                            <TextBox Name="tbxCountDownTimer" Width="90" FontSize="24" IsReadOnly="True" Text="{Binding Path=CountDownTime}"/>
                         </StackPanel>
                         <UniformGrid Name="grdUniform" Height="500" Width="500" Background="#FF000000" HorizontalAlignment="Left"></UniformGrid>
                     </StackPanel>
@@ -199,7 +199,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                     Dim max = taskGetResultsAsync.Result(0).OrderByDescending(Function(kvp) kvp.Key.Length).FirstOrDefault
                                     If max.Key.Length = str.Length Then
                                         If max.Value.Word = str Then
-                                            AddStatusMsg($"Got answer in {CountDownTime}")
+                                            AddStatusMsg($"Got answer in {CountDownTime} {str}")
                                             lamShowResults()
                                         End If
                                     End If
