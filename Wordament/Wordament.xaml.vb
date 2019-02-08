@@ -14,14 +14,42 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
     Public Property _nCols As Integer = 4
 
+
     Private _CountDownTime As Integer
-    Public Property CountDownTime As Integer
+    Private Property CountDownTime As Integer
         Get
             Return _CountDownTime
         End Get
         Set(value As Integer)
             _CountDownTime = value
-            Me.OnMyPropertyChanged()
+            Me.OnMyPropertyChanged("CountDownTimeStr")
+        End Set
+    End Property
+
+    Public Function GetTimeAsString(tmpSecs As Integer)
+        Dim hrs = String.Empty
+        Dim mins = String.Empty
+        Dim secs = String.Empty
+        If (tmpSecs >= 3600) Then
+            hrs = $"{Int(tmpSecs / 3600):n0};"
+            tmpSecs = tmpSecs - Int((tmpSecs / 3600)) * 3600
+        End If
+        If Not String.IsNullOrEmpty(hrs) OrElse tmpSecs >= 60 Then
+            mins = $"{Int((tmpSecs / 60)).ToString(If(String.IsNullOrEmpty(hrs), "", "00"))}:"
+            tmpSecs = tmpSecs - Int((tmpSecs / 60)) * 60
+            secs = tmpSecs.ToString("00")
+        Else
+            secs = _CountDownTime.ToString()
+        End If
+        Return $"{hrs}{mins}{secs}"
+
+    End Function
+    Public Property CountDownTimeStr As String
+        Get
+            Return GetTimeAsString(_CountDownTime)
+        End Get
+        Set(value As String)
+            Throw New NotImplementedException()
         End Set
     End Property
     Dim _strWordSofar As String
@@ -110,7 +138,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                     <StackPanel Grid.Column="1" Orientation="Vertical">
                         <StackPanel Orientation="Horizontal">
                             <TextBox Name="tbxWordSoFar" Width="300" FontSize="24" IsReadOnly="True" Text="{Binding Path=StrWordSoFar}"/>
-                            <TextBox Name="tbxCountDownTimer" Width="90" FontSize="24" IsReadOnly="True" Text="{Binding Path=CountDownTime}"/>
+                            <TextBox Name="tbxCountDownTimer" Width="90" FontSize="24" IsReadOnly="True" Text="{Binding Path=CountDownTimeStr}"/>
                         </StackPanel>
                         <UniformGrid Name="grdUniform" Height="500" Width="500" Background="#FF000000" HorizontalAlignment="Left"></UniformGrid>
                     </StackPanel>
@@ -186,6 +214,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         btnNew.Content = "_Show Results"
                         _pnl.Children.Clear()
                         _gridUni.Children.Clear()
+                        StrWordSoFar = String.Empty
                         fdidFinish = False
                         Dim lstTilesSelected As New List(Of LtrTile)
                         Dim funcUpdateWordSoFar As Action =
@@ -199,7 +228,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                     Dim max = taskGetResultsAsync.Result(0).OrderByDescending(Function(kvp) kvp.Key.Length).FirstOrDefault
                                     If max.Key.Length = str.Length Then
                                         If max.Value.Word = str Then
-                                            AddStatusMsg($"Got answer in {CountDownTime} {str}")
+                                            AddStatusMsg($"Got answer in {GetTimeAsString(CountDownTime)} {str}")
                                             lamShowResults()
                                         End If
                                     End If
@@ -233,9 +262,18 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                     End If
                                     Return ltrTile
                                 End Function
+                        Dim funcClearSelection As Action = Sub()
+                                                               For Each itm In lstTilesSelected
+                                                                   itm.UnSelectTile()
+                                                               Next
+                                                               lstTilesSelected.Clear()
+                                                               funcUpdateWordSoFar()
+                                                               IsMouseDown = False
+                                                           End Sub
 
                         AddHandler _gridUni.MouseDown, Sub(o, ev)
                                                            'AddStatusMsg($"grd.MouseDown")
+                                                           funcClearSelection()
                                                            Dim ltrTile = funcGetTileUnderMouse(ev)
                                                            If ltrTile IsNot Nothing Then
                                                                If ltrTile._isSelected Then ' already selected
@@ -248,13 +286,10 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                                            End If
                                                        End Sub
                         AddHandler _gridUni.MouseUp, Sub()
-                                                         'AddStatusMsg($"grd.MouseUp")
-                                                         For Each itm In lstTilesSelected
-                                                             itm.UnSelectTile()
-                                                         Next
-                                                         lstTilesSelected.Clear()
-                                                         funcUpdateWordSoFar()
-                                                         IsMouseDown = False
+                                                         If IsMouseDown Then
+                                                             'AddStatusMsg($"grd.MouseUp")
+                                                             funcClearSelection()
+                                                         End If
                                                      End Sub
                         AddHandler _gridUni.MouseMove,
                                 Sub(o, ev)
@@ -296,6 +331,10 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                         End If
                                     End If
                                 End Sub
+                        AddHandler _gridUni.MouseLeave, Sub()
+                                                            '                                                            funcClearSelection()
+                                                        End Sub
+
                         If Me._IsLongWrd Then
                             Dim arr = Await Task.Run(Function() FillGridWithLongWord())
                             _arrTiles = Array.CreateInstance(GetType(LtrTile), _nRows, _nCols)
@@ -632,7 +671,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                 If wordSoFar.Length >= _minWordLength Then
                     Dim compResult = 0
                     Dim isPartial = _spellDict.SeekWord(wordSoFar, compResult)
-                    If compResult = 0 Then
+                    If Not String.IsNullOrEmpty(isPartial) AndAlso compResult = 0 Then
                         If Not _resultWords.ContainsKey(wordSoFar.ToUpper()) Then
                             Dim pts As Double = ptsSoFar
                             If wordSoFar.Length >= 5 Then
