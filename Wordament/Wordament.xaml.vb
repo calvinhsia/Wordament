@@ -31,7 +31,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         Dim mins = String.Empty
         Dim secs = String.Empty
         If (tmpSecs >= 3600) Then
-            hrs = $"{Int(tmpSecs / 3600):n0};"
+            hrs = $"{Int(tmpSecs / 3600):n0}:"
             tmpSecs = tmpSecs - Int((tmpSecs / 3600)) * 3600
         End If
         If Not String.IsNullOrEmpty(hrs) OrElse tmpSecs >= 60 Then
