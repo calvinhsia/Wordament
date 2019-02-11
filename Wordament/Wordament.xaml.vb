@@ -105,9 +105,9 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             _seed = Environment.TickCount
             If Debugger.IsAttached Then
                 _seed = 1
-                HintDelay = 5
+                HintDelay = 2
             Else
-                HintDelay = 5
+                HintDelay = 2
             End If
             _Random = New Random(_seed)
             _randLetGenerator = New RandLetterGenerator
