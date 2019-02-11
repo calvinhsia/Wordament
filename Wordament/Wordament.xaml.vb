@@ -52,6 +52,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             Throw New NotImplementedException()
         End Set
     End Property
+
     Dim _strWordSofar As String
     Public Property StrWordSoFar As String
         Get
@@ -137,8 +138,8 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Vertical">
                         <StackPanel Orientation="Horizontal">
-                            <TextBox Name="tbxWordSoFar" Width="300" FontSize="24" IsReadOnly="True" Text="{Binding Path=StrWordSoFar}"/>
-                            <TextBox Name="tbxCountDownTimer" Width="90" FontSize="24" IsReadOnly="True" Text="{Binding Path=CountDownTimeStr}"/>
+                            <TextBox Width="300" FontSize="24" IsReadOnly="True" Text="{Binding Path=StrWordSoFar}"/>
+                            <TextBox Width="90" FontSize="24" IsReadOnly="True" Text="{Binding Path=CountDownTimeStr}"/>
                         </StackPanel>
                         <UniformGrid Name="grdUniform" Height="500" Width="500" Background="#FF000000" HorizontalAlignment="Left"></UniformGrid>
                     </StackPanel>
@@ -147,7 +148,6 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                     </StackPanel>
                 </Grid>.CreateReader
             ), Grid)
-            '                    <TextBox Name = "tbxWordSoFar" IsReadOnly="true" Text="{Binding Path=_txtWordSoFar}"></TextBox>
             mainGrid.DataContext = Me
             Me.Content = mainGrid
             Dim btnNew = CType(mainGrid.FindName("btnNew"), Button)
@@ -255,8 +255,8 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                         Dim ctrX = ltrTile._col * _gridUni.ActualWidth / _nCols + ltrTile.ActualWidth / 2
                                         Dim ctrY = ltrTile._row * _gridUni.ActualHeight / _nRows + ltrTile.ActualHeight / 2
                                         Dim distToCtrOfTileSquared = Math.Pow((pos.X - ctrX), 2) + Math.Pow((pos.Y - ctrY), 2)
-                                        '                                        AddStatusMsg($"x={pos.X:n2} y={pos.Y:n2}  {distToCtrOfTileSquared:n0}  {ltrTile}")
-                                        If (distToCtrOfTileSquared > ltrTile.ActualHeight * ltrTile.ActualWidth / 4) Then
+                                        'AddStatusMsg($"x={pos.X:n2} y={pos.Y:n2}  {distToCtrOfTileSquared:n0}  {ltrTile}")
+                                        If (distToCtrOfTileSquared > ltrTile.ActualHeight * ltrTile.ActualWidth / 6) Then
                                             ltrTile = Nothing
                                         End If
                                     End If
@@ -312,7 +312,6 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                                 End If
                                             Else
                                                 Dim okToSelect = False
-
                                                 If lastSelected Is Nothing Then
                                                     okToSelect = True
                                                 Else
@@ -766,7 +765,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     Public Class LtrTile
         Inherits DockPanel
         Shared ReadOnly g_backBrush = Brushes.DarkCyan
-        Shared ReadOnly g_backBrushSelected = Brushes.Red
+        Shared ReadOnly g_backBrushSelected = Brushes.Blue
         Friend _isSelected = False
 
         Friend ReadOnly _row As Integer
