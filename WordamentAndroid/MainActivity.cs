@@ -15,11 +15,13 @@ namespace WordamentAndroid
     public class MainActivity : AppCompatActivity, BottomNavigationView.IOnNavigationItemSelectedListener
     {
         TextView textMessage = null;
-        int _nCols = 4;
-        int _nRows = 4;
+        public static int _nCols = 4;
+        public static int _nRows = 4;
+        public static Point _ptScreenSize = new Point(); // X = 1440, Y = 2792
         protected override void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
+            WindowManager.DefaultDisplay.GetSize(_ptScreenSize);
             var mainLayout = new RelativeLayout(this);
             var btnNew = new Button(this)
             {
@@ -34,7 +36,8 @@ namespace WordamentAndroid
             {
                 Id = 2,
                 ColumnCount = _nCols,
-                RowCount = _nRows
+                RowCount = _nRows,
+                AlignmentMode = GridAlign.Bounds
             };
             grd.SetBackgroundColor(Color.Black);
             for (int iRow = 0; iRow < _nRows; iRow++)
@@ -49,7 +52,8 @@ namespace WordamentAndroid
             }
             var rpg = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MatchParent, RelativeLayout.LayoutParams.WrapContent);
             rpg.AddRule(LayoutRules.Below, 1);
-            mainLayout.AddView(grd, rpg);
+            grd.LayoutParameters = rpg;
+            mainLayout.AddView(grd);
 
             var b = new LtrTile(this, "ABCD", 0, 0)
             {
@@ -130,6 +134,10 @@ namespace WordamentAndroid
             this.TextSize = 60;
             var l = new GridLayout.LayoutParams();
             l.SetMargins(10, 10, 10, 10);
+            //            l.SetGravity(GravityFlags.FillHorizontal);
+            l.Width = MainActivity._ptScreenSize.X / MainActivity._nCols - 25;
+
+            this.TextAlignment = TextAlignment.Center;
             this.LayoutParameters = l;
 
             //BackgroundColor = g_colorBackground;
