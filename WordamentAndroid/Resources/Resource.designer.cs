@@ -3166,6 +3166,9 @@ namespace WordamentAndroid
 		public partial class String
 		{
 			
+			// aapt resource value: 0x7f090028
+			public const int New = 2131296296;
+			
 			// aapt resource value: 0x7f090000
 			public const int abc_action_bar_home_description = 2131296256;
 			
@@ -3286,14 +3289,14 @@ namespace WordamentAndroid
 			// aapt resource value: 0x7f090026
 			public const int status_bar_notification_info_overflow = 2131296294;
 			
-			// aapt resource value: 0x7f090029
-			public const int title_dashboard = 2131296297;
-			
-			// aapt resource value: 0x7f090028
-			public const int title_home = 2131296296;
-			
 			// aapt resource value: 0x7f09002a
-			public const int title_notifications = 2131296298;
+			public const int title_dashboard = 2131296298;
+			
+			// aapt resource value: 0x7f090029
+			public const int title_home = 2131296297;
+			
+			// aapt resource value: 0x7f09002b
+			public const int title_notifications = 2131296299;
 			
 			static String()
 			{

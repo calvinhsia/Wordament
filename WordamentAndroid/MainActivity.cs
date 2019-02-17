@@ -22,7 +22,12 @@ namespace WordamentAndroid
         {
             base.OnCreate(savedInstanceState);
             WindowManager.DefaultDisplay.GetSize(_ptScreenSize);
-            var mainLayout = new RelativeLayout(this);
+            SetContentView(Resource.Layout.activity_main);
+
+//            var stextMessage = FindViewById<TextView>(Resource.Id.message1);
+
+            var mainLayout = FindViewById<RelativeLayout>(Resource.Id.container);
+            //            var mainLayout = new RelativeLayout(this);
             var btnNew = new Button(this)
             {
                 Text = $"New {DateTime.Now.ToString("MM/dd/yy hh:mm:ss")}",
@@ -31,7 +36,7 @@ namespace WordamentAndroid
             //https://stackoverflow.com/questions/2305395/how-to-lay-out-views-in-relativelayout-programmatically
             var rp = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
             mainLayout.AddView(btnNew, rp);
-
+            // status, wrdsofar, timer, hint, row,col,  (longword? length)
             var grd = new GridLayout(this)
             {
                 Id = 2,
@@ -83,7 +88,7 @@ namespace WordamentAndroid
               };
 
 
-            SetContentView(mainLayout);
+            //            SetContentView(mainLayout);
 
             //            SetContentView(Resource.Layout.activity_main);
             //textMessage = FindViewById<TextView>(Resource.Id.message);
