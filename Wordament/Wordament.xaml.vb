@@ -39,7 +39,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             tmpSecs = tmpSecs - Int((tmpSecs / 60)) * 60
             secs = tmpSecs.ToString("00")
         Else
-            secs = _CountDownTime.ToString()
+            secs = tmpSecs.ToString()
         End If
         Return $"{hrs}{mins}{secs}"
 
