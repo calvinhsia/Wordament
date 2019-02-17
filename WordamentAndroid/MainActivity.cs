@@ -15,11 +15,12 @@ namespace WordamentAndroid
     public class MainActivity : AppCompatActivity, BottomNavigationView.IOnNavigationItemSelectedListener
     {
         TextView textMessage = null;
-
+        int _nCols = 4;
+        int _nRows = 4;
         protected override void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
-            var relLayout = new RelativeLayout(this);
+            var mainLayout = new RelativeLayout(this);
             var btnNew = new Button(this)
             {
                 Text = $"New {DateTime.Now.ToString("MM/dd/yy hh:mm:ss")}",
@@ -27,14 +28,59 @@ namespace WordamentAndroid
             };
             //https://stackoverflow.com/questions/2305395/how-to-lay-out-views-in-relativelayout-programmatically
             var rp = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
-            relLayout.AddView(btnNew, rp);
-            //            var lp = new RelativeLayout.LayoutParams(10, 40);
-            var b = new LtrTile(this, "ABCD", 0, 0);
-            b.Id = 2;
+            mainLayout.AddView(btnNew, rp);
+
+            var grd = new GridLayout(this)
+            {
+                Id = 2,
+                ColumnCount = _nCols,
+                RowCount = _nRows
+            };
+
+
+            for (int iRow = 0; iRow < _nRows; iRow++)
+            {
+                for (int iCol = 0; iCol < _nCols; iCol++)
+                {
+                    var til = new LtrTile(this, "A", iRow, iCol);
+                    //                    til.LayoutParameters = new ViewGroup.LayoutParams()
+                    til.Id = 10 + iRow * _nRows + iCol;
+                    grd.AddView(til);
+                }
+            }
+            var rpg = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
+            rpg.AddRule(LayoutRules.Below, 1);
+            mainLayout.AddView(grd, rpg);
+
+            var b = new LtrTile(this, "ABCD", 0, 0)
+            {
+                Id = 3
+            };
             var rp2 = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
-            relLayout.AddView(b, rp2);
-            rp2.AddRule(LayoutRules.Below, 1);
-            SetContentView(relLayout);
+            rp2.AddRule(LayoutRules.Below, 2);
+            mainLayout.AddView(b, rp2);
+
+            //            grd.AddView(btnNew,)
+            grd.Touch += (og, eg) =>
+              {
+                  "".ToString();
+                  switch (eg.Event.Action)
+                  {
+                      case MotionEventActions.Move:
+                          "".ToString();
+                          var loc = $"{eg.Event.RawX}  {eg.Event.RawY}";
+                          break;
+                      case MotionEventActions.Down:
+                          break;
+                      case MotionEventActions.Up:
+                          break;
+                      case MotionEventActions.Outside:
+                          break;
+                  }
+              };
+
+
+            SetContentView(mainLayout);
 
             //            SetContentView(Resource.Layout.activity_main);
             //textMessage = FindViewById<TextView>(Resource.Id.message);
@@ -58,6 +104,17 @@ namespace WordamentAndroid
             return false;
         }
     }
+    class MyGridView : GridView
+    {
+        public MyGridView(Context context) : base(context)
+        {
+
+        }
+        public override bool OnTouchEvent(MotionEvent e)
+        {
+            return base.OnTouchEvent(e);
+        }
+    }
     class LtrTile : TextView
     {
         readonly static Color g_colorBackground = Color.DarkCyan;
@@ -68,6 +125,9 @@ namespace WordamentAndroid
         public LtrTile(Context context, string letter, int row, int col) : base(context)
         {
             Text = letter;
+            this.SetBackgroundColor(g_colorBackground);
+            this.SetTextColor(Color.White);
+            this.TextSize = 60;
             Row = row; Col = col;
             //BackgroundColor = g_colorBackground;
             //FontSize = 40;
@@ -79,16 +139,28 @@ namespace WordamentAndroid
         {
             if (!_IsSelected)
             {
-                //                this.BackgroundColor = g_colorSelected;
+                SetBackgroundColor(g_colorSelected);
                 _IsSelected = true;
             }
+        }
+        public override bool OnTouchEvent(MotionEvent e)
+        {
+            if (!_IsSelected)
+            {
+                SelectTile();
+            }
+            else
+            {
+                UnSelectTile();
+            }
+            return base.OnTouchEvent(e);
         }
 
         public void UnSelectTile()
         {
             if (_IsSelected)
             {
-                //              this.BackgroundColor = g_colorBackground;
+                SetBackgroundColor(g_colorBackground);
                 _IsSelected = false;
             }
         }
