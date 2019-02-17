@@ -36,8 +36,7 @@ namespace WordamentAndroid
                 ColumnCount = _nCols,
                 RowCount = _nRows
             };
-
-
+            grd.SetBackgroundColor(Color.Black);
             for (int iRow = 0; iRow < _nRows; iRow++)
             {
                 for (int iCol = 0; iCol < _nCols; iCol++)
@@ -48,7 +47,7 @@ namespace WordamentAndroid
                     grd.AddView(til);
                 }
             }
-            var rpg = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
+            var rpg = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MatchParent, RelativeLayout.LayoutParams.WrapContent);
             rpg.AddRule(LayoutRules.Below, 1);
             mainLayout.AddView(grd, rpg);
 
@@ -125,10 +124,14 @@ namespace WordamentAndroid
         public LtrTile(Context context, string letter, int row, int col) : base(context)
         {
             Text = letter;
+            Row = row; Col = col;
             this.SetBackgroundColor(g_colorBackground);
             this.SetTextColor(Color.White);
             this.TextSize = 60;
-            Row = row; Col = col;
+            var l = new GridLayout.LayoutParams();
+            l.SetMargins(10, 10, 10, 10);
+            this.LayoutParameters = l;
+
             //BackgroundColor = g_colorBackground;
             //FontSize = 40;
             //Margin = new Thickness(2, 2, 2, 2);
