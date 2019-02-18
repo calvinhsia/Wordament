@@ -274,9 +274,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
                         AddHandler _gridUni.MouseDown, Sub(o, ev)
                                                            AddStatusMsg($"grd.MouseDown")
-                                                           If Not IsMouseDown Then
-                                                               funcClearSelection()
-                                                           End If
+                                                           funcClearSelection()
                                                            Dim ltrTile = funcGetTileUnderMouse(ev)
                                                            If ltrTile IsNot Nothing Then
                                                                If ltrTile._isSelected Then ' already selected
@@ -303,26 +301,26 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                     If IsMouseDown AndAlso Not fdidFinish Then
                                         Dim ltrTile = funcGetTileUnderMouse(ev)
                                         If ltrTile IsNot Nothing Then
-                                            Dim lastSelected As LtrTile = Nothing
+                                            Dim priorSelected As LtrTile = Nothing
                                             If lstTilesSelected.Count > 0 Then
-                                                lastSelected = lstTilesSelected(lstTilesSelected.Count - 1)
+                                                priorSelected = lstTilesSelected(lstTilesSelected.Count - 1)
                                             End If
                                             If ltrTile._isSelected Then ' already selected: ' if it is selected, user, might have gone back to prior selection
                                                 If (lstTilesSelected.Count > 1) Then
                                                     Dim penult = lstTilesSelected(lstTilesSelected.Count - 2)
                                                     If (penult._row = ltrTile._row AndAlso penult._col = ltrTile._col) Then 'moved back to prior 1. unselect last one
-                                                        lastSelected.UnSelectTile()
+                                                        priorSelected.UnSelectTile()
                                                         lstTilesSelected.RemoveAt(lstTilesSelected.Count - 1)
                                                         funcUpdateWordSoFar()
                                                     End If
                                                 End If
                                             Else
                                                 Dim okToSelect = False
-                                                If lastSelected Is Nothing Then
+                                                If priorSelected Is Nothing Then
                                                     okToSelect = True
                                                 Else
                                                     ' the distance between the current pos and the last should be 1
-                                                    Dim dist = Math.Pow(lastSelected._col - ltrTile._col, 2) + Math.Pow(lastSelected._row - ltrTile._row, 2)
+                                                    Dim dist = Math.Pow(priorSelected._col - ltrTile._col, 2) + Math.Pow(priorSelected._row - ltrTile._row, 2)
                                                     If dist <= 2 Then
                                                         okToSelect = True
                                                     End If

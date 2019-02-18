@@ -147,15 +147,6 @@ namespace WordamentAndroid
             grd.LayoutParameters = rpg;
             mainLayout.AddView(grd);
 
-            //var b = new LtrTile(this, "ABCD", 0, 0)
-            //{
-            //    Id = 3
-            //};
-            //var rp2 = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
-            //rp2.AddRule(LayoutRules.Below, 2);
-            //mainLayout.AddView(b, rp2);
-
-            //            grd.AddView(btnNew,)
             var lstTilesSelected = new List<LtrTile>();
             Action UpdateWordSoFar = () =>
             {
@@ -197,7 +188,7 @@ namespace WordamentAndroid
                         Y = row * grd.Height / _nRows + tile.Height / 2
                     };
                     var distToCtrOfFileSquared = Math.Pow(ptRel.X - pointCtr.X, 2) + Math.Pow(ptRel.Y - pointCtr.Y, 2);
-                    AddStatusMsg($"{eg.Event.Action.ToString().Substring(0, 1)} ({eg.Event.RawX},{eg.Event.RawY}) {distToCtrOfFileSquared:n0} {tile?.Text}");
+//                    AddStatusMsg($"{eg.Event.Action.ToString().Substring(0, 1)} ({eg.Event.RawX},{eg.Event.RawY}) {distToCtrOfFileSquared:n0} {tile?.Text}");
                     if (distToCtrOfFileSquared > tile.Width * tile.Height / 6)
                     {
                         tile = null;
@@ -207,16 +198,58 @@ namespace WordamentAndroid
             };
             grd.Touch += (og, eg) =>
               {
-                  var tile = GetTileFromTouch(eg);
                   switch (eg.Event.Action)
                   {
                       case MotionEventActions.Down:
                       case MotionEventActions.Move:
-                          if (tile != null && !tile._IsSelected)
+                          var ltrTile = GetTileFromTouch(eg);
+                          if (ltrTile != null)
                           {
-                              tile.SelectTile();
-                              lstTilesSelected.Add(tile);
-                              UpdateWordSoFar();
+                              LtrTile priorSelected = null;
+                              if (lstTilesSelected.Count > 0)
+                              {
+                                  priorSelected = lstTilesSelected[lstTilesSelected.Count - 1];
+                              }
+                              if (ltrTile._IsSelected)
+                              {
+                                  if (lstTilesSelected.Count > 1)
+                                  {
+                                      var tilePenultimate = lstTilesSelected[lstTilesSelected.Count - 2];
+                                      AddStatusMsg($"{tilePenultimate} {priorSelected} {ltrTile}");
+                                      if (ltrTile.Row == tilePenultimate.Row && ltrTile.Col == tilePenultimate.Col)
+                                      {// back to prior one
+                                          priorSelected.UnSelectTile();
+                                          lstTilesSelected.RemoveAt(lstTilesSelected.Count - 1);
+                                          UpdateWordSoFar();
+                                      }
+                                  }
+                              }
+                              else
+                              {
+                                  var okToSelect = false;
+                                  if (priorSelected == null)
+                                  {
+                                      okToSelect = true;
+                                  }
+                                  else
+                                  {
+                                      var dist = Math.Pow(priorSelected.Col - ltrTile.Col, 2) + Math.Pow(priorSelected.Row - ltrTile.Row, 2);
+                                      if (dist <= 2)
+                                      {
+                                          okToSelect = true;
+                                      }
+                                      else
+                                      {
+//                                          AddStatusMsg($"nosel {priorSelected} {ltrTile} {dist}");
+                                      }
+                                  }
+                                  if (okToSelect)
+                                  {
+                                      ltrTile.SelectTile();
+                                      lstTilesSelected.Add(ltrTile);
+                                      UpdateWordSoFar();
+                                  }
+                              }
                           }
                           break;
 
