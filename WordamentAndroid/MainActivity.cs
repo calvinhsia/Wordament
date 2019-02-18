@@ -5,6 +5,7 @@ using Android.OS;
 using Android.Runtime;
 using Android.Support.Design.Widget;
 using Android.Support.V7.App;
+using Android.Support.V7.Widget;
 using Android.Views;
 using Android.Widget;
 using System;
@@ -169,31 +170,44 @@ namespace WordamentAndroid
             {
                 foreach (var tile in lstTilesSelected)
                 {
-                    if (tile._IsSelected)
-                    {
-                        tile.UnSelectTile();
-                    }
+                    tile.UnSelectTile();
                 }
                 lstTilesSelected.Clear();
                 UpdateWordSoFar();
             };
-            Func<View.TouchEventArgs, LtrTile> GetTile = (eg) =>
+            Func<View.TouchEventArgs, LtrTile> GetTileFromTouch = (eg) =>
             {
                 // grd.width = 1440, grd.Height = 1532 Til.width = 335, til.height=363
-                var col = (int)((eg.Event.RawX - grd.Left) * _nCols / grd.Width);
-                var row = (int)((eg.Event.RawY - grd.Top - 250) * _nRows / grd.Height);
+                int[] locg = new int[2];
+                grd.GetLocationInWindow(locg);
+                var ptRel = new Point()
+                {
+                    X = (int)eg.Event.RawX - locg[0],
+                    Y = (int)eg.Event.RawY - locg[1]
+                };
+                var col = (int)((ptRel.X) * _nCols / grd.Width);
+                var row = (int)((ptRel.Y) * _nRows / grd.Height);
                 LtrTile tile = null;
                 if (col >= 0 && col < _nCols && row >= 0 && row < _nRows)
                 {
                     tile = _arrTiles[row, col];
+                    var pointCtr = new Point()
+                    {
+                        X = col * grd.Width / _nCols + tile.Width / 2,
+                        Y = row * grd.Height / _nRows + tile.Height / 2
+                    };
+                    var distToCtrOfFileSquared = Math.Pow(ptRel.X - pointCtr.X, 2) + Math.Pow(ptRel.Y - pointCtr.Y, 2);
+                    AddStatusMsg($"{eg.Event.Action.ToString().Substring(0, 1)} ({eg.Event.RawX},{eg.Event.RawY}) {distToCtrOfFileSquared:n0} {tile?.Text}");
+                    if (distToCtrOfFileSquared > tile.Width * tile.Height / 6)
+                    {
+                        tile = null;
+                    }
                 }
                 return tile;
             };
             grd.Touch += (og, eg) =>
               {
-                  var loc = $"{eg.Event.RawX}  {eg.Event.RawY}";
-                  var tile = GetTile(eg);
-                  AddStatusMsg($"{eg.Event.Action.ToString()} {loc} {grd.Top} {grd.Left} {tile?.Text}");
+                  var tile = GetTileFromTouch(eg);
                   switch (eg.Event.Action)
                   {
                       case MotionEventActions.Down:
@@ -278,6 +292,7 @@ namespace WordamentAndroid
     {
         readonly static Color g_colorBackground = Color.DarkCyan;
         readonly static Color g_colorSelected = Color.Blue;
+        public const int margin = 10;
         public bool _IsSelected = false;
         public int Row { get; set; }
         public int Col { get; set; }
@@ -289,18 +304,12 @@ namespace WordamentAndroid
             this.SetTextColor(Color.White);
             this.TextSize = 60;
             var l = new GridLayout.LayoutParams();
-            l.SetMargins(10, 10, 10, 10);
+            l.SetMargins(margin, margin, margin, margin);
             //            l.SetGravity(GravityFlags.FillHorizontal);
-            l.Width = MainActivity._ptScreenSize.X / MainActivity._nCols - 25;
+            l.Width = MainActivity._ptScreenSize.X / MainActivity._nCols - 2 * margin;
 
             this.TextAlignment = TextAlignment.Center;
             this.LayoutParameters = l;
-
-            //BackgroundColor = g_colorBackground;
-            //FontSize = 40;
-            //Margin = new Thickness(2, 2, 2, 2);
-            //TextColor = Color.White;
-            //CornerRadius = 2;
         }
         public void SelectTile()
         {
@@ -310,19 +319,6 @@ namespace WordamentAndroid
                 _IsSelected = true;
             }
         }
-        //public override bool OnTouchEvent(MotionEvent e)
-        //{
-        //    if (!_IsSelected)
-        //    {
-        //        SelectTile();
-        //    }
-        //    else
-        //    {
-        //        UnSelectTile();
-        //    }
-        //    return base.OnTouchEvent(e);
-        //}
-
         public void UnSelectTile()
         {
             if (_IsSelected)

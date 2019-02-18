@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace Dictionary
 {
+    //todo find words in small not in large "miscinceptions", "containedness"
     public class DictionaryResult
     {
         public string Word;
