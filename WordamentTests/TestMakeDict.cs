@@ -26,7 +26,7 @@ namespace WordamentTests
     }
 
     [TestClass]
-    public class TestMakeDict: TestBase
+    public class TestMakeDict : TestBase
     {
 
         [TestMethod]
@@ -52,7 +52,7 @@ namespace WordamentTests
             var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, new Random(1));
 
             var result = dict.FindMatchRegEx("melt*").ToList();
-            Assert.AreEqual(131,result.Count );
+            Assert.AreEqual(131, result.Count);
             Assert.IsTrue(result.Contains("wholesomely"));
 
             result = dict.FindMatchRegEx("zz.*").ToList(); // all words with "zz"
@@ -267,10 +267,36 @@ namespace WordamentTests
         public void TestMakedDict()
         {
             LogMessage($"{TestContext.TestName}  {DateTime.Now.ToString("MM/dd/yy hh:mm:ss")}");
-
-            for (uint dictNum = 1; dictNum <= 2; dictNum++)
+            var lstSMall = GetOldDictWords((uint)Dictionary.DictionaryType.Small);
+            var lstlarge = GetOldDictWords((uint)Dictionary.DictionaryType.Large);
+            var hashLarge = new HashSet<string>();
+            foreach (var wrd in lstlarge)
             {
-                var lstWords = GetOldDictWords(dictNum);
+                hashLarge.Add(wrd);
+            }
+            foreach (var wrd in lstSMall)
+            {
+                if (!hashLarge.Contains(wrd))
+                {
+                    hashLarge.Add(wrd);
+//                    Console.WriteLine($"sm not in lrg = {wrd}");
+                }
+            }
+            hashLarge.Remove("miscinceptions");
+            // when chaning contents of dictionary, this test will fail until you update the resources, 
+            // XCOPY /dy C:\Users\calvinh\Source\Repos\Wordament\WordamentTests\bin\Debug\*.bin C:\Users\calvinh\Source\Repos\Wordament\Dictionary\Resources
+
+            for (uint dictNum = 1; dictNum <=2 ; dictNum++)
+            {
+                List<string> lstWords =null;
+                if ((Dictionary.DictionaryType)dictNum == Dictionary.DictionaryType.Small)
+                {
+                    lstWords = lstSMall;
+                }
+                else
+                {
+                    lstWords = hashLarge.OrderBy(s => s).ToList();
+                }
                 LogMessage($"DictSect {dictNum} NumWords = {lstWords.Count}");
                 //            var fileName = @"C:\Users\calvinh\Source\Repos\Wordament\MakeDictionary\Resources\dict.bin";
                 var fileName = Path.Combine(Environment.CurrentDirectory, $@"dict{dictNum}.bin");
