@@ -26,9 +26,10 @@ namespace WordamentAndroid
         public static int _nRows = 4;
         const int idBtnNew = 10;
         const int idTxtStatus = 20;
-        const int idWordSoFar = 30;
+        const int idtxtWordSoFar = 30;
         const int idTimer = 40;
         const int idGrd = 50;
+        const int idBnHint = 60;
 
         public LtrTile[,] _arrTiles;
 
@@ -58,16 +59,35 @@ namespace WordamentAndroid
             var mainLayout = FindViewById<RelativeLayout>(Resource.Id.container);
             var btnNew = new Button(this)
             {
-                Text = $"New {DateTime.Now.ToString("MM/dd/yy hh:mm:ss")}",
-                Id = idBtnNew
+                Text = $"Results",
+                Id = idBtnNew,
+                LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent)
             };
+            btnNew.LayoutParameters.Width = 500;
+            var IsShowingResults = false;
             btnNew.Click += (ob, eb) =>
               {
-                  AddStatusMsg($"BtnClick");
+                  if (!IsShowingResults)
+                  {
+                      btnNew.Text = "New";
+                  }
+                  else
+                  {
+                      btnNew.Text = "Results";
+                  }
+                  IsShowingResults = !IsShowingResults;
               };
-            //https://stackoverflow.com/questions/2305395/how-to-lay-out-views-in-relativelayout-programmatically
-            var rp = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
-            mainLayout.AddView(btnNew, rp);
+            mainLayout.AddView(btnNew);
+
+
+            var btnHint = new Button(this)
+            {
+                Id = idBnHint,
+                Text = "Hint",
+                LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent)
+            };
+            ((RelativeLayout.LayoutParams)(btnHint.LayoutParameters)).AddRule(LayoutRules.RightOf, idBtnNew);
+            mainLayout.AddView(btnHint);
 
             txtTimer = new TextView(this)
             {
@@ -79,7 +99,7 @@ namespace WordamentAndroid
 
                 }
             };
-            ((RelativeLayout.LayoutParams)(txtTimer.LayoutParameters)).AddRule(LayoutRules.RightOf, idBtnNew);
+            ((RelativeLayout.LayoutParams)(txtTimer.LayoutParameters)).AddRule(LayoutRules.RightOf, idBnHint);
             mainLayout.AddView(txtTimer);
 
             // status, wrdsofar, timer, hint, row,col,  (longword? length)
@@ -97,7 +117,7 @@ namespace WordamentAndroid
 
             txtWordSoFar = new TextView(this)
             {
-                Id = idWordSoFar,
+                Id = idtxtWordSoFar,
                 Text = "wordsofar",
                 TextSize = 30,
                 LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent)
@@ -143,7 +163,7 @@ namespace WordamentAndroid
                 }
             }
             var rpg = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MatchParent, RelativeLayout.LayoutParams.WrapContent);
-            rpg.AddRule(LayoutRules.Below, idWordSoFar);
+            rpg.AddRule(LayoutRules.Below, idtxtWordSoFar);
             grd.LayoutParameters = rpg;
             mainLayout.AddView(grd);
 
@@ -188,7 +208,7 @@ namespace WordamentAndroid
                         Y = row * grd.Height / _nRows + tile.Height / 2
                     };
                     var distToCtrOfFileSquared = Math.Pow(ptRel.X - pointCtr.X, 2) + Math.Pow(ptRel.Y - pointCtr.Y, 2);
-//                    AddStatusMsg($"{eg.Event.Action.ToString().Substring(0, 1)} ({eg.Event.RawX},{eg.Event.RawY}) {distToCtrOfFileSquared:n0} {tile?.Text}");
+                    //                    AddStatusMsg($"{eg.Event.Action.ToString().Substring(0, 1)} ({eg.Event.RawX},{eg.Event.RawY}) {distToCtrOfFileSquared:n0} {tile?.Text}");
                     if (distToCtrOfFileSquared > tile.Width * tile.Height / 6)
                     {
                         tile = null;
@@ -215,7 +235,7 @@ namespace WordamentAndroid
                                   if (lstTilesSelected.Count > 1)
                                   {
                                       var tilePenultimate = lstTilesSelected[lstTilesSelected.Count - 2];
-                                      AddStatusMsg($"{tilePenultimate} {priorSelected} {ltrTile}");
+                                      // AddStatusMsg($"{tilePenultimate} {priorSelected} {ltrTile}");
                                       if (ltrTile.Row == tilePenultimate.Row && ltrTile.Col == tilePenultimate.Col)
                                       {// back to prior one
                                           priorSelected.UnSelectTile();
@@ -240,7 +260,7 @@ namespace WordamentAndroid
                                       }
                                       else
                                       {
-//                                          AddStatusMsg($"nosel {priorSelected} {ltrTile} {dist}");
+                                          //                                          AddStatusMsg($"nosel {priorSelected} {ltrTile} {dist}");
                                       }
                                   }
                                   if (okToSelect)
