@@ -28,6 +28,9 @@ namespace WordamentAndroid
         const int idWordSoFar = 30;
         const int idTimer = 40;
         const int idGrd = 50;
+
+        public LtrTile[,] _arrTiles;
+
         public static Point _ptScreenSize = new Point(); // X = 1440, Y = 2792
 
         List<string> lst = new List<string>();
@@ -48,6 +51,7 @@ namespace WordamentAndroid
         {
             base.OnCreate(savedInstanceState);
             WindowManager.DefaultDisplay.GetSize(_ptScreenSize);
+            _arrTiles = new LtrTile[_nRows, _nCols];
             SetContentView(Resource.Layout.activity_main);
 
             var mainLayout = FindViewById<RelativeLayout>(Resource.Id.container);
@@ -82,6 +86,7 @@ namespace WordamentAndroid
             {
                 Id = idTxtStatus,
                 Text = "\r\n",
+                TextSize = 8,
                 LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent)
                 {
                 }
@@ -130,6 +135,7 @@ namespace WordamentAndroid
                 {
                     var ltr = Convert.ToChar(iRow * _nCols + iCol + 65).ToString();
                     var til = new LtrTile(this, ltr, iRow, iCol);
+                    _arrTiles[iRow, iCol] = til;
                     //                    til.LayoutParameters = new ViewGroup.LayoutParams()
                     til.Id = 10 + iRow * _nRows + iCol;
                     grd.AddView(til);
@@ -149,18 +155,59 @@ namespace WordamentAndroid
             //mainLayout.AddView(b, rp2);
 
             //            grd.AddView(btnNew,)
+            var lstTilesSelected = new List<LtrTile>();
+            Action UpdateWordSoFar = () =>
+            {
+                var txt = string.Empty;
+                foreach (var tile in lstTilesSelected)
+                {
+                    txt += tile.ToString();
+                }
+                txtWordSoFar.Text = txt;
+            };
+            Action ClearSelection = () =>
+            {
+                foreach (var tile in lstTilesSelected)
+                {
+                    if (tile._IsSelected)
+                    {
+                        tile.UnSelectTile();
+                    }
+                }
+                lstTilesSelected.Clear();
+                UpdateWordSoFar();
+            };
+            Func<View.TouchEventArgs, LtrTile> GetTile = (eg) =>
+            {
+                // grd.width = 1440, grd.Height = 1532 Til.width = 335, til.height=363
+                var col = (int)((eg.Event.RawX - grd.Left) * _nCols / grd.Width);
+                var row = (int)((eg.Event.RawY - grd.Top - 250) * _nRows / grd.Height);
+                LtrTile tile = null;
+                if (col >= 0 && col < _nCols && row >= 0 && row < _nRows)
+                {
+                    tile = _arrTiles[row, col];
+                }
+                return tile;
+            };
             grd.Touch += (og, eg) =>
               {
                   var loc = $"{eg.Event.RawX}  {eg.Event.RawY}";
-                  AddStatusMsg($"{eg.Event.Action}   {loc}");
-                  "".ToString();
+                  var tile = GetTile(eg);
+                  AddStatusMsg($"{eg.Event.Action.ToString()} {loc} {grd.Top} {grd.Left} {tile?.Text}");
                   switch (eg.Event.Action)
                   {
-                      case MotionEventActions.Move:
-                          break;
                       case MotionEventActions.Down:
+                      case MotionEventActions.Move:
+                          if (tile != null && !tile._IsSelected)
+                          {
+                              tile.SelectTile();
+                              lstTilesSelected.Add(tile);
+                              UpdateWordSoFar();
+                          }
                           break;
+
                       case MotionEventActions.Up:
+                          ClearSelection();
                           break;
                       case MotionEventActions.Outside:
                           break;
@@ -197,27 +244,6 @@ namespace WordamentAndroid
                 secs = tmpSecs.ToString();
             }
             return $"{hrs}{mins}{secs}";
-            /*
-                Public Function GetTimeAsString(tmpSecs As Integer)
-                    Dim hrs = String.Empty
-                    Dim mins = String.Empty
-                    Dim secs = String.Empty
-                    If (tmpSecs >= 3600) Then
-                        hrs = $"{Int(tmpSecs / 3600):n0}:"
-                        tmpSecs = tmpSecs - Int((tmpSecs / 3600)) * 3600
-                    End If
-                    If Not String.IsNullOrEmpty(hrs) OrElse tmpSecs >= 60 Then
-                        mins = $"{Int((tmpSecs / 60)).ToString(If(String.IsNullOrEmpty(hrs), "", "00"))}:"
-                        tmpSecs = tmpSecs - Int((tmpSecs / 60)) * 60
-                        secs = tmpSecs.ToString("00")
-                    Else
-                        secs = _CountDownTime.ToString()
-                    End If
-                    Return $"{hrs}{mins}{secs}"
-
-                End Function
-
-             * */
         }
 
         public bool OnNavigationItemSelected(IMenuItem item)
@@ -248,11 +274,11 @@ namespace WordamentAndroid
             return base.OnTouchEvent(e);
         }
     }
-    class LtrTile : TextView
+    public class LtrTile : TextView
     {
         readonly static Color g_colorBackground = Color.DarkCyan;
         readonly static Color g_colorSelected = Color.Blue;
-        bool _IsSelected = false;
+        public bool _IsSelected = false;
         public int Row { get; set; }
         public int Col { get; set; }
         public LtrTile(Context context, string letter, int row, int col) : base(context)
@@ -284,18 +310,18 @@ namespace WordamentAndroid
                 _IsSelected = true;
             }
         }
-        public override bool OnTouchEvent(MotionEvent e)
-        {
-            if (!_IsSelected)
-            {
-                SelectTile();
-            }
-            else
-            {
-                UnSelectTile();
-            }
-            return base.OnTouchEvent(e);
-        }
+        //public override bool OnTouchEvent(MotionEvent e)
+        //{
+        //    if (!_IsSelected)
+        //    {
+        //        SelectTile();
+        //    }
+        //    else
+        //    {
+        //        UnSelectTile();
+        //    }
+        //    return base.OnTouchEvent(e);
+        //}
 
         public void UnSelectTile()
         {
@@ -304,6 +330,10 @@ namespace WordamentAndroid
                 SetBackgroundColor(g_colorBackground);
                 _IsSelected = false;
             }
+        }
+        public override string ToString()
+        {
+            return Text;
         }
 
     }
