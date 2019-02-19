@@ -42,7 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\Dictionary\DictionaryData.cs">
+    <Compile Include="..\DictionaryLib\DictionaryData.cs">
       <Link>DictionaryData.cs</Link>
     </Compile>
     <Compile Include="MakeDictionary.cs" />
