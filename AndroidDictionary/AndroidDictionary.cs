@@ -5,6 +5,17 @@ namespace AndroidDictionary
 {
     public class AndroidDictionary
     {
+        public enum DictionaryType
+        {
+            /// <summary>
+            /// About 171201 words
+            /// </summary>
+            Large = 1,
+            /// <summary>
+            /// 53869 words
+            /// </summary>
+            Small = 2
+        }
         public static string GetResourceInfo()
         {
             var result = string.Empty;

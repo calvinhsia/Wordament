@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using MakeDictionary;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using DictionaryLib;
 
 namespace WordamentTests
 {
@@ -20,7 +21,7 @@ namespace WordamentTests
         public TestBase()
         {
             void LogMsgAction(string str) => LogMessage(str);
-            Dictionary.Dictionary.logMessageAction = LogMsgAction;
+            DictionaryLib.DictionaryLib.logMessageAction = LogMsgAction;
             MakeDictionary.MakeDictionary.logMessageAction = LogMsgAction;
         }
     }
@@ -32,7 +33,7 @@ namespace WordamentTests
         [TestMethod]
         public void TestSeekWord()
         {
-            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, new Random(1));
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
             foreach (var str in new[] { "zys", "me", "aband", "", "z", "mel", "asdf" })
             {
                 var res = dict.SeekWord(str);
@@ -49,7 +50,7 @@ namespace WordamentTests
         [TestMethod]
         public void TestFindMatchRegEx()
         {
-            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, new Random(1));
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
 
             var result = dict.FindMatchRegEx("melt*").ToList();
             Assert.AreEqual(131, result.Count);
@@ -88,12 +89,10 @@ namespace WordamentTests
             }
         }
 
-
-
         [TestMethod]
         public void TestDoAnagram()
         {
-            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Large, new Random(1));
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Large, new Random(1));
             var lstAnagrams = new List<string>();
             // relive, discounter, top
             var word = "discounter";
@@ -125,7 +124,7 @@ namespace WordamentTests
         public void TestPerfRandWord()
         {
             var oldDict = new OldDictWrapper(1);
-            var newdict = new Dictionary.Dictionary(Dictionary.DictionaryType.Large, new Random(1));
+            var newdict = new DictionaryLib.DictionaryLib(DictionaryType.Large, new Random(1));
             var sw = new Stopwatch();
             sw.Start();
             var nCnt = 10000;
@@ -149,7 +148,7 @@ namespace WordamentTests
         public void TestPerfIsWord()
         {
             var oldDict = new OldDictWrapper(1);
-            var newdict = new Dictionary.Dictionary(Dictionary.DictionaryType.Large, new Random(1));
+            var newdict = new DictionaryLib.DictionaryLib(DictionaryType.Large, new Random(1));
             var sw = new Stopwatch();
             sw.Start();
             var nCnt = 10000;
@@ -176,7 +175,7 @@ namespace WordamentTests
         public void TestPerfForTrace()
         {
             var oldDict = new OldDictWrapper(1);
-            var newdict = new Dictionary.Dictionary(Dictionary.DictionaryType.Large, new Random(1));
+            var newdict = new DictionaryLib.DictionaryLib(DictionaryType.Large, new Random(1));
             var sw = new Stopwatch();
             sw.Start();
             var nCnt = 5000;
@@ -198,7 +197,7 @@ namespace WordamentTests
         [TestMethod]
         public void TestDictLongWord()
         {
-            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small);
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
             var longwords = new[] { "nonparticipating", "precautionary" };
             foreach (var longWord in longwords)
             {
@@ -225,7 +224,7 @@ namespace WordamentTests
         public void TestDictIsWord()
         {
             var lstOldWords = GetOldDictWords(2);
-            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small);
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
 
             var w = dict.IsWord("sinoiaterrpze");
             Assert.IsFalse(w);
@@ -255,7 +254,7 @@ namespace WordamentTests
         [TestMethod]
         public void TestRandWord()
         {
-            var dict = new Dictionary.Dictionary(Dictionary.DictionaryType.Small, new Random(1));
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
             for (int i = 0; i < 1000; i++)
             {
                 var r = dict.RandomWord();
@@ -267,8 +266,8 @@ namespace WordamentTests
         public void TestMakedDict()
         {
             LogMessage($"{TestContext.TestName}  {DateTime.Now.ToString("MM/dd/yy hh:mm:ss")}");
-            var lstSMall = GetOldDictWords((uint)Dictionary.DictionaryType.Small);
-            var lstlarge = GetOldDictWords((uint)Dictionary.DictionaryType.Large);
+            var lstSMall = GetOldDictWords((uint)DictionaryType.Small);
+            var lstlarge = GetOldDictWords((uint)DictionaryType.Large);
             var hashLarge = new HashSet<string>();
             foreach (var wrd in lstlarge)
             {
@@ -289,7 +288,7 @@ namespace WordamentTests
             for (uint dictNum = 1; dictNum <=2 ; dictNum++)
             {
                 List<string> lstWords =null;
-                if ((Dictionary.DictionaryType)dictNum == Dictionary.DictionaryType.Small)
+                if ((DictionaryType)dictNum == DictionaryType.Small)
                 {
                     lstWords = lstSMall;
                 }
@@ -310,7 +309,7 @@ namespace WordamentTests
                 LogMessage(DumpBytes(dictBytes));
 
                 // note: this will now read the resources of Dictionary.dll, not the just generated dumpfile, so need to update it if dictHeader struct changes
-                var dict = new Dictionary.Dictionary((Dictionary.DictionaryType)dictNum);
+                var dict = new DictionaryLib.DictionaryLib((DictionaryType)dictNum);
                 var newlstWord = new List<string>();
                 var word = dict.SeekWord("");
                 while (!string.IsNullOrEmpty(word))

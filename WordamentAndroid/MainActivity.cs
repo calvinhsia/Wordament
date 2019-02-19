@@ -67,7 +67,9 @@ namespace WordamentAndroid
             var IsShowingResults = false;
             btnNew.Click += (ob, eb) =>
               {
-                  AddStatusMsg($"{AndroidDictionary.AndroidDictionary.GetResourceInfo()}");
+                  //                  AddStatusMsg($"{AndroidDictionary.AndroidDictionary.GetResourceInfo()}");
+                  var dict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Large);
+                  AddStatusMsg($"{dict.RandomWord()}");
                   if (!IsShowingResults)
                   {
                       btnNew.Text = "New";

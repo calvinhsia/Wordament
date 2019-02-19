@@ -102,9 +102,9 @@
     <PackageReference Include="Xamarin.Android.Support.Design" Version="27.0.2.1" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\AndroidDictionary\AndroidDictionary.csproj">
-      <Project>{a8979da1-16a4-4567-b9fc-4b86495822a7}</Project>
-      <Name>AndroidDictionary</Name>
+    <ProjectReference Include="..\DictionaryLib\DictionaryLib.csproj">
+      <Project>{a5007702-0c87-42a0-9589-6a8b173f5e63}</Project>
+      <Name>DictionaryLib</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
