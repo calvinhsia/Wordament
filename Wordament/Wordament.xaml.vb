@@ -273,7 +273,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                                            End Sub
 
                         AddHandler _gridUni.MouseDown, Sub(o, ev)
-                                                           AddStatusMsg($"grd.MouseDown")
+                                                           'AddStatusMsg($"grd.MouseDown")
                                                            funcClearSelection()
                                                            Dim ltrTile = funcGetTileUnderMouse(ev)
                                                            If ltrTile IsNot Nothing Then
@@ -288,7 +288,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                                        End Sub
                         AddHandler _gridUni.MouseUp, Sub()
                                                          If IsMouseDown Then
-                                                             AddStatusMsg($"grd.MouseUp")
+                                                             'AddStatusMsg($"grd.MouseUp")
                                                              funcClearSelection()
                                                          End If
                                                      End Sub
