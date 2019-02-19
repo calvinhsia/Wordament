@@ -22,11 +22,12 @@ namespace WordamentAndroid
         TextView txtWordSoFar;
         TextView txtTimer;
         Random _random;
+        int _mainThread;
 
         public static int _nCols = 4;
         public static int _nRows = 4;
         public int _nMinWordLen = 12;
-        public bool _IsLongWord = false;
+        public bool _IsLongWord = true;
         public const int idBtnNew = 10;
         public const int idTxtStatus = 20;
         public const int idtxtWordSoFar = 30;
@@ -41,15 +42,28 @@ namespace WordamentAndroid
         List<string> lst = new List<string>();
         public void AddStatusMsg(string str)
         {
-            if (txtStatus != null)
+
+            if (Thread.CurrentThread.ManagedThreadId != _mainThread)
             {
-                if (lst.Count > 2)
+                RunOnUiThread(AddStatMsg);
+            }
+            else
+            {
+                AddStatMsg();
+            }
+            void AddStatMsg()
+            {
+                if (txtStatus != null)
                 {
-                    lst.RemoveAt(0);
+                    if (lst.Count > 2)
+                    {
+                        lst.RemoveAt(0);
+                    }
+                    var txt = $"{DateTime.Now.ToString("hh:mm:ss:fff")} {str}";
+                    lst.Add(txt);
+                    txtStatus.Text = lst[0] + "\r\n" + (lst.Count > 1 ? lst[1] : string.Empty);
                 }
-                var txt = $"{DateTime.Now.ToString("hh:mm:ss:fff")} {str}";
-                lst.Add(txt);
-                txtStatus.Text = lst[0] + "\r\n" + (lst.Count > 1 ? lst[1] : string.Empty);
+
             }
         }
         protected override void OnPause()
@@ -67,9 +81,18 @@ namespace WordamentAndroid
         protected override async void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
-
-            _random = new Random();
-//            var spellDict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small, _random);
+            _mainThread = Thread.CurrentThread.ManagedThreadId;
+            var seed = 0;
+            if (System.Diagnostics.Debugger.IsAttached)
+            {
+                seed = 1;
+            }
+            else
+            {
+                seed = System.Environment.TickCount;
+            }
+            _random = new Random(1);
+            //            var spellDict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small, _random);
 
             WindowManager.DefaultDisplay.GetSize(_ptScreenSize);
             _arrTiles = new LtrTile[_nRows, _nCols];
@@ -144,7 +167,7 @@ namespace WordamentAndroid
             if (_IsLongWord)
             {
                 var arr = await Task.Run(() => FillGridWithLongWord());
-//                var arr = FillGridWithLongWord();
+                //                var arr = FillGridWithLongWord();
                 for (int iRow = 0; iRow < _nRows; iRow++)
                 {
                     for (int iCol = 0; iCol < _nCols; iCol++)
@@ -220,7 +243,7 @@ namespace WordamentAndroid
             };
 
             var lstTilesSelected = new List<LtrTile>();
-            Action UpdateWordSoFar = () =>
+            void UpdateWordSoFar()
             {
                 var txt = string.Empty;
                 foreach (var tile in lstTilesSelected)
@@ -228,8 +251,8 @@ namespace WordamentAndroid
                     txt += tile.ToString();
                 }
                 txtWordSoFar.Text = txt;
-            };
-            Action ClearSelection = () =>
+            }
+            void ClearSelection()
             {
                 foreach (var tile in lstTilesSelected)
                 {
@@ -237,8 +260,8 @@ namespace WordamentAndroid
                 }
                 lstTilesSelected.Clear();
                 UpdateWordSoFar();
-            };
-            Func<View.TouchEventArgs, LtrTile> GetTileFromTouch = (eg) =>
+            }
+            LtrTile GetTileFromTouch(View.TouchEventArgs eg)
             {
                 // grd.width = 1440, grd.Height = 1532 Til.width = 335, til.height=363
                 int[] locg = new int[2];
@@ -267,7 +290,7 @@ namespace WordamentAndroid
                     }
                 }
                 return tile;
-            };
+            }
             grd.Touch += (og, eg) =>
               {
                   switch (eg.Event.Action)
@@ -343,9 +366,9 @@ namespace WordamentAndroid
         }
 
         List<string> _lstLongWords = new List<string>();
-        int[,] FillGridWithLongWord()
+        char[,] FillGridWithLongWord()
         {
-            int[,] arr = new int[_nRows, _nCols];
+            char[,] arr = new char[_nRows, _nCols];
             var spellDict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small, _random);
             int[] directions = new int[8];
             for (int i = 0; i < 8; i++)
@@ -372,8 +395,8 @@ namespace WordamentAndroid
             int nRecurCalls = 0;
             while (!isGood)
             {
-                var randLongWrd = string.Empty;
-                var randum = _random.Next(_lstLongWords.Count);
+                var randnum = _random.Next(_lstLongWords.Count);
+                var randLongWrd = _lstLongWords[randnum];
                 // attempt to place in array
                 // shuffle directions
                 for (int i = 0; i < 8; i++)
@@ -398,7 +421,7 @@ namespace WordamentAndroid
                         isGood = true;
                         var newr = r;
                         var newc = c;
-                        switch (idir)
+                        switch (directions[idir])
                         {
                             case 0: // nw
                                 newr--;
@@ -435,7 +458,7 @@ namespace WordamentAndroid
                         }
                         else
                         {
-                            if (arr[newr, newc] > 0)
+                            if (arr[newr, newc] != '\0')
                             {
                                 isGood = false;
                             }
@@ -448,10 +471,10 @@ namespace WordamentAndroid
                             }
                             isGood = false;
                         }
-                        if (!isGood)
-                        {
-                            arr[r, c] = 0;
-                        }
+                    }
+                    if (!isGood)
+                    {
+                        arr[r, c] = '\0';
                     }
                     return isGood;
                 }

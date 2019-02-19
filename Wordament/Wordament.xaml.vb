@@ -531,9 +531,8 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         Dim isGood = False
         Dim arr(,) As Integer = Nothing ' asc
         Do While Not isGood
-            Dim randLongWord = String.Empty
             Dim randnum = _Random.Next(_lstLongWords.Count)
-            randLongWord = _lstLongWords(randnum)
+            Dim randLongWord = _lstLongWords(randnum)
             'Dim nTries = 0
             'Do
             '    nTries += 1
