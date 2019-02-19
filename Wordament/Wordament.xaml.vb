@@ -514,7 +514,6 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         For i = 0 To 7
             directions(i) = i
         Next
-        _lstLongWords.Clear()
 
         If _lstLongWords.Count = 0 Then
             spellDict.SeekWord("a")
@@ -524,7 +523,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                     Exit While
                 End If
                 If wrd.Length >= _nMinWordLen AndAlso wrd.Length <= _nCols * _nRows Then
-                    _lstLongWords.Add(wrd)
+                    _lstLongWords.Add(wrd.ToUpper)
                 End If
             End While
         End If
@@ -546,7 +545,6 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             'Loop While randLongWord.Length < _nMinWordLen
             'AddStatusMsg($"Got long word searching dict {nTries} tries")
             '                randLongWord = "ABCDEFGHIJ"
-            randLongWord = randLongWord.ToUpper
             ' now place the word in the grid. Start with a random
             ' randomize the order of the directions we try
             For j = 0 To 7
@@ -607,10 +605,6 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                         Exit For
                                     Else
                                         isGood = False
-                                    End If
-                                    If ndxW = randLongWord.Length - 1 Then ' have we placed all letters
-                                        Exit For ' exit loop with isgood=true
-                                    Else 'else we need to place more, so recur
                                     End If
                                 Else   ' couldn't place
                                 End If

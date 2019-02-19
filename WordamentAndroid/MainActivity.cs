@@ -21,16 +21,19 @@ namespace WordamentAndroid
         TextView txtStatus;
         TextView txtWordSoFar;
         TextView txtTimer;
+        Random _random;
 
         public static int _nCols = 4;
         public static int _nRows = 4;
-        const int idBtnNew = 10;
-        const int idTxtStatus = 20;
-        const int idtxtWordSoFar = 30;
-        const int idTimer = 40;
-        const int idGrd = 50;
-        const int idBnHint = 60;
-
+        public int _nMinWordLen = 12;
+        public bool _IsLongWord = false;
+        public const int idBtnNew = 10;
+        public const int idTxtStatus = 20;
+        public const int idtxtWordSoFar = 30;
+        public const int idTimer = 40;
+        public const int idGrd = 50;
+        public const int idBnHint = 60;
+        public bool _IsPaused;
         public LtrTile[,] _arrTiles;
 
         public static Point _ptScreenSize = new Point(); // X = 1440, Y = 2792
@@ -49,9 +52,25 @@ namespace WordamentAndroid
                 txtStatus.Text = lst[0] + "\r\n" + (lst.Count > 1 ? lst[1] : string.Empty);
             }
         }
-        protected override void OnCreate(Bundle savedInstanceState)
+        protected override void OnPause()
+        {
+            AddStatusMsg($"Pause");
+            base.OnPause();
+            this._IsPaused = true;
+        }
+        protected override void OnResume()
+        {
+            base.OnResume();
+            AddStatusMsg($"Resume");
+            this._IsPaused = false;
+        }
+        protected override async void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
+
+            _random = new Random();
+//            var spellDict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small, _random);
+
             WindowManager.DefaultDisplay.GetSize(_ptScreenSize);
             _arrTiles = new LtrTile[_nRows, _nCols];
             SetContentView(Resource.Layout.activity_main);
@@ -64,22 +83,6 @@ namespace WordamentAndroid
                 LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent)
             };
             btnNew.LayoutParameters.Width = 500;
-            var IsShowingResults = false;
-            btnNew.Click += (ob, eb) =>
-              {
-                  //                  AddStatusMsg($"{AndroidDictionary.AndroidDictionary.GetResourceInfo()}");
-                  var dict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Large);
-                  AddStatusMsg($"{dict.RandomWord()}");
-                  if (!IsShowingResults)
-                  {
-                      btnNew.Text = "New";
-                  }
-                  else
-                  {
-                      btnNew.Text = "Results";
-                  }
-                  IsShowingResults = !IsShowingResults;
-              };
             mainLayout.AddView(btnNew);
 
 
@@ -129,11 +132,64 @@ namespace WordamentAndroid
             mainLayout.AddView(txtWordSoFar);
 
 
+
+            var grd = new GridLayout(this)
+            {
+                Id = idGrd,
+                ColumnCount = _nCols,
+                RowCount = _nRows,
+                AlignmentMode = GridAlign.Bounds
+            };
+            grd.SetBackgroundColor(Color.Black);
+            if (_IsLongWord)
+            {
+                var arr = await Task.Run(() => FillGridWithLongWord());
+//                var arr = FillGridWithLongWord();
+                for (int iRow = 0; iRow < _nRows; iRow++)
+                {
+                    for (int iCol = 0; iCol < _nCols; iCol++)
+                    {
+                        var ltr = arr[iRow, iCol];
+                        if (ltr == 0)
+                        {
+                            ltr = 'A';
+                        }
+                        var til = new LtrTile(this, ltr.ToString(), iRow, iCol);
+                        _arrTiles[iRow, iCol] = til;
+                        //                    til.LayoutParameters = new ViewGroup.LayoutParams()
+                        til.Id = 10 + iRow * _nRows + iCol;
+                        grd.AddView(til);
+                    }
+                }
+            }
+            else
+            {
+                for (int iRow = 0; iRow < _nRows; iRow++)
+                {
+                    for (int iCol = 0; iCol < _nCols; iCol++)
+                    {
+                        var ltr = Convert.ToChar(iRow * _nCols + iCol + 65).ToString();
+                        var til = new LtrTile(this, ltr, iRow, iCol);
+                        _arrTiles[iRow, iCol] = til;
+                        //                    til.LayoutParameters = new ViewGroup.LayoutParams()
+                        til.Id = 10 + iRow * _nRows + iCol;
+                        grd.AddView(til);
+                    }
+                }
+            }
+            var rpg = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MatchParent, RelativeLayout.LayoutParams.WrapContent);
+            rpg.AddRule(LayoutRules.Below, idtxtWordSoFar);
+            grd.LayoutParameters = rpg;
+
+            //            var grd = new WordLayout(this);
+            mainLayout.AddView(grd);
+
+
             var cts = new CancellationTokenSource();
             var tsk = Task.Run(async () =>
             {
                 var dtStart = DateTime.Now;
-                while (!cts.IsCancellationRequested)
+                while (!cts.IsCancellationRequested && !_IsPaused)
                 {
                     RunOnUiThread(() =>
                     {
@@ -144,31 +200,24 @@ namespace WordamentAndroid
                 }
             });
 
-
-            var grd = new GridLayout(this)
+            var IsShowingResults = false;
+            //            var didFinish = false;
+            btnNew.Click += (ob, eb) =>
             {
-                Id = idGrd,
-                ColumnCount = _nCols,
-                RowCount = _nRows,
-                AlignmentMode = GridAlign.Bounds
-            };
-            grd.SetBackgroundColor(Color.Black);
-            for (int iRow = 0; iRow < _nRows; iRow++)
-            {
-                for (int iCol = 0; iCol < _nCols; iCol++)
+                //                  AddStatusMsg($"{AndroidDictionary.AndroidDictionary.GetResourceInfo()}");
+                var dict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
+                AddStatusMsg($"{dict.RandomWord()}");
+                if (!IsShowingResults)
                 {
-                    var ltr = Convert.ToChar(iRow * _nCols + iCol + 65).ToString();
-                    var til = new LtrTile(this, ltr, iRow, iCol);
-                    _arrTiles[iRow, iCol] = til;
-                    //                    til.LayoutParameters = new ViewGroup.LayoutParams()
-                    til.Id = 10 + iRow * _nRows + iCol;
-                    grd.AddView(til);
+                    btnNew.Text = "New";
                 }
-            }
-            var rpg = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MatchParent, RelativeLayout.LayoutParams.WrapContent);
-            rpg.AddRule(LayoutRules.Below, idtxtWordSoFar);
-            grd.LayoutParameters = rpg;
-            mainLayout.AddView(grd);
+                else
+                {
+                    btnNew.Text = "Results";
+
+                }
+                IsShowingResults = !IsShowingResults;
+            };
 
             var lstTilesSelected = new List<LtrTile>();
             Action UpdateWordSoFar = () =>
@@ -293,6 +342,125 @@ namespace WordamentAndroid
             //navigation.SetOnNavigationItemSelectedListener(this);
         }
 
+        List<string> _lstLongWords = new List<string>();
+        int[,] FillGridWithLongWord()
+        {
+            int[,] arr = new int[_nRows, _nCols];
+            var spellDict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small, _random);
+            int[] directions = new int[8];
+            for (int i = 0; i < 8; i++)
+            {
+                directions[i] = i;
+            }
+            spellDict.SeekWord("a");
+            if (_lstLongWords.Count == 0)
+            {
+                while (true)
+                {
+                    var wrd = spellDict.GetNextWord();
+                    if (string.IsNullOrEmpty(wrd))
+                    {
+                        break;
+                    }
+                    if (wrd.Length >= _nMinWordLen && wrd.Length <= _nRows * _nCols)
+                    {
+                        _lstLongWords.Add(wrd.ToUpper());
+                    }
+                }
+            }
+            var isGood = false;
+            int nRecurCalls = 0;
+            while (!isGood)
+            {
+                var randLongWrd = string.Empty;
+                var randum = _random.Next(_lstLongWords.Count);
+                // attempt to place in array
+                // shuffle directions
+                for (int i = 0; i < 8; i++)
+                {
+                    var r = _random.Next(8);
+                    var tmp = directions[i];
+                    directions[i] = directions[r];
+                    directions[r] = tmp;
+                }
+                bool recurLam(int r, int c, int ndx)
+                {
+                    nRecurCalls++;
+                    var ltr = randLongWrd[ndx];
+                    arr[r, c] = ltr;
+                    if (ndx == randLongWrd.Length - 1)
+                    {
+                        isGood = true;
+                        return true;
+                    }
+                    for (int idir = 0; idir < 8; idir++)
+                    {
+                        isGood = true;
+                        var newr = r;
+                        var newc = c;
+                        switch (idir)
+                        {
+                            case 0: // nw
+                                newr--;
+                                newc--;
+                                break;
+                            case 1: // n
+                                newr -= 1;
+                                break;
+                            case 2: // ne
+                                newr--;
+                                newc++;
+                                break;
+                            case 3: // w
+                                newc--;
+                                break;
+                            case 4: // e
+                                newc++;
+                                break;
+                            case 5: // sw
+                                newr++;
+                                newc--;
+                                break;
+                            case 6:// s
+                                newr++;
+                                break;
+                            case 7:// se
+                                newr++;
+                                newc++;
+                                break;
+                        }
+                        if (newr < 0 || newr >= _nRows || newc < 0 || newc >= _nCols)
+                        {
+                            isGood = false;
+                        }
+                        else
+                        {
+                            if (arr[newr, newc] > 0)
+                            {
+                                isGood = false;
+                            }
+                        }
+                        if (isGood)
+                        {
+                            if (recurLam(newr, newc, ndx + 1))
+                            {
+                                break;
+                            }
+                            isGood = false;
+                        }
+                        if (!isGood)
+                        {
+                            arr[r, c] = 0;
+                        }
+                    }
+                    return isGood;
+                }
+                isGood = recurLam(_random.Next(_nRows), _random.Next(_nCols), 0);
+                AddStatusMsg($"NRecurCalls ={nRecurCalls} WrdLen={randLongWrd.Length}");
+            }
+            return arr;
+        }
+
         public static string GetTimeAsString(int tmpSecs)
         {
             var hrs = string.Empty;
@@ -333,17 +501,7 @@ namespace WordamentAndroid
             return false;
         }
     }
-    class MyGridView : GridView
-    {
-        public MyGridView(Context context) : base(context)
-        {
 
-        }
-        public override bool OnTouchEvent(MotionEvent e)
-        {
-            return base.OnTouchEvent(e);
-        }
-    }
     public class LtrTile : TextView
     {
         readonly static Color g_colorBackground = Color.DarkCyan;
