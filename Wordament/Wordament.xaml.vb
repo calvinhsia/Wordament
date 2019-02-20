@@ -216,7 +216,6 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         _pnl.Children.Clear()
                         _gridUni.Children.Clear()
                         StrWordSoFar = String.Empty
-                        fdidFinish = False
                         Dim lstTilesSelected As New List(Of LtrTile)
                         Dim funcUpdateWordSoFar As Action =
                             Sub()
@@ -639,22 +638,22 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
 
     Private Function CalcWordList(dictnum As Integer) As Dictionary(Of String, LetterList)
-        Dim _spellDict = New DictionaryLib.DictionaryLib(CType(dictnum, DictionaryLib.DictionaryType), g_Random)
-        Dim _resultWords = New Dictionary(Of String, LetterList)
-        Dim _visitedarr(_nRows - 1, _nCols - 1)
+        Dim spellDict = New DictionaryLib.DictionaryLib(CType(dictnum, DictionaryLib.DictionaryType), g_Random)
+        Dim resultWords = New Dictionary(Of String, LetterList)
+        Dim arrVisited(_nRows - 1, _nCols - 1)
         Dim VisitCell As Action(Of Integer, Integer, String, String, LetterList)
         VisitCell = Sub(iRow As Integer, iCol As Integer, wordSoFar As String, ptsSoFar As Integer, ltrList As LetterList)
                         If iRow >= 0 AndAlso iCol >= 0 AndAlso iRow < _nRows AndAlso iCol < _nCols Then
                             Dim ltr = _arrTiles(iRow, iCol)
-                            If Not _visitedarr(iRow, iCol) Then
+                            If Not arrVisited(iRow, iCol) Then
                                 wordSoFar += ltr._letter._letter.ToLower
                                 ptsSoFar += ltr._pts
                                 ltrList.Add(_arrTiles(iRow, iCol)._letter)
                                 If wordSoFar.Length >= _minWordLength Then
                                     Dim compResult = 0
-                                    Dim isPartial = _spellDict.SeekWord(wordSoFar, compResult)
+                                    Dim isPartial = spellDict.SeekWord(wordSoFar, compResult)
                                     If Not String.IsNullOrEmpty(isPartial) AndAlso compResult = 0 Then
-                                        If Not _resultWords.ContainsKey(wordSoFar.ToUpper()) Then
+                                        If Not resultWords.ContainsKey(wordSoFar.ToUpper()) Then
                                             Dim pts As Double = ptsSoFar
                                             If wordSoFar.Length >= 5 Then
                                                 If wordSoFar.Length = 5 Then
@@ -665,7 +664,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                                     pts *= 2.5
                                                 End If
                                             End If
-                                            _resultWords.Add(wordSoFar.ToUpper(), New LetterList(ltrList, pts)) ' needs to be a copy
+                                            resultWords.Add(wordSoFar.ToUpper(), New LetterList(ltrList, pts)) ' needs to be a copy
                                         End If
                                     Else
                                         ' not in dict so far: let's see if it's a partial match
@@ -675,7 +674,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                         End If
                                     End If
                                 End If
-                                _visitedarr(iRow, iCol) = True
+                                arrVisited(iRow, iCol) = True
                                 VisitCell(iRow - 1, iCol - 1, wordSoFar, ptsSoFar, ltrList)
                                 VisitCell(iRow - 1, iCol, wordSoFar, ptsSoFar, ltrList)
                                 VisitCell(iRow - 1, iCol + 1, wordSoFar, ptsSoFar, ltrList)
@@ -685,7 +684,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                 VisitCell(iRow + 1, iCol, wordSoFar, ptsSoFar, ltrList)
                                 VisitCell(iRow + 1, iCol + 1, wordSoFar, ptsSoFar, ltrList)
                                 ltrList.RemoveAt(ltrList.Count - 1)
-                                _visitedarr(iRow, iCol) = False
+                                arrVisited(iRow, iCol) = False
                             End If
                         End If
                     End Sub
@@ -695,7 +694,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                 VisitCell(iRow, iCol, String.Empty, 0, New LetterList)
             Next
         Next
-        Return _resultWords
+        Return resultWords
     End Function
 
     Public Class LetterList

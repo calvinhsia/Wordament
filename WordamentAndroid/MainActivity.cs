@@ -31,6 +31,7 @@ namespace WordamentAndroid
         public static int[] g_LetterValues = { 2, 5, 3, 3, 1, 5, 4, 4, 2, 10, 6, 3, 2, 2, 2, 4, 12, 2, 2, 2, 2, 4, 6, 9, 5, 8 };
         public static int _nCols = 4;
         public static int _nRows = 4;
+        public static int _HintDelay = 2;
         public int _nMinWordLen = 12;
         public bool _IsLongWord = true;
         public const int idBtnNew = 10;
@@ -165,46 +166,108 @@ namespace WordamentAndroid
                 AlignmentMode = GridAlign.Bounds
             };
             grd.SetBackgroundColor(Color.Black);
-            await FillGridWithTilesAsync(grd);
+            //            await FillGridWithTilesAsync(grd);
             var rpg = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MatchParent, RelativeLayout.LayoutParams.WrapContent);
             rpg.AddRule(LayoutRules.Below, idtxtWordSoFar);
             grd.LayoutParameters = rpg;
 
-            //            var grd = new WordLayout(this);
             mainLayout.AddView(grd);
-
-
+            var timerEnabled = false;
             var cts = new CancellationTokenSource();
-            var tsk = Task.Run(async () =>
+            var dtTimerStart = DateTime.Now;
+            var tskTimer = Task.Run(async () =>
             {
-                var dtStart = DateTime.Now;
                 while (!cts.IsCancellationRequested && !_IsPaused)
                 {
                     RunOnUiThread(() =>
                     {
-                        var delt = (int)(DateTime.Now - dtStart).TotalSeconds;
-                        txtTimer.Text = $"{GetTimeAsString(delt)}";
+                        if (timerEnabled)
+                        {
+                            var delt = (int)(DateTime.Now - dtTimerStart).TotalSeconds;
+                            txtTimer.Text = $"{GetTimeAsString(delt)}";
+                        }
                     });
                     await Task.Delay(1000);
                 }
             });
+            var IsShowingResult = true;
+            var fdidFinish = false;
+            Task<List<Dictionary<string, LetterList>>> taskGetResultsAsync = null;
+            var dtLastHInt = DateTime.Now;
+            var nLastHintNum = 0;
+            btnHint.Click += async (o, e) =>
+              {
+                  if (taskGetResultsAsync != null && taskGetResultsAsync.IsCompleted)
+                  {
+                      var max = taskGetResultsAsync
+                          .Result[0]
+                          .OrderByDescending(k => k.Key.Length)
+                          .FirstOrDefault();
+                      if (nLastHintNum < max.Key.ToString().Length - 1)
+                      {
+                          AddStatusMsg($"Hint {nLastHintNum} {max.Key[nLastHintNum]}");
+                          nLastHintNum++;
+                          btnHint.Enabled = false;
+                          if (nLastHintNum < max.Key.ToString().Length - 1)
+                          {
+                              await Task.Delay(TimeSpan.FromSeconds(_HintDelay));
+                              btnHint.Enabled = true;
+                          }
+                      }
+                  }
+              };
 
-            var IsShowingResults = false;
-            //Task<List<Dictionary<string,letter
-            //            var didFinish = false;
-            btnNew.Click += async (ob, eb) =>
+            async void Showresults()
             {
-                if (!IsShowingResults)
+                btnHint.Enabled = false;
+                fdidFinish = false;
+                IsShowingResult = true;
+                timerEnabled = false;
+                btnNew.Text = "Calculating...";
+                var res = await taskGetResultsAsync;
+                taskGetResultsAsync = null;
+                // show the results
+                btnNew.Text = "_New";
+                AddStatusMsg($"Showres");
+            }
+
+            await BtnNewClick(null, null);
+
+            async Task BtnNewClick(object o, EventArgs e)
+            {
+                IsShowingResult = !IsShowingResult;
+                if (!IsShowingResult)
                 {
-                    btnNew.Text = "New";
+                    fdidFinish = false;
+                    if (taskGetResultsAsync != null)
+                    {
+                        await taskGetResultsAsync;
+                        taskGetResultsAsync = null;
+                    }
+                    nLastHintNum = 0;
+                    btnNew.Text = "Show Results";
+                    grd.RemoveAllViews();
+                    txtWordSoFar.Text = string.Empty;
+                    await FillGridWithTilesAsync(grd);
+                    btnNew.Enabled = false;
+                    txtTimer.Text = string.Empty;
+                    dtTimerStart = DateTime.Now;
+                    timerEnabled = true;
+                    btnHint.Enabled = false;
+                    taskGetResultsAsync = GetResultsAsync();
+                    await taskGetResultsAsync;
+                    btnNew.Enabled = true;
+                    await Task.Delay(TimeSpan.FromSeconds(_HintDelay));
+                    btnHint.Enabled = true;
                 }
                 else
                 {
-                    btnNew.Text = "Results";
-                    grd.RemoveAllViews();
-                    await FillGridWithTilesAsync(grd);
+                    Showresults();
                 }
-                IsShowingResults = !IsShowingResults;
+            }
+            btnNew.Click += (ob, eb) =>
+            {
+                var task = BtnNewClick(ob, eb);
             };
 
             var lstTilesSelected = new List<LtrTile>();
@@ -492,7 +555,7 @@ namespace WordamentAndroid
             var res = new List<Dictionary<string, LetterList>>();
             await Task.Run(() =>
             {
-                foreach (var dictnum in Enum.GetValues(typeof(DictionaryLib.DictionaryType)))
+                foreach (DictionaryLib.DictionaryType dictnum in Enum.GetValues(typeof(DictionaryLib.DictionaryType)))
                 {
                     res.Add(CalcWordList(dictnum));
                 }
@@ -500,10 +563,75 @@ namespace WordamentAndroid
             return res;
         }
 
-        Dictionary<string, LetterList> CalcWordList(object dictnum)
+        Dictionary<string, LetterList> CalcWordList(DictionaryLib.DictionaryType dictnum)
         {
-            var res = new Dictionary<string, LetterList>();
-            return res;
+            var resultWords = new Dictionary<string, LetterList>();
+            var spellDict = new DictionaryLib.DictionaryLib(dictnum, _random);
+            bool[,] arrVisited = new bool[_nRows, _nCols];
+            void VisitCell(int iRow, int iCol, string wordSoFar, int ptsSoFar, LetterList ltrList)
+            {
+                if (iRow >= 0 && iCol >= 0 && iRow < _nRows && iCol < iRow)
+                {
+                    var ltr = _arrTiles[iRow, iCol];
+                    if (!arrVisited[iRow, iCol])
+                    {
+                        wordSoFar += ltr.Letter.ToLower();
+                        ptsSoFar += ltr.Points;
+                        ltrList.Add(_arrTiles[iRow, iCol]._letter);
+                        if (wordSoFar.Length >= _nMinWordLen)
+                        {
+                            var isPartial = spellDict.SeekWord(wordSoFar, out var compResult);
+                            if (!string.IsNullOrEmpty(isPartial) && compResult == 0)
+                            {
+                                if (!resultWords.ContainsKey(wordSoFar.ToUpper()))
+                                {
+                                    double pts = ptsSoFar;
+                                    if (wordSoFar.Length >= 5)
+                                    {
+                                        pts *= 1.5;
+                                    }
+                                    else if (wordSoFar.Length < 8)
+                                    {
+                                        pts *= 2;
+                                    }
+                                    else
+                                    {
+                                        pts *= 2.5;
+                                    }
+                                    resultWords.Add(wordSoFar.ToUpper(), new LetterList(ltrList, (int)pts));
+                                }
+                            }
+                            else
+                            {// not in dict so far: see if partial match
+                                if (!isPartial.StartsWith(wordSoFar))
+                                {
+                                    ltrList.RemoveAt(ltrList.Count - 1);
+                                    return;
+                                }
+                            }
+                        }
+                        arrVisited[iRow, iCol] = true;
+                        VisitCell(iRow - 1, iCol - 1, wordSoFar, ptsSoFar, ltrList);
+                        VisitCell(iRow - 1, iCol, wordSoFar, ptsSoFar, ltrList);
+                        VisitCell(iRow - 1, iCol + 1, wordSoFar, ptsSoFar, ltrList);
+                        VisitCell(iRow, iCol - 1, wordSoFar, ptsSoFar, ltrList);
+                        VisitCell(iRow, iCol + 1, wordSoFar, ptsSoFar, ltrList);
+                        VisitCell(iRow + 1, iCol - 1, wordSoFar, ptsSoFar, ltrList);
+                        VisitCell(iRow + 1, iCol, wordSoFar, ptsSoFar, ltrList);
+                        VisitCell(iRow + 1, iCol + 1, wordSoFar, ptsSoFar, ltrList);
+                        ltrList.RemoveAt(ltrList.Count - 1);
+                        arrVisited[iRow, iCol] = false;
+                    }
+                }
+            }
+            for (int iRow = 0; iRow < _nRows; iRow++)
+            {
+                for (int iCol = 0; iCol < _nCols; iCol++)
+                {
+                    VisitCell(iRow, iCol, string.Empty, 0, new LetterList());
+                }
+            }
+            return resultWords;
         }
 
         public static string GetTimeAsString(int tmpSecs)
@@ -582,6 +710,10 @@ namespace WordamentAndroid
                     return pts;
                 }
             }
+            public LetterList() : base()
+            {
+
+            }
             public LetterList(LetterList lst, int pts)
             {
                 this.AddRange(lst);
@@ -628,52 +760,56 @@ namespace WordamentAndroid
                 return _letter;
             }
         }
+        public class LtrTile : TextView
+        {
+            readonly static Color g_colorBackground = Color.DarkCyan;
+            readonly static Color g_colorSelected = Color.Blue;
+            public const int margin = 10;
+            public bool _IsSelected = false;
+            public int Row { get; set; }
+            public int Col { get; set; }
+            public string Letter { get { return Text; } }
+            public int Points { get { return _letter._pts; } }
+            public SimpleLetter _letter;
+            public LtrTile(Context context, string letter, int row, int col) : base(context)
+            {
+                _letter = new SimpleLetter(letter, row, col);
+                Text = letter;
+                Row = row; Col = col;
+                this.SetBackgroundColor(g_colorBackground);
+                this.SetTextColor(Color.White);
+                this.TextSize = 60;
+                var l = new GridLayout.LayoutParams();
+                l.SetMargins(margin, margin, margin, margin);
+                //            l.SetGravity(GravityFlags.FillHorizontal);
+                l.Width = MainActivity._ptScreenSize.X / MainActivity._nCols - 2 * margin;
+
+                this.TextAlignment = TextAlignment.Center;
+                this.LayoutParameters = l;
+            }
+            public void SelectTile()
+            {
+                if (!_IsSelected)
+                {
+                    SetBackgroundColor(g_colorSelected);
+                    _IsSelected = true;
+                }
+            }
+            public void UnSelectTile()
+            {
+                if (_IsSelected)
+                {
+                    SetBackgroundColor(g_colorBackground);
+                    _IsSelected = false;
+                }
+            }
+            public override string ToString()
+            {
+                return Text;
+            }
+
+        }
     }
 
-    public class LtrTile : TextView
-    {
-        readonly static Color g_colorBackground = Color.DarkCyan;
-        readonly static Color g_colorSelected = Color.Blue;
-        public const int margin = 10;
-        public bool _IsSelected = false;
-        public int Row { get; set; }
-        public int Col { get; set; }
-        public LtrTile(Context context, string letter, int row, int col) : base(context)
-        {
-            Text = letter;
-            Row = row; Col = col;
-            this.SetBackgroundColor(g_colorBackground);
-            this.SetTextColor(Color.White);
-            this.TextSize = 60;
-            var l = new GridLayout.LayoutParams();
-            l.SetMargins(margin, margin, margin, margin);
-            //            l.SetGravity(GravityFlags.FillHorizontal);
-            l.Width = MainActivity._ptScreenSize.X / MainActivity._nCols - 2 * margin;
-
-            this.TextAlignment = TextAlignment.Center;
-            this.LayoutParameters = l;
-        }
-        public void SelectTile()
-        {
-            if (!_IsSelected)
-            {
-                SetBackgroundColor(g_colorSelected);
-                _IsSelected = true;
-            }
-        }
-        public void UnSelectTile()
-        {
-            if (_IsSelected)
-            {
-                SetBackgroundColor(g_colorBackground);
-                _IsSelected = false;
-            }
-        }
-        public override string ToString()
-        {
-            return Text;
-        }
-
-    }
 }
 
