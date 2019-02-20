@@ -173,24 +173,6 @@ namespace WordamentAndroid
             grd.LayoutParameters = rpg;
 
             mainLayout.AddView(grd);
-            var timerEnabled = false;
-            var cts = new CancellationTokenSource();
-            var dtTimerStart = DateTime.Now;
-            var tskTimer = Task.Run(async () =>
-            {
-                while (!cts.IsCancellationRequested && !_IsPaused)
-                {
-                    RunOnUiThread(() =>
-                    {
-                        if (timerEnabled)
-                        {
-                            var delt = (int)(DateTime.Now - dtTimerStart).TotalSeconds;
-                            txtTimer.Text = $"{GetTimeAsString(delt)}";
-                        }
-                    });
-                    await Task.Delay(1000);
-                }
-            });
             var IsShowingResult = true;
             var fdidFinish = false;
             Task<List<Dictionary<string, LetterList>>> taskGetResultsAsync = null;
@@ -214,6 +196,8 @@ namespace WordamentAndroid
                   }
               };
 
+            var timerEnabled = false;
+            CancellationTokenSource cts = null;
             async void Showresults()
             {
                 btnHint.Enabled = false;
@@ -224,7 +208,7 @@ namespace WordamentAndroid
                 var res = await taskGetResultsAsync;
                 taskGetResultsAsync = null;
                 // show the results
-                btnNew.Text = "_New";
+                btnNew.Text = "New";
                 AddStatusMsg($"Showres");
             }
 
@@ -242,13 +226,30 @@ namespace WordamentAndroid
                         taskGetResultsAsync = null;
                     }
                     nLastHintNum = 0;
-                    btnNew.Text = "Show Results";
+                    btnNew.Text = "Results";
                     grd.RemoveAllViews();
                     txtWordSoFar.Text = string.Empty;
                     await FillGridWithTilesAsync(grd);
+                    var nSecondsElapsed = 0;
+                    cts = new CancellationTokenSource();
+                    var tskTimer = Task.Run(async () =>
+                    {
+                        while (!cts.IsCancellationRequested)
+                        {
+                            RunOnUiThread(() =>
+                            {
+                                if (timerEnabled && !_IsPaused)
+                                {
+                                    txtTimer.Text = $"{GetTimeAsString(nSecondsElapsed)}";
+                                    nSecondsElapsed++;
+                                }
+                            });
+                            await Task.Delay(1000);
+                        }
+                    });
                     btnNew.Enabled = false;
                     txtTimer.Text = string.Empty;
-                    dtTimerStart = DateTime.Now;
+                    nSecondsElapsed = 0;
                     timerEnabled = true;
                     btnHint.Enabled = false;
                     taskGetResultsAsync = GetResultsAsync();
@@ -278,8 +279,15 @@ namespace WordamentAndroid
                 txtWordSoFar.Text = txt;
                 if (txt == _WrdHighestPointsFound)
                 {
-                    AddStatusMsg($"Got answer in {txtTimer.Text} {_WrdHighestPointsFound}");
                     fdidFinish = true;
+                    cts.Cancel();
+                    AddStatusMsg($"Got answer in {txtTimer.Text} {_WrdHighestPointsFound}");
+                    Android.App.AlertDialog.Builder alert = new Android.App.AlertDialog.Builder(this);
+                    alert.SetTitle("mytitle");
+                    alert.SetMessage($"Got answer in {txtTimer.Text} {_WrdHighestPointsFound}");
+                    alert.SetPositiveButton("Ok", (o, e) => { });
+                    var dlog = alert.Create();
+                    dlog.Show();
                 }
             }
             void ClearSelection()
@@ -564,7 +572,6 @@ namespace WordamentAndroid
                     if (dictnum == DictionaryLib.DictionaryType.Large)
                     {
                         _WrdHighestPointsFound = oneresult.OrderByDescending(kvp => kvp.Value.Points).FirstOrDefault().Value.Word;
-                        AddStatusMsg($"Got lonhg={_WrdHighestPointsFound}");
                     }
                 }
             });
@@ -586,7 +593,7 @@ namespace WordamentAndroid
                         wordSoFar += ltr.Letter.ToLower();
                         ptsSoFar += ltr.Points;
                         ltrList.Add(_arrTiles[iRow, iCol]._letter);
-                        if (wordSoFar.Length >= _nMinWordLen)
+                        if (wordSoFar.Length >= 3)
                         {
                             var isPartial = spellDict.SeekWord(wordSoFar, out var compResult);
                             if (!string.IsNullOrEmpty(isPartial) && compResult == 0)

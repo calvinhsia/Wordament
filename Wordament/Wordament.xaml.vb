@@ -90,7 +90,6 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     Private _randLetGenerator As RandLetterGenerator
 
     Private _arrTiles(,) As LtrTile
-    Private _minWordLength As Integer = 3
     Private _pnl As StackPanel = New StackPanel With {
         .Orientation = Orientation.Horizontal
     }
@@ -647,7 +646,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         Dim spellDict = New DictionaryLib.DictionaryLib(dictnum, g_Random)
         Dim resultWords = New Dictionary(Of String, LetterList)
         Dim arrVisited(_nRows - 1, _nCols - 1)
-        Dim VisitCell As Action(Of Integer, Integer, String, String, LetterList)
+        Dim VisitCell As Action(Of Integer, Integer, String, Integer, LetterList)
         Dim nVisits = 0
         Dim nLookups = 0
         VisitCell = Sub(iRow As Integer, iCol As Integer, wordSoFar As String, ptsSoFar As Integer, ltrList As LetterList)
@@ -658,7 +657,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                 wordSoFar += ltr._letter._letter.ToLower
                                 ptsSoFar += ltr._pts
                                 ltrList.Add(_arrTiles(iRow, iCol)._letter)
-                                If wordSoFar.Length >= _nMinWordLen Then
+                                If wordSoFar.Length >= 3 Then
                                     Dim compResult = 0
                                     nLookups += 1
                                     Dim isPartial = spellDict.SeekWord(wordSoFar, compResult)
@@ -704,7 +703,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                 VisitCell(iRow, iCol, String.Empty, 0, New LetterList)
             Next
         Next
-        AddStatusMsg($"{dictnum} nvisits={nVisits} nlookups= {nLookups}")
+        'AddStatusMsg($"{dictnum} nvisits={nVisits} nlookups= {nLookups}")
         Return resultWords
     End Function
 
