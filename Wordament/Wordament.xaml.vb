@@ -87,7 +87,6 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     Private _spResults As StackPanel
     Private _seed As Integer
     Private _randLetGenerator As RandLetterGenerator
-    Private _resultWords As Dictionary(Of String, LetterList)
 
     Private _arrTiles(,) As LtrTile
     Private _minWordLength As Integer = 3
@@ -380,18 +379,6 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                           End Sub)
     End Sub
 
-    Async Function GetResultsAsync() As Task(Of List(Of Dictionary(Of String, LetterList)))
-        Dim res = New List(Of Dictionary(Of String, LetterList))
-        Await Task.Run(Sub()
-                           For dictnum = 1 To 2
-                               '                               AddStatusMsg($"getres {dictnum}")
-                               res.Add(CalcWordList(dictnum))
-                           Next
-                           '                          AddStatusMsg($"getres endtask")
-                       End Sub)
-        Return res
-    End Function
-
     Sub ShowResults(results As List(Of Dictionary(Of String, LetterList)))
         Dim dictnum = 0
         _spResults.Children.Clear()
@@ -637,14 +624,72 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         Next
     End Function
 
-    Private _visitedarr(,) As Boolean
-    Private _spellDict As DictionaryLib.DictionaryLib
+
+    Async Function GetResultsAsync() As Task(Of List(Of Dictionary(Of String, LetterList)))
+        Dim res = New List(Of Dictionary(Of String, LetterList))
+        Await Task.Run(Sub()
+                           For dictnum = 1 To 2
+                               '                               AddStatusMsg($"getres {dictnum}")
+                               res.Add(CalcWordList(dictnum))
+                           Next
+                           '                          AddStatusMsg($"getres endtask")
+                       End Sub)
+        Return res
+    End Function
 
 
     Private Function CalcWordList(dictnum As Integer) As Dictionary(Of String, LetterList)
-        _spellDict = New DictionaryLib.DictionaryLib(CType(dictnum, DictionaryLib.DictionaryType), g_Random)
-        _resultWords = New Dictionary(Of String, LetterList)
-        ReDim _visitedarr(_nRows - 1, _nCols - 1)
+        Dim _spellDict = New DictionaryLib.DictionaryLib(CType(dictnum, DictionaryLib.DictionaryType), g_Random)
+        Dim _resultWords = New Dictionary(Of String, LetterList)
+        Dim _visitedarr(_nRows - 1, _nCols - 1)
+        Dim VisitCell As Action(Of Integer, Integer, String, String, LetterList)
+        VisitCell = Sub(iRow As Integer, iCol As Integer, wordSoFar As String, ptsSoFar As Integer, ltrList As LetterList)
+                        If iRow >= 0 AndAlso iCol >= 0 AndAlso iRow < _nRows AndAlso iCol < _nCols Then
+                            Dim ltr = _arrTiles(iRow, iCol)
+                            If Not _visitedarr(iRow, iCol) Then
+                                wordSoFar += ltr._letter._letter.ToLower
+                                ptsSoFar += ltr._pts
+                                ltrList.Add(_arrTiles(iRow, iCol)._letter)
+                                If wordSoFar.Length >= _minWordLength Then
+                                    Dim compResult = 0
+                                    Dim isPartial = _spellDict.SeekWord(wordSoFar, compResult)
+                                    If Not String.IsNullOrEmpty(isPartial) AndAlso compResult = 0 Then
+                                        If Not _resultWords.ContainsKey(wordSoFar.ToUpper()) Then
+                                            Dim pts As Double = ptsSoFar
+                                            If wordSoFar.Length >= 5 Then
+                                                If wordSoFar.Length = 5 Then
+                                                    pts *= 1.5
+                                                ElseIf wordSoFar.Length < 8 Then
+                                                    pts *= 2
+                                                Else
+                                                    pts *= 2.5
+                                                End If
+                                            End If
+                                            _resultWords.Add(wordSoFar.ToUpper(), New LetterList(ltrList, pts)) ' needs to be a copy
+                                        End If
+                                    Else
+                                        ' not in dict so far: let's see if it's a partial match
+                                        If Not isPartial.StartsWith(wordSoFar) Then
+                                            ltrList.RemoveAt(ltrList.Count - 1)
+                                            Return
+                                        End If
+                                    End If
+                                End If
+                                _visitedarr(iRow, iCol) = True
+                                VisitCell(iRow - 1, iCol - 1, wordSoFar, ptsSoFar, ltrList)
+                                VisitCell(iRow - 1, iCol, wordSoFar, ptsSoFar, ltrList)
+                                VisitCell(iRow - 1, iCol + 1, wordSoFar, ptsSoFar, ltrList)
+                                VisitCell(iRow, iCol - 1, wordSoFar, ptsSoFar, ltrList)
+                                VisitCell(iRow, iCol + 1, wordSoFar, ptsSoFar, ltrList)
+                                VisitCell(iRow + 1, iCol - 1, wordSoFar, ptsSoFar, ltrList)
+                                VisitCell(iRow + 1, iCol, wordSoFar, ptsSoFar, ltrList)
+                                VisitCell(iRow + 1, iCol + 1, wordSoFar, ptsSoFar, ltrList)
+                                ltrList.RemoveAt(ltrList.Count - 1)
+                                _visitedarr(iRow, iCol) = False
+                            End If
+                        End If
+                    End Sub
+
         For iRow = 0 To _nRows - 1
             For iCol = 0 To _nCols - 1
                 VisitCell(iRow, iCol, String.Empty, 0, New LetterList)
@@ -652,57 +697,6 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         Next
         Return _resultWords
     End Function
-
-    Private Sub VisitCell(ByVal iRow As Integer,
-                          ByVal iCol As Integer,
-                          ByVal wordSoFar As String,
-                          ByVal ptsSoFar As Integer,
-                          ByVal ltrList As LetterList)
-        If iRow >= 0 AndAlso iCol >= 0 AndAlso iRow < _nRows AndAlso iCol < _nCols Then
-            Dim ltr = _arrTiles(iRow, iCol)
-            If Not _visitedarr(iRow, iCol) Then
-                wordSoFar += ltr._letter._letter.ToLower
-                ptsSoFar += ltr._pts
-                ltrList.Add(_arrTiles(iRow, iCol)._letter)
-                If wordSoFar.Length >= _minWordLength Then
-                    Dim compResult = 0
-                    Dim isPartial = _spellDict.SeekWord(wordSoFar, compResult)
-                    If Not String.IsNullOrEmpty(isPartial) AndAlso compResult = 0 Then
-                        If Not _resultWords.ContainsKey(wordSoFar.ToUpper()) Then
-                            Dim pts As Double = ptsSoFar
-                            If wordSoFar.Length >= 5 Then
-                                If wordSoFar.Length = 5 Then
-                                    pts *= 1.5
-                                ElseIf wordSoFar.Length < 8 Then
-                                    pts *= 2
-                                Else
-                                    pts *= 2.5
-                                End If
-                            End If
-                            _resultWords.Add(wordSoFar.ToUpper(), New LetterList(ltrList, pts)) ' needs to be a copy
-                        End If
-                    Else
-                        ' not in dict so far: let's see if it's a partial match
-                        If Not isPartial.StartsWith(wordSoFar) Then
-                            ltrList.RemoveAt(ltrList.Count - 1)
-                            Return
-                        End If
-                    End If
-                End If
-                _visitedarr(iRow, iCol) = True
-                VisitCell(iRow - 1, iCol - 1, wordSoFar, ptsSoFar, ltrList)
-                VisitCell(iRow - 1, iCol, wordSoFar, ptsSoFar, ltrList)
-                VisitCell(iRow - 1, iCol + 1, wordSoFar, ptsSoFar, ltrList)
-                VisitCell(iRow, iCol - 1, wordSoFar, ptsSoFar, ltrList)
-                VisitCell(iRow, iCol + 1, wordSoFar, ptsSoFar, ltrList)
-                VisitCell(iRow + 1, iCol - 1, wordSoFar, ptsSoFar, ltrList)
-                VisitCell(iRow + 1, iCol, wordSoFar, ptsSoFar, ltrList)
-                VisitCell(iRow + 1, iCol + 1, wordSoFar, ptsSoFar, ltrList)
-                ltrList.RemoveAt(ltrList.Count - 1)
-                _visitedarr(iRow, iCol) = False
-            End If
-        End If
-    End Sub
 
     Public Class LetterList
         Inherits List(Of SimpleLetter)
@@ -719,9 +713,9 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         Public ReadOnly Property Points As Integer
             Get
                 Dim num = _pts
-                If _pts = 0 Then
-                    num = Aggregate a In Me Select a._pts Into Sum()
-                End If
+                'If _pts = 0 Then
+                '    num = Aggregate a In Me Select a._pts Into Sum()
+                'End If
                 Return num
             End Get
         End Property

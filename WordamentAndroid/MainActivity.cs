@@ -11,6 +11,7 @@ using Android.Widget;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -189,6 +190,7 @@ namespace WordamentAndroid
             });
 
             var IsShowingResults = false;
+            //Task<List<Dictionary<string,letter
             //            var didFinish = false;
             btnNew.Click += async (ob, eb) =>
             {
@@ -328,6 +330,7 @@ namespace WordamentAndroid
             //navigation.SetOnNavigationItemSelectedListener(this);
         }
 
+        List<string> _lstLongWords = new List<string>();
         private async Task FillGridWithTilesAsync(GridLayout grd)
         {
             _arrTiles = new LtrTile[_nRows, _nCols];
@@ -484,7 +487,24 @@ namespace WordamentAndroid
             }
         }
 
-        List<string> _lstLongWords = new List<string>();
+        async Task<List<Dictionary<string, LetterList>>> GetResultsAsync()
+        {
+            var res = new List<Dictionary<string, LetterList>>();
+            await Task.Run(() =>
+            {
+                foreach (var dictnum in Enum.GetValues(typeof(DictionaryLib.DictionaryType)))
+                {
+                    res.Add(CalcWordList(dictnum));
+                }
+            });
+            return res;
+        }
+
+        Dictionary<string, LetterList> CalcWordList(object dictnum)
+        {
+            var res = new Dictionary<string, LetterList>();
+            return res;
+        }
 
         public static string GetTimeAsString(int tmpSecs)
         {
@@ -548,6 +568,64 @@ namespace WordamentAndroid
             {
                 var rnd = _random.Next(_letDist.Length);
                 return _letDist.Substring(rnd, 1);
+            }
+        }
+
+        public class LetterList : List<SimpleLetter>
+        {
+            readonly int _pts;
+            public int Points
+            {
+                get
+                {
+                    var pts = _pts;
+                    return pts;
+                }
+            }
+            public LetterList(LetterList lst, int pts)
+            {
+                this.AddRange(lst);
+                this._pts = pts;
+            }
+            public string Word
+            {
+                get
+                {
+                    var str = new StringBuilder();
+                    foreach (var ltr in this)
+                    {
+                        str.Append(ltr);
+                    }
+                    return str.ToString();
+                }
+            }
+            public override string ToString()
+            {
+                return base.ToString();
+            }
+        }
+
+        public class SimpleLetter
+        {
+            public string _letter;
+            public int _row;
+            public int _col;
+            public int _pts
+            {
+                get
+                {
+                    return g_LetterValues[Convert.ToByte(_letter[0] - 65)];
+                }
+            }
+            public SimpleLetter(string letter, int row, int col)
+            {
+                _letter = letter;
+                _row = row;
+                _col = col;
+            }
+            public override string ToString()
+            {
+                return _letter;
             }
         }
     }
