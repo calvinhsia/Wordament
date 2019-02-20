@@ -55,6 +55,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     End Property
 
     Dim _strWordSofar As String
+    Dim _WrdHighestPointsFound As String ' UPPERCASE
     Public Property StrWordSoFar As String
         Get
             Return _strWordSofar
@@ -176,12 +177,11 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             AddHandler btnHint.Click,
                 Async Sub()
                     If taskGetResultsAsync?.IsCompleted Then
-                        Dim max = taskGetResultsAsync.Result(0).OrderByDescending(Function(kvp) kvp.Key.Length).FirstOrDefault
-                        If (nLastHintNum < max.Key.ToString.Length - 1) Then
-                            AddStatusMsg($"Hint {nLastHintNum + 1} {max.Key(nLastHintNum)}")
+                        If (nLastHintNum < _WrdHighestPointsFound.Length - 1) Then
+                            AddStatusMsg($"Hint {nLastHintNum + 1} {_WrdHighestPointsFound(nLastHintNum)}")
                             nLastHintNum += 1
                             HintAvailable = False
-                            If (nLastHintNum < max.Key.ToString.Length - 1) Then
+                            If (nLastHintNum < _WrdHighestPointsFound.Length - 1) Then
                                 Await Task.Delay(TimeSpan.FromSeconds(HintDelay))
                                 HintAvailable = True
                             End If
@@ -216,6 +216,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         _pnl.Children.Clear()
                         _gridUni.Children.Clear()
                         StrWordSoFar = String.Empty
+                        _WrdHighestPointsFound = String.Empty
                         Dim lstTilesSelected As New List(Of LtrTile)
                         Dim funcUpdateWordSoFar As Action =
                             Sub()
@@ -225,9 +226,9 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                 Next
                                 StrWordSoFar = $"{str}"
                                 If _IsLongWrd AndAlso taskGetResultsAsync IsNot Nothing AndAlso str.Length >= _nMinWordLen Then
-                                    Dim max = taskGetResultsAsync.Result(0).OrderByDescending(Function(kvp) kvp.Key.Length).FirstOrDefault
-                                    If max.Key.Length = str.Length Then
-                                        If max.Value.Word = str Then
+                                    If _WrdHighestPointsFound.Length = str.Length Then
+                                        If _WrdHighestPointsFound = str Then
+                                            fdidFinish = True
                                             AddStatusMsg($"Got answer in {GetTimeAsString(CountDownTime)} {str}")
                                             lamShowResults()
                                         End If
@@ -627,9 +628,14 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     Async Function GetResultsAsync() As Task(Of List(Of Dictionary(Of String, LetterList)))
         Dim res = New List(Of Dictionary(Of String, LetterList))
         Await Task.Run(Sub()
-                           For dictnum = 1 To 2
+                           For Each dictnum As DictionaryLib.DictionaryType In [Enum].GetValues(GetType(DictionaryLib.DictionaryType))
                                '                               AddStatusMsg($"getres {dictnum}")
-                               res.Add(CalcWordList(dictnum))
+                               Dim oneresult = CalcWordList(dictnum)
+                               res.Add(oneresult)
+                               If (CType(dictnum, DictionaryLib.DictionaryType) = DictionaryType.Large) Then
+                                   Dim max = oneresult.OrderByDescending(Function(kvp) kvp.Value.Points).FirstOrDefault
+                                   _WrdHighestPointsFound = max.Value.Word
+                               End If
                            Next
                            '                          AddStatusMsg($"getres endtask")
                        End Sub)
@@ -637,20 +643,24 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     End Function
 
 
-    Private Function CalcWordList(dictnum As Integer) As Dictionary(Of String, LetterList)
-        Dim spellDict = New DictionaryLib.DictionaryLib(CType(dictnum, DictionaryLib.DictionaryType), g_Random)
+    Private Function CalcWordList(dictnum As DictionaryLib.DictionaryType) As Dictionary(Of String, LetterList)
+        Dim spellDict = New DictionaryLib.DictionaryLib(dictnum, g_Random)
         Dim resultWords = New Dictionary(Of String, LetterList)
         Dim arrVisited(_nRows - 1, _nCols - 1)
         Dim VisitCell As Action(Of Integer, Integer, String, String, LetterList)
+        Dim nVisits = 0
+        Dim nLookups = 0
         VisitCell = Sub(iRow As Integer, iCol As Integer, wordSoFar As String, ptsSoFar As Integer, ltrList As LetterList)
+                        nVisits += 1
                         If iRow >= 0 AndAlso iCol >= 0 AndAlso iRow < _nRows AndAlso iCol < _nCols Then
                             Dim ltr = _arrTiles(iRow, iCol)
                             If Not arrVisited(iRow, iCol) Then
                                 wordSoFar += ltr._letter._letter.ToLower
                                 ptsSoFar += ltr._pts
                                 ltrList.Add(_arrTiles(iRow, iCol)._letter)
-                                If wordSoFar.Length >= _minWordLength Then
+                                If wordSoFar.Length >= _nMinWordLen Then
                                     Dim compResult = 0
+                                    nLookups += 1
                                     Dim isPartial = spellDict.SeekWord(wordSoFar, compResult)
                                     If Not String.IsNullOrEmpty(isPartial) AndAlso compResult = 0 Then
                                         If Not resultWords.ContainsKey(wordSoFar.ToUpper()) Then
@@ -694,6 +704,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                 VisitCell(iRow, iCol, String.Empty, 0, New LetterList)
             Next
         Next
+        AddStatusMsg($"{dictnum} nvisits={nVisits} nlookups= {nLookups}")
         Return resultWords
     End Function
 

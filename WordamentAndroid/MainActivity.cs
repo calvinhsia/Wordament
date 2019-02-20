@@ -26,6 +26,7 @@ namespace WordamentAndroid
         static Random _random;
         int _mainThread;
         RandLetterGenerator _randLetterGenerator;
+        string _WrdHighestPointsFound; //UPPERCASE
 
         //.................................... A  B  C  D  E  F  G  H  I  J   K  L  M  N  O  P  Q   R  S  T  U  V  W  X  Y  Z
         public static int[] g_LetterValues = { 2, 5, 3, 3, 1, 5, 4, 4, 2, 10, 6, 3, 2, 2, 2, 4, 12, 2, 2, 2, 2, 4, 6, 9, 5, 8 };
@@ -199,16 +200,12 @@ namespace WordamentAndroid
               {
                   if (taskGetResultsAsync != null && taskGetResultsAsync.IsCompleted)
                   {
-                      var max = taskGetResultsAsync
-                          .Result[0]
-                          .OrderByDescending(k => k.Key.Length)
-                          .FirstOrDefault();
-                      if (nLastHintNum < max.Key.ToString().Length - 1)
+                      if (nLastHintNum < _WrdHighestPointsFound.Length - 1)
                       {
-                          AddStatusMsg($"Hint {nLastHintNum} {max.Key[nLastHintNum]}");
+                          AddStatusMsg($"Hint {nLastHintNum} {_WrdHighestPointsFound[nLastHintNum]}");
                           nLastHintNum++;
                           btnHint.Enabled = false;
-                          if (nLastHintNum < max.Key.ToString().Length - 1)
+                          if (nLastHintNum < _WrdHighestPointsFound.Length - 1)
                           {
                               await Task.Delay(TimeSpan.FromSeconds(_HintDelay));
                               btnHint.Enabled = true;
@@ -279,6 +276,11 @@ namespace WordamentAndroid
                     txt += tile.ToString();
                 }
                 txtWordSoFar.Text = txt;
+                if (txt == _WrdHighestPointsFound)
+                {
+                    AddStatusMsg($"Got answer in {txtTimer.Text} {_WrdHighestPointsFound}");
+                    fdidFinish = true;
+                }
             }
             void ClearSelection()
             {
@@ -557,7 +559,13 @@ namespace WordamentAndroid
             {
                 foreach (DictionaryLib.DictionaryType dictnum in Enum.GetValues(typeof(DictionaryLib.DictionaryType)))
                 {
-                    res.Add(CalcWordList(dictnum));
+                    var oneresult = CalcWordList(dictnum);
+                    res.Add(oneresult);
+                    if (dictnum == DictionaryLib.DictionaryType.Large)
+                    {
+                        _WrdHighestPointsFound = oneresult.OrderByDescending(kvp => kvp.Value.Points).FirstOrDefault().Value.Word;
+                        AddStatusMsg($"Got lonhg={_WrdHighestPointsFound}");
+                    }
                 }
             });
             return res;
@@ -570,7 +578,7 @@ namespace WordamentAndroid
             bool[,] arrVisited = new bool[_nRows, _nCols];
             void VisitCell(int iRow, int iCol, string wordSoFar, int ptsSoFar, LetterList ltrList)
             {
-                if (iRow >= 0 && iCol >= 0 && iRow < _nRows && iCol < iRow)
+                if (iRow >= 0 && iCol >= 0 && iRow < _nRows && iCol < _nCols)
                 {
                     var ltr = _arrTiles[iRow, iCol];
                     if (!arrVisited[iRow, iCol])
