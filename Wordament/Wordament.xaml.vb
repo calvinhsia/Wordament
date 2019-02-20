@@ -8,8 +8,8 @@ Imports DictionaryLib
 Class WordamentWindow : Implements INotifyPropertyChanged
 
     '.......................................... A  B  C  D  E  F  G  H  I  J   K  L  M  N  O  P  Q   R  S  T  U  V  W  X  Y  Z
-    Public Shared _LetterValues() As Integer = {2, 5, 3, 3, 1, 5, 4, 4, 2, 10, 6, 3, 2, 2, 2, 4, 12, 2, 2, 2, 2, 4, 6, 9, 5, 8}
-    Public Shared _Random As Random
+    Public Shared g_LetterValues() As Integer = {2, 5, 3, 3, 1, 5, 4, 4, 2, 10, 6, 3, 2, 2, 2, 4, 12, 2, 2, 2, 2, 4, 6, 9, 5, 8}
+    Public Shared g_Random As Random
 
     Public Property _nRows As Integer = 4
 
@@ -110,7 +110,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             Else
                 HintDelay = 2
             End If
-            _Random = New Random(_seed)
+            g_Random = New Random(_seed)
             _randLetGenerator = New RandLetterGenerator
             Dim mainGrid = CType(Markup.XamlReader.Load(
                 <Grid
@@ -339,24 +339,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                                             '                                                            funcClearSelection()
                                                         End Sub
 
-                        If Me._IsLongWrd Then
-                            Dim arr = Await Task.Run(Function() FillGridWithLongWord())
-                            _arrTiles = Array.CreateInstance(GetType(LtrTile), _nRows, _nCols)
-                            For iRow = 0 To _nRows - 1
-                                For iCol = 0 To _nCols - 1
-                                    Dim ltr = "a"
-                                    If arr(iRow, iCol) = 0 Then
-                                        ltr = _randLetGenerator.GetRandLet
-                                    Else
-                                        ltr = Chr(arr(iRow, iCol))
-                                    End If
-                                    _arrTiles(iRow, iCol) = New LtrTile(ltr, iRow, iCol, _nCols)
-                                    _gridUni.Children.Add(_arrTiles(iRow, iCol))
-                                Next
-                            Next
-                        Else
-                            FillGridWithRandomletters(_gridUni)
-                        End If
+                        Await FillGridWithTilesAsync(_gridUni)
                         btnNew.IsEnabled = False
                         CountDownTime = 0
                         timerEnabled = True
@@ -494,7 +477,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             )
         _spResults.Children.Add(
             New ListView With {
-                .ItemsSource = WordamentWindow._LetterValues,
+                .ItemsSource = WordamentWindow.g_LetterValues,
                 .ToolTip = "Points per letter"}
             )
         _spResults.Children.Add(
@@ -507,143 +490,159 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
     Dim _lstLongWords As New List(Of String)
 
-    Private Function FillGridWithLongWord() As Integer(,)
-        Dim spellDict = New DictionaryLib.DictionaryLib(DictionaryType.Small, _Random)
-        ' create a list of random directions (N,S, SE, etc) which can be tried in sequence til success
-        Dim directions(7) As Integer ' 8 directions
-        For i = 0 To 7
-            directions(i) = i
-        Next
-
-        If _lstLongWords.Count = 0 Then
-            spellDict.SeekWord("a")
-            While True
-                Dim wrd = spellDict.GetNextWord
-                If String.IsNullOrEmpty(wrd) Then
-                    Exit While
-                End If
-                If wrd.Length >= _nMinWordLen AndAlso wrd.Length <= _nCols * _nRows Then
-                    _lstLongWords.Add(wrd.ToUpper)
-                End If
-            End While
-        End If
-
-        Dim isGood = False
-        Dim arr(,) As Integer = Nothing ' asc
-        Do While Not isGood
-            Dim randnum = _Random.Next(_lstLongWords.Count)
-            Dim randLongWord = _lstLongWords(randnum)
-            'Dim nTries = 0
-            'Do
-            '    nTries += 1
-            '    randLongWord = spellDict.RandomWord()
-            '    If randLongWord.Length > 16 Then
-            '        AddStatusMsg($"Got word too long {randLongWord}")
-            '        randLongWord = String.Empty
-            '    End If
-            'Loop While randLongWord.Length < _nMinWordLen
-            'AddStatusMsg($"Got long word searching dict {nTries} tries")
-            '                randLongWord = "ABCDEFGHIJ"
-            ' now place the word in the grid. Start with a random
-            ' randomize the order of the directions we try
-            For j = 0 To 7
-                Dim r = _Random.Next(8)
-                Dim tmp = directions(j)
-                directions(j) = directions(r)
-                directions(r) = tmp
-            Next
-            Dim nCalls = 0
-            arr = Array.CreateInstance(GetType(Integer), _nRows, _nCols)
-            ' Given r,c of empty square with current letter index, put ltr in square
-            ' and find a lefit direction return true if is legit (within bounds and not used) 
-            Dim recurLam As Func(Of Integer, Integer, Integer, Boolean) =
-                        Function(r, c, ndxW) As Boolean
-                            nCalls += 1
-                            Dim ltr = randLongWord(ndxW)
-                            Debug.Assert(arr(r, c) = 0)
-                            arr(r, c) = Asc(ltr)
-                            If ndxW = randLongWord.Length - 1 Then
-                                isGood = True
-                                Return True
-                            End If
-                            For idir = 0 To 7
-                                isGood = True
-                                Dim newr = r
-                                Dim newc = c
-                                Select Case directions(idir)
-                                    Case 0 ' nw
-                                        newr -= 1
-                                        newc -= 1
-                                    Case 1 ' n
-                                        newr -= 1
-                                    Case 2 ' ne
-                                        newr -= 1
-                                        newc += 1
-                                    Case 3 ' w
-                                        newc -= 1
-                                    Case 4 'e
-                                        newc += 1
-                                    Case 5 'sw
-                                        newr += 1
-                                        newc -= 1
-                                    Case 6 ' s
-                                        newr += 1
-                                    Case 7 'se
-                                        newr += 1
-                                        newc += 1
-                                End Select
-                                If newr < 0 Or newr >= _nRows Or newc < 0 Or newc >= _nCols Then
-                                    isGood = False
-                                Else
-                                    If arr(newr, newc) > 0 Then
-                                        isGood = False
-                                    End If
-                                End If
-                                If isGood Then
-                                    If recurLam(newr, newc, ndxW + 1) Then
-                                        Exit For
-                                    Else
-                                        isGood = False
-                                    End If
-                                Else   ' couldn't place
-                                End If
-                            Next
-                            If Not isGood Then
-                                arr(r, c) = Nothing
-                            End If
-                            Return isGood
-                        End Function
-            Dim ncurRow = _Random.Next(_nRows)
-            Dim ncurCol = _Random.Next(_nCols)
-            isGood = recurLam(ncurRow, ncurCol, 0)
-            AddStatusMsg($"NRecurCalls= {nCalls} WrdLn={randLongWord.Length}")
-            ' we recurred down and couldn't find a path
-        Loop
-        Return arr
-    End Function
-
-    Private Sub FillGridWithRandomletters(uGrid As UniformGrid)
+    Private Async Function FillGridWithTilesAsync(grd As UniformGrid) As Task
+        Dim arr(,) As Char = Nothing
         _arrTiles = Array.CreateInstance(GetType(LtrTile), _nRows, _nCols)
+        ' fill an array on background thread
+
+        If (_IsLongWrd) Then
+            Await Task.Run(
+                Sub()
+                    Dim spellDict = New DictionaryLib.DictionaryLib(DictionaryType.Small, g_Random)
+                    ' create a list of random directions (N,S, SE, etc) which can be tried in sequence til success
+                    Dim directions(7) As Integer ' 8 directions
+                    For i = 0 To 7
+                        directions(i) = i
+                    Next
+
+                    If _lstLongWords.Count = 0 Then
+                        spellDict.SeekWord("a")
+                        While True
+                            Dim wrd = spellDict.GetNextWord
+                            If String.IsNullOrEmpty(wrd) Then
+                                Exit While
+                            End If
+                            If wrd.Length >= _nMinWordLen AndAlso wrd.Length <= _nCols * _nRows Then
+                                _lstLongWords.Add(wrd.ToUpper)
+                            End If
+                        End While
+                    End If
+
+                    Dim isGood = False
+                    Do While Not isGood
+                        Dim randnum = g_Random.Next(_lstLongWords.Count)
+                        Dim randLongWord = _lstLongWords(randnum)
+                        'Dim nTries = 0
+                        'Do
+                        '    nTries += 1
+                        '    randLongWord = spellDict.RandomWord()
+                        '    If randLongWord.Length > 16 Then
+                        '        AddStatusMsg($"Got word too long {randLongWord}")
+                        '        randLongWord = String.Empty
+                        '    End If
+                        'Loop While randLongWord.Length < _nMinWordLen
+                        'AddStatusMsg($"Got long word searching dict {nTries} tries")
+                        '                randLongWord = "ABCDEFGHIJ"
+                        ' now place the word in the grid. Start with a random
+                        ' randomize the order of the directions we try
+                        For j = 0 To 7
+                            Dim r = g_Random.Next(8)
+                            Dim tmp = directions(j)
+                            directions(j) = directions(r)
+                            directions(r) = tmp
+                        Next
+                        Dim nCalls = 0
+                        arr = Array.CreateInstance(GetType(Char), _nRows, _nCols)
+                        ' Given r,c of empty square with current letter index, put ltr in square
+                        ' and find a lefit direction return true if is legit (within bounds and not used) 
+                        Dim recurLam As Func(Of Integer, Integer, Integer, Boolean) =
+                         Function(r, c, ndxW) As Boolean
+                             nCalls += 1
+                             Dim ltr = randLongWord(ndxW)
+                             Debug.Assert(arr(r, c) = Chr(0))
+                             arr(r, c) = ltr
+                             If ndxW = randLongWord.Length - 1 Then
+                                 isGood = True
+                                 Return True
+                             End If
+                             For idir = 0 To 7
+                                 isGood = True
+                                 Dim newr = r
+                                 Dim newc = c
+                                 Select Case directions(idir)
+                                     Case 0 ' nw
+                                         newr -= 1
+                                         newc -= 1
+                                     Case 1 ' n
+                                         newr -= 1
+                                     Case 2 ' ne
+                                         newr -= 1
+                                         newc += 1
+                                     Case 3 ' w
+                                         newc -= 1
+                                     Case 4 'e
+                                         newc += 1
+                                     Case 5 'sw
+                                         newr += 1
+                                         newc -= 1
+                                     Case 6 ' s
+                                         newr += 1
+                                     Case 7 'se
+                                         newr += 1
+                                         newc += 1
+                                 End Select
+                                 If newr < 0 Or newr >= _nRows Or newc < 0 Or newc >= _nCols Then
+                                     isGood = False
+                                 Else
+                                     If arr(newr, newc) <> Chr(0) Then
+                                         isGood = False
+                                     End If
+                                 End If
+                                 If isGood Then
+                                     If recurLam(newr, newc, ndxW + 1) Then
+                                         Exit For
+                                     Else
+                                         isGood = False
+                                     End If
+                                 Else   ' couldn't place
+                                 End If
+                             Next
+                             If Not isGood Then
+                                 arr(r, c) = Nothing
+                             End If
+                             Return isGood
+                         End Function
+                        Dim ncurRow = g_Random.Next(_nRows)
+                        Dim ncurCol = g_Random.Next(_nCols)
+                        isGood = recurLam(ncurRow, ncurCol, 0)
+                        AddStatusMsg($"NRecurCalls= {nCalls} WrdLn={randLongWord.Length}")
+                        ' we recurred down and couldn't find a path
+                    Loop
+                End Sub)
+        Else
+            arr = Array.CreateInstance(GetType(Char), _nRows, _nCols)
+            For iRow = 0 To _nRows - 1
+                For iCol = 0 To _nCols - 1
+                    Dim rndLet = _randLetGenerator.GetRandLet
+                    'If rndLet = "Q" Then
+                    '    rndLet = "QU"
+                    '    rndLetPts += RandLetterGenerator._LetterValues(Asc("U") - 65)
+                    'End If
+                    arr(iRow, iCol) = rndLet
+                Next
+            Next
+        End If
+        ' now update ui on main thread
         For iRow = 0 To _nRows - 1
             For iCol = 0 To _nCols - 1
-                Dim rndLet = _randLetGenerator.GetRandLet
-                'If rndLet = "Q" Then
-                '    rndLet = "QU"
-                '    rndLetPts += RandLetterGenerator._LetterValues(Asc("U") - 65)
-                'End If
-                Dim tile = New LtrTile(rndLet, iRow, iCol, _nRows)
-                _arrTiles(iRow, iCol) = tile
-                uGrid.Children.Add(tile)
+                Dim ltr = "a"
+                If arr(iRow, iCol) = Chr(0) Then
+                    ltr = _randLetGenerator.GetRandLet
+                Else
+                    ltr = arr(iRow, iCol)
+                End If
+                _arrTiles(iRow, iCol) = New LtrTile(ltr, iRow, iCol, _nCols)
+                _gridUni.Children.Add(_arrTiles(iRow, iCol))
             Next
         Next
-    End Sub
+    End Function
 
     Private _visitedarr(,) As Boolean
     Private _spellDict As DictionaryLib.DictionaryLib
 
 
     Private Function CalcWordList(dictnum As Integer) As Dictionary(Of String, LetterList)
-        _spellDict = New DictionaryLib.DictionaryLib(CType(dictnum, DictionaryLib.DictionaryType), _Random)
+        _spellDict = New DictionaryLib.DictionaryLib(CType(dictnum, DictionaryLib.DictionaryType), g_Random)
         _resultWords = New Dictionary(Of String, LetterList)
         ReDim _visitedarr(_nRows - 1, _nCols - 1)
         For iRow = 0 To _nRows - 1
@@ -747,7 +746,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         Public _col As Integer
         Public ReadOnly Property _pts As Integer ' points for this tile
             Get
-                Return _LetterValues(Asc(_letter) - 65)
+                Return g_LetterValues(Asc(_letter) - 65)
             End Get
         End Property
         Public Sub New(letter As String, row As Integer, col As Integer)
@@ -811,22 +810,21 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     End Class
 
     Public Class RandLetterGenerator
-        Friend Shared _letDist As String
-        Friend Shared _letDistArr(25) As String
+        Friend Shared _letDist As String ' aaaabbb...qrrrrrssssssstttt
+        Friend Shared _letDistArr(25) As Integer
         Public Sub New()
-            Dim maxScore = Aggregate ltr In _LetterValues Into Max() ' the highest score. e.g. 12
-            Dim letdist = String.Empty
-            For i = 0 To _LetterValues.Length - 1
-                Dim nThisLet = maxScore * 30 / (_LetterValues(i)) 'lcm = 360
+            Dim maxScore = Aggregate ltr In g_LetterValues Into Max() ' the highest score. e.g. q=12
+            _letDist = String.Empty
+            For i = 0 To g_LetterValues.Length - 1
+                Dim nThisLet = maxScore * 30 / (g_LetterValues(i)) 'lcm = 360
                 'uncomment this line for even distribution: 
                 '   same # of Q's and E's
                 'nThisLet = 1
                 _letDistArr(i) = nThisLet
                 For j = 1 To nThisLet
-                    letdist += Chr(i + 65)
+                    _letDist += Chr(i + 65)
                 Next
             Next
-            _letDist = letdist
         End Sub
 
         Private ReadOnly _seedArray() As String
@@ -835,7 +833,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         Public Function GetRandLet() As String ' letter, score
             Dim rndLet = String.Empty
             If _seedArray Is Nothing Then
-                Dim rndNum = _Random.Next(_letDist.Length)
+                Dim rndNum = g_Random.Next(_letDist.Length)
                 rndLet = _letDist.Substring(rndNum, 1)
             Else
                 rndLet = _seedArray(_seedIndex)

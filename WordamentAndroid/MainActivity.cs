@@ -10,6 +10,7 @@ using Android.Views;
 using Android.Widget;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -21,9 +22,12 @@ namespace WordamentAndroid
         TextView txtStatus;
         TextView txtWordSoFar;
         TextView txtTimer;
-        Random _random;
+        static Random _random;
         int _mainThread;
+        RandLetterGenerator _randLetterGenerator;
 
+        //.................................... A  B  C  D  E  F  G  H  I  J   K  L  M  N  O  P  Q   R  S  T  U  V  W  X  Y  Z
+        public static int[] g_LetterValues = { 2, 5, 3, 3, 1, 5, 4, 4, 2, 10, 6, 3, 2, 2, 2, 4, 12, 2, 2, 2, 2, 4, 6, 9, 5, 8 };
         public static int _nCols = 4;
         public static int _nRows = 4;
         public int _nMinWordLen = 12;
@@ -63,9 +67,9 @@ namespace WordamentAndroid
                     lst.Add(txt);
                     txtStatus.Text = lst[0] + "\r\n" + (lst.Count > 1 ? lst[1] : string.Empty);
                 }
-
             }
         }
+
         protected override void OnPause()
         {
             AddStatusMsg($"Pause");
@@ -91,11 +95,10 @@ namespace WordamentAndroid
             {
                 seed = System.Environment.TickCount;
             }
-            _random = new Random(1);
+            _random = new Random(seed);
             //            var spellDict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small, _random);
-
+            _randLetterGenerator = new RandLetterGenerator();
             WindowManager.DefaultDisplay.GetSize(_ptScreenSize);
-            _arrTiles = new LtrTile[_nRows, _nCols];
             SetContentView(Resource.Layout.activity_main);
 
             var mainLayout = FindViewById<RelativeLayout>(Resource.Id.container);
@@ -125,7 +128,6 @@ namespace WordamentAndroid
                 TextSize = 30,
                 LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent)
                 {
-
                 }
             };
             ((RelativeLayout.LayoutParams)(txtTimer.LayoutParameters)).AddRule(LayoutRules.RightOf, idBnHint);
@@ -154,8 +156,6 @@ namespace WordamentAndroid
             ((RelativeLayout.LayoutParams)(txtWordSoFar.LayoutParameters)).AddRule(LayoutRules.Below, idTxtStatus);
             mainLayout.AddView(txtWordSoFar);
 
-
-
             var grd = new GridLayout(this)
             {
                 Id = idGrd,
@@ -164,42 +164,7 @@ namespace WordamentAndroid
                 AlignmentMode = GridAlign.Bounds
             };
             grd.SetBackgroundColor(Color.Black);
-            if (_IsLongWord)
-            {
-                var arr = await Task.Run(() => FillGridWithLongWord());
-                //                var arr = FillGridWithLongWord();
-                for (int iRow = 0; iRow < _nRows; iRow++)
-                {
-                    for (int iCol = 0; iCol < _nCols; iCol++)
-                    {
-                        var ltr = arr[iRow, iCol];
-                        if (ltr == 0)
-                        {
-                            ltr = 'A';
-                        }
-                        var til = new LtrTile(this, ltr.ToString(), iRow, iCol);
-                        _arrTiles[iRow, iCol] = til;
-                        //                    til.LayoutParameters = new ViewGroup.LayoutParams()
-                        til.Id = 10 + iRow * _nRows + iCol;
-                        grd.AddView(til);
-                    }
-                }
-            }
-            else
-            {
-                for (int iRow = 0; iRow < _nRows; iRow++)
-                {
-                    for (int iCol = 0; iCol < _nCols; iCol++)
-                    {
-                        var ltr = Convert.ToChar(iRow * _nCols + iCol + 65).ToString();
-                        var til = new LtrTile(this, ltr, iRow, iCol);
-                        _arrTiles[iRow, iCol] = til;
-                        //                    til.LayoutParameters = new ViewGroup.LayoutParams()
-                        til.Id = 10 + iRow * _nRows + iCol;
-                        grd.AddView(til);
-                    }
-                }
-            }
+            await FillGridWithTilesAsync(grd);
             var rpg = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MatchParent, RelativeLayout.LayoutParams.WrapContent);
             rpg.AddRule(LayoutRules.Below, idtxtWordSoFar);
             grd.LayoutParameters = rpg;
@@ -225,11 +190,8 @@ namespace WordamentAndroid
 
             var IsShowingResults = false;
             //            var didFinish = false;
-            btnNew.Click += (ob, eb) =>
+            btnNew.Click += async (ob, eb) =>
             {
-                //                  AddStatusMsg($"{AndroidDictionary.AndroidDictionary.GetResourceInfo()}");
-                var dict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
-                AddStatusMsg($"{dict.RandomWord()}");
                 if (!IsShowingResults)
                 {
                     btnNew.Text = "New";
@@ -237,7 +199,8 @@ namespace WordamentAndroid
                 else
                 {
                     btnNew.Text = "Results";
-
+                    grd.RemoveAllViews();
+                    await FillGridWithTilesAsync(grd);
                 }
                 IsShowingResults = !IsShowingResults;
             };
@@ -365,124 +328,163 @@ namespace WordamentAndroid
             //navigation.SetOnNavigationItemSelectedListener(this);
         }
 
-        List<string> _lstLongWords = new List<string>();
-        char[,] FillGridWithLongWord()
+        private async Task FillGridWithTilesAsync(GridLayout grd)
         {
+            _arrTiles = new LtrTile[_nRows, _nCols];
             char[,] arr = new char[_nRows, _nCols];
-            var spellDict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small, _random);
-            int[] directions = new int[8];
-            for (int i = 0; i < 8; i++)
+            // get array filled on background  thread
+
+            if (_IsLongWord)
             {
-                directions[i] = i;
+                await Task.Run(() =>
+                   {
+                       var spellDict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small, _random);
+                       int[] directions = new int[8];
+                       for (int i = 0; i < 8; i++)
+                       {
+                           directions[i] = i;
+                       }
+                       spellDict.SeekWord("a");
+                       if (_lstLongWords.Count == 0)
+                       {
+                           while (true)
+                           {
+                               var wrd = spellDict.GetNextWord();
+                               if (string.IsNullOrEmpty(wrd))
+                               {
+                                   break;
+                               }
+                               if (wrd.Length >= _nMinWordLen && wrd.Length <= _nRows * _nCols)
+                               {
+                                   _lstLongWords.Add(wrd.ToUpper());
+                               }
+                           }
+                       }
+                       var isGood = false;
+                       int nRecurCalls = 0;
+                       while (!isGood)
+                       {
+                           var randnum = _random.Next(_lstLongWords.Count);
+                           var randLongWrd = _lstLongWords[randnum];
+                           // attempt to place in array
+                           // shuffle directions
+                           for (int i = 0; i < 8; i++)
+                           {
+                               var r = _random.Next(8);
+                               var tmp = directions[i];
+                               directions[i] = directions[r];
+                               directions[r] = tmp;
+                           }
+                           bool recurLam(int r, int c, int ndx)
+                           {
+                               nRecurCalls++;
+                               var ltr = randLongWrd[ndx];
+                               arr[r, c] = ltr;
+                               if (ndx == randLongWrd.Length - 1)
+                               {
+                                   isGood = true;
+                                   return true;
+                               }
+                               for (int idir = 0; idir < 8; idir++)
+                               {
+                                   isGood = true;
+                                   var newr = r;
+                                   var newc = c;
+                                   switch (directions[idir])
+                                   {
+                                       case 0: // nw
+                                           newr--;
+                                           newc--;
+                                           break;
+                                       case 1: // n
+                                           newr -= 1;
+                                           break;
+                                       case 2: // ne
+                                           newr--;
+                                           newc++;
+                                           break;
+                                       case 3: // w
+                                           newc--;
+                                           break;
+                                       case 4: // e
+                                           newc++;
+                                           break;
+                                       case 5: // sw
+                                           newr++;
+                                           newc--;
+                                           break;
+                                       case 6:// s
+                                           newr++;
+                                           break;
+                                       case 7:// se
+                                           newr++;
+                                           newc++;
+                                           break;
+                                   }
+                                   if (newr < 0 || newr >= _nRows || newc < 0 || newc >= _nCols)
+                                   {
+                                       isGood = false;
+                                   }
+                                   else
+                                   {
+                                       if (arr[newr, newc] != '\0')
+                                       {
+                                           isGood = false;
+                                       }
+                                   }
+                                   if (isGood)
+                                   {
+                                       if (recurLam(newr, newc, ndx + 1))
+                                       {
+                                           break;
+                                       }
+                                       isGood = false;
+                                   }
+                               }
+                               if (!isGood)
+                               {
+                                   arr[r, c] = '\0';
+                               }
+                               return isGood;
+                           }
+                           isGood = recurLam(_random.Next(_nRows), _random.Next(_nCols), 0);
+                           AddStatusMsg($"NRecurCalls ={nRecurCalls} WrdLen={randLongWrd.Length}");
+                       }
+                   });
             }
-            spellDict.SeekWord("a");
-            if (_lstLongWords.Count == 0)
+            else
             {
-                while (true)
+                for (int iRow = 0; iRow < _nRows; iRow++)
                 {
-                    var wrd = spellDict.GetNextWord();
-                    if (string.IsNullOrEmpty(wrd))
+                    for (int iCol = 0; iCol < _nCols; iCol++)
                     {
-                        break;
-                    }
-                    if (wrd.Length >= _nMinWordLen && wrd.Length <= _nRows * _nCols)
-                    {
-                        _lstLongWords.Add(wrd.ToUpper());
+                        //                        var ltr = Convert.ToChar(iRow * _nCols + iCol + 65).ToString();
+                        var ltr = _randLetterGenerator.GetRandLet();
+                        arr[iRow, iCol] = ltr[0];
+                        //                    til.LayoutParameters = new ViewGroup.LayoutParams()
                     }
                 }
             }
-            var isGood = false;
-            int nRecurCalls = 0;
-            while (!isGood)
+            // set tiles on foreground
+            for (int iRow = 0; iRow < _nRows; iRow++)
             {
-                var randnum = _random.Next(_lstLongWords.Count);
-                var randLongWrd = _lstLongWords[randnum];
-                // attempt to place in array
-                // shuffle directions
-                for (int i = 0; i < 8; i++)
+                for (int iCol = 0; iCol < _nCols; iCol++)
                 {
-                    var r = _random.Next(8);
-                    var tmp = directions[i];
-                    directions[i] = directions[r];
-                    directions[r] = tmp;
+                    var ltr = arr[iRow, iCol];
+                    if (ltr == '\0')
+                    {
+                        ltr = _randLetterGenerator.GetRandLet()[0];
+                    }
+                    var til = new LtrTile(this, ltr.ToString(), iRow, iCol);
+                    _arrTiles[iRow, iCol] = til;
+                    //                    til.LayoutParameters = new ViewGroup.LayoutParams()
+                    til.Id = 10 + iRow * _nRows + iCol;
+                    grd.AddView(til);
                 }
-                bool recurLam(int r, int c, int ndx)
-                {
-                    nRecurCalls++;
-                    var ltr = randLongWrd[ndx];
-                    arr[r, c] = ltr;
-                    if (ndx == randLongWrd.Length - 1)
-                    {
-                        isGood = true;
-                        return true;
-                    }
-                    for (int idir = 0; idir < 8; idir++)
-                    {
-                        isGood = true;
-                        var newr = r;
-                        var newc = c;
-                        switch (directions[idir])
-                        {
-                            case 0: // nw
-                                newr--;
-                                newc--;
-                                break;
-                            case 1: // n
-                                newr -= 1;
-                                break;
-                            case 2: // ne
-                                newr--;
-                                newc++;
-                                break;
-                            case 3: // w
-                                newc--;
-                                break;
-                            case 4: // e
-                                newc++;
-                                break;
-                            case 5: // sw
-                                newr++;
-                                newc--;
-                                break;
-                            case 6:// s
-                                newr++;
-                                break;
-                            case 7:// se
-                                newr++;
-                                newc++;
-                                break;
-                        }
-                        if (newr < 0 || newr >= _nRows || newc < 0 || newc >= _nCols)
-                        {
-                            isGood = false;
-                        }
-                        else
-                        {
-                            if (arr[newr, newc] != '\0')
-                            {
-                                isGood = false;
-                            }
-                        }
-                        if (isGood)
-                        {
-                            if (recurLam(newr, newc, ndx + 1))
-                            {
-                                break;
-                            }
-                            isGood = false;
-                        }
-                    }
-                    if (!isGood)
-                    {
-                        arr[r, c] = '\0';
-                    }
-                    return isGood;
-                }
-                isGood = recurLam(_random.Next(_nRows), _random.Next(_nCols), 0);
-                AddStatusMsg($"NRecurCalls ={nRecurCalls} WrdLen={randLongWrd.Length}");
             }
-            return arr;
         }
+
+        List<string> _lstLongWords = new List<string>();
 
         public static string GetTimeAsString(int tmpSecs)
         {
@@ -522,6 +524,31 @@ namespace WordamentAndroid
                     return true;
             }
             return false;
+        }
+
+        public class RandLetterGenerator
+        {
+            internal static int[] _letDistArr = new int[26];
+            internal static string _letDist; // " aaaabbb...qrrrrrssssssstttt
+            public RandLetterGenerator()
+            {
+                var maxScore = g_LetterValues.Max(); // highest score of any letter, e.g. 1=12
+                _letDist = string.Empty;
+                for (int i = 0; i < g_LetterValues.Length; i++)
+                {
+                    var nThisLet = maxScore * 30 / g_LetterValues[i]; // lcm = 360
+                    _letDistArr[i] = nThisLet;
+                    for (int j = 0; j < nThisLet; j++)
+                    {
+                        _letDist += Convert.ToChar(i + 65);
+                    }
+                }
+            }
+            public string GetRandLet()
+            {
+                var rnd = _random.Next(_letDist.Length);
+                return _letDist.Substring(rnd, 1);
+            }
         }
     }
 
