@@ -177,8 +177,8 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                 Async Sub()
                     If taskGetResultsAsync?.IsCompleted Then
                         If (nLastHintNum < _WrdHighestPointsFound.Length - 1) Then
-                            AddStatusMsg($"Hint {nLastHintNum + 1} {_WrdHighestPointsFound(nLastHintNum)}")
                             nLastHintNum += 1
+                            AddStatusMsg($"Hint {nLastHintNum} {_WrdHighestPointsFound.Substring(0, nLastHintNum)}")
                             HintAvailable = False
                             If (nLastHintNum < _WrdHighestPointsFound.Length - 1) Then
                                 Await Task.Delay(TimeSpan.FromSeconds(HintDelay))

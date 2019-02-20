@@ -184,8 +184,8 @@ namespace WordamentAndroid
                   {
                       if (nLastHintNum < _WrdHighestPointsFound.Length - 1)
                       {
-                          AddStatusMsg($"Hint {nLastHintNum} {_WrdHighestPointsFound[nLastHintNum]}");
                           nLastHintNum++;
+                          AddStatusMsg($"Hint {nLastHintNum} {_WrdHighestPointsFound.Substring(0, nLastHintNum)}");
                           btnHint.Enabled = false;
                           if (nLastHintNum < _WrdHighestPointsFound.Length - 1)
                           {
@@ -200,6 +200,7 @@ namespace WordamentAndroid
             CancellationTokenSource cts = null;
             async void Showresults()
             {
+                cts?.Cancel();
                 btnHint.Enabled = false;
                 fdidFinish = false;
                 IsShowingResult = true;
@@ -209,7 +210,6 @@ namespace WordamentAndroid
                 taskGetResultsAsync = null;
                 // show the results
                 btnNew.Text = "New";
-                AddStatusMsg($"Showres");
             }
 
             await BtnNewClick(null, null);
@@ -281,10 +281,11 @@ namespace WordamentAndroid
                 {
                     fdidFinish = true;
                     cts.Cancel();
-                    AddStatusMsg($"Got answer in {txtTimer.Text} {_WrdHighestPointsFound}");
+                    var res = $"Got answer in {txtTimer.Text} {_WrdHighestPointsFound} Hints={nLastHintNum}";
+                    AddStatusMsg(res);
                     Android.App.AlertDialog.Builder alert = new Android.App.AlertDialog.Builder(this);
-                    alert.SetTitle("mytitle");
-                    alert.SetMessage($"Got answer in {txtTimer.Text} {_WrdHighestPointsFound}");
+                    alert.SetTitle("Calvin's Wordament");
+                    alert.SetMessage(res);
                     alert.SetPositiveButton("Ok", (o, e) => { });
                     var dlog = alert.Create();
                     dlog.Show();
