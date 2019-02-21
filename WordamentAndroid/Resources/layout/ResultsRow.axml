@@ -17,6 +17,7 @@
 		android:layout_alignParentRight="true"
 		android:layout_toRightOf="@id/textViewWord"
 		android:id="@+id/textViewPoints"
-		android:textAlignment="viewEnd" />
+		android:textAlignment="viewEnd"
+		android:paddingHorizontal="20px"  />
 
 </RelativeLayout>

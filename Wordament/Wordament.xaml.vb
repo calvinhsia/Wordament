@@ -417,7 +417,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             spSingleResult.Children.Add(lv)
             Dim fInHandler = False
             AddHandler lv.SelectionChanged,
-                Sub()
+                Async Sub()
                     If lv.SelectedItems.Count > 0 Then
                         If Not fInHandler Then
                             fInHandler = True
@@ -431,10 +431,12 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                             For Each ltr In ltrLst
                                 Dim tile = _arrTiles(ltr._row, ltr._col)
                                 tile.Background = Brushes.Red
-                                Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.Background, Function() Nothing)
-                                System.Threading.Thread.Sleep(200)
+                                Await Task.Delay(200)
+                                'Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.Background, Function() Nothing)
+                                'System.Threading.Thread.Sleep(200)
                             Next
-                            System.Threading.Thread.Sleep(800)
+                            Await Task.Delay(800)
+                            'System.Threading.Thread.Sleep(800)
                             For Each ltr In ltrLst
                                 Dim tile = _arrTiles(ltr._row, ltr._col)
                                 tile.Background = saveback

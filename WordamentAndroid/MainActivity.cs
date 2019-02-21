@@ -47,7 +47,7 @@ namespace WordamentAndroid
 
         public static Point _ptScreenSize = new Point(); // X = 1440, Y = 2792
 
-        List<string> lst = new List<string>();
+        List<string> lstStatusLines = new List<string>();
         public void AddStatusMsg(string str)
         {
 
@@ -63,27 +63,27 @@ namespace WordamentAndroid
             {
                 if (txtStatus != null)
                 {
-                    if (lst.Count > 2)
+                    while (lstStatusLines.Count > 1)
                     {
-                        lst.RemoveAt(0);
+                        lstStatusLines.RemoveAt(0);
                     }
                     var txt = $"{DateTime.Now.ToString("hh:mm:ss:fff")} {str}";
-                    lst.Add(txt);
-                    txtStatus.Text = lst[0] + "\r\n" + (lst.Count > 1 ? lst[1] : string.Empty);
+                    lstStatusLines.Add(txt);
+                    txtStatus.Text = lstStatusLines[0] + "\r\n" + (lstStatusLines.Count > 1 ? lstStatusLines[1] : string.Empty);
                 }
             }
         }
 
         protected override void OnPause()
         {
-            AddStatusMsg($"Pause");
+            //AddStatusMsg($"Pause");
             base.OnPause();
             this._IsPaused = true;
         }
         protected override void OnResume()
         {
             base.OnResume();
-            AddStatusMsg($"Resume");
+            //AddStatusMsg($"Resume");
             this._IsPaused = false;
         }
         protected override async void OnCreate(Bundle savedInstanceState)
@@ -154,7 +154,7 @@ namespace WordamentAndroid
             {
                 Id = idtxtWordSoFar,
                 Text = "wordsofar",
-                TextSize = 30,
+                TextSize = 20,
                 LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent)
             };
             ((RelativeLayout.LayoutParams)(txtWordSoFar.LayoutParameters)).AddRule(LayoutRules.Below, idTxtStatus);
@@ -175,14 +175,35 @@ namespace WordamentAndroid
 
             mainLayout.AddView(grd);
 
-            ListView lstResults = new ListView(this)
+            ListView lstResults1 = new ListView(this)
             {
-                Id= idLstResults,
-                LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MatchParent, RelativeLayout.LayoutParams.WrapContent),
-                FastScrollEnabled=true
+                Id = idLstResults,
+                LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MatchParent, RelativeLayout.LayoutParams.WrapContent)
             };
-            mainLayout.AddView(lstResults);
-            ((RelativeLayout.LayoutParams)(lstResults.LayoutParameters)).AddRule(LayoutRules.Below, idGrd);
+            mainLayout.AddView(lstResults1);
+            ((RelativeLayout.LayoutParams)(lstResults1.LayoutParameters)).AddRule(LayoutRules.Below, idGrd);
+
+            WordScoreAdapter scoreAdapter = null;
+            lstResults1.ItemClick += async (o, e) =>
+            {
+                var wrd = scoreAdapter[e.Position];
+                var ltrLst = wrd.LtrList;
+                var firstTile = _arrTiles[ltrLst[0]._row, ltrLst[0]._col];
+                var saveBackground = firstTile.Background;
+                foreach (var ltr in wrd.LtrList)
+                {
+                    var tile = _arrTiles[ltr._row, ltr._col];
+                    tile.SetBackgroundColor(Color.Red);
+                    await Task.Delay(400);
+                }
+                await Task.Delay(1000);
+                foreach (var ltr in wrd.LtrList)
+                {
+                    var tile = _arrTiles[ltr._row, ltr._col];
+                    tile.SetBackgroundColor(LtrTile.g_colorBackground);
+                }
+                //Android.Widget.Toast.MakeText(this, res1[e.Position].ToString(), Android.Widget.ToastLength.Long).Show();
+            };
 
 
             var IsShowingResult = true;
@@ -219,12 +240,8 @@ namespace WordamentAndroid
                 IsShowingResult = true;
                 timerEnabled = false;
                 btnNew.Text = "Calc...";
-                var scoreAdapter = new WordScoreAdapter(lstDictResults[0]);
-                lstResults.Adapter = scoreAdapter;
-                lstResults.ItemClick += (o, e) =>
-                {
-                    //Android.Widget.Toast.MakeText(this, res1[e.Position].ToString(), Android.Widget.ToastLength.Long).Show();
-                };
+                scoreAdapter = new WordScoreAdapter(this, lstDictResults[0]);
+                lstResults1.Adapter = scoreAdapter;
 
                 btnNew.Text = "New";
             }
@@ -244,7 +261,7 @@ namespace WordamentAndroid
                     }
                     lstDictResults = null;
                     nLastHintNum = 0;
-                    lstResults.Adapter = null;
+                    lstResults1.Adapter = null;
                     btnNew.Text = "Results";
                     grd.RemoveAllViews();
                     txtWordSoFar.Text = string.Empty;
@@ -303,12 +320,13 @@ namespace WordamentAndroid
                     cts.Cancel();
                     var res = $"Got answer in {txtTimer.Text} {_WrdHighestPointsFound} Hints={nLastHintNum}";
                     AddStatusMsg(res);
-                    Android.App.AlertDialog.Builder alert = new Android.App.AlertDialog.Builder(this);
-                    alert.SetTitle("Calvin's Wordament");
-                    alert.SetMessage(res);
-                    alert.SetPositiveButton("Ok", (o, e) => { });
-                    var dlog = alert.Create();
-                    dlog.Show();
+                    //Android.App.AlertDialog.Builder alert = new Android.App.AlertDialog.Builder(this);
+                    //alert.SetTitle("Calvin's Wordament");
+                    //alert.SetMessage(res);
+                    //alert.SetPositiveButton("Ok", (o, e) => { });
+                    //var dlog = alert.Create();
+                    //dlog.Show();
+                    var t = BtnNewClick(null, null);
                 }
             }
             void ClearSelection()
@@ -723,8 +741,10 @@ namespace WordamentAndroid
         public class WordScoreAdapter : BaseAdapter<WordScore>
         {
             public List<WordScore> _lst;
-            public WordScoreAdapter(Dictionary<string,LetterList> result)
+            readonly Context _context;
+            public WordScoreAdapter(Context context, Dictionary<string, LetterList> result)
             {
+                this._context = context;
                 var listWords = from kvp in result
                                 orderby kvp.Value.Points descending
                                 select new
@@ -738,10 +758,9 @@ namespace WordamentAndroid
                 {
                     _lst.Add(new WordScore()
                     {
-                        Word=w.Word,
-                        Points= w.Pts,
-                        LtrList= w.ltrList
-
+                        Word = w.Word,
+                        Points = w.Pts,
+                        LtrList = w.ltrList
                     });
                 }
             }
@@ -756,17 +775,14 @@ namespace WordamentAndroid
 
             public override View GetView(int position, View convertView, ViewGroup parent)
             {
-                var viewRow = convertView;
+                View viewRow = null;
                 try
                 {
-                    if (viewRow == null)
-                    {
-                        viewRow = LayoutInflater.From(parent.Context).Inflate(Resource.Layout.ResultsRow, parent, attachToRoot: false);
-                        var txtWord = viewRow.FindViewById<TextView>(Resource.Id.textViewWord);
-                        txtWord.Text = _lst[position].Word;
-                        var txtPoints = viewRow.FindViewById<TextView>(Resource.Id.textViewPoints);
-                        txtPoints.Text = _lst[position].Points.ToString();
-                    }
+                    viewRow = LayoutInflater.From(_context).Inflate(Resource.Layout.ResultsRow, parent, attachToRoot: false);
+                    var txtWord = viewRow.FindViewById<TextView>(Resource.Id.textViewWord);
+                    txtWord.Text = _lst[position].Word;
+                    var txtPoints = viewRow.FindViewById<TextView>(Resource.Id.textViewPoints);
+                    txtPoints.Text = _lst[position].Points.ToString();
                 }
                 catch (Exception ex)
                 {
@@ -864,8 +880,8 @@ namespace WordamentAndroid
         }
         public class LtrTile : TextView
         {
-            readonly static Color g_colorBackground = Color.DarkCyan;
-            readonly static Color g_colorSelected = Color.Blue;
+            public readonly static Color g_colorBackground = Color.DarkCyan;
+            public readonly static Color g_colorSelected = Color.Blue;
             public const int margin = 10;
             public bool _IsSelected = false;
             public int Row { get; set; }
@@ -880,7 +896,7 @@ namespace WordamentAndroid
                 Row = row; Col = col;
                 this.SetBackgroundColor(g_colorBackground);
                 this.SetTextColor(Color.White);
-                this.TextSize = 60;
+                this.TextSize = 50;
                 var l = new GridLayout.LayoutParams();
                 l.SetMargins(margin, margin, margin, margin);
                 //            l.SetGravity(GravityFlags.FillHorizontal);
