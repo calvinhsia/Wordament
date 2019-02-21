@@ -388,13 +388,10 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
             Dim lv As New ListView
             Dim sortedlist = From wrd In result
-                             Select wrd.Key,
-                                 Points = wrd.Value.Points,
-                                 ltrList = wrd.Value
-                             Order By Points Descending
-                             Select Word = Key,
-                             pts = CInt(Points),
-                             lst = ltrList
+                             Order By wrd.Value.Points Descending
+                             Select Word = wrd.Key,
+                             pts = CInt(wrd.Value.Points),
+                             lst = wrd.Value
 
             lv.ItemsSource = sortedlist
             Dim gview = New GridView

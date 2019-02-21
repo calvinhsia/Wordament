@@ -40,7 +40,8 @@ namespace WordamentAndroid
         public const int idtxtWordSoFar = 30;
         public const int idTimer = 40;
         public const int idGrd = 50;
-        public const int idBnHint = 60;
+        public const int idBtnHint = 60;
+        public const int idLstResults = 70;
         public bool _IsPaused;
         public LtrTile[,] _arrTiles;
 
@@ -117,7 +118,7 @@ namespace WordamentAndroid
 
             var btnHint = new Button(this)
             {
-                Id = idBnHint,
+                Id = idBtnHint,
                 Text = "Hint",
                 LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent)
             };
@@ -133,7 +134,7 @@ namespace WordamentAndroid
                 {
                 }
             };
-            ((RelativeLayout.LayoutParams)(txtTimer.LayoutParameters)).AddRule(LayoutRules.RightOf, idBnHint);
+            ((RelativeLayout.LayoutParams)(txtTimer.LayoutParameters)).AddRule(LayoutRules.RightOf, idBtnHint);
             mainLayout.AddView(txtTimer);
 
             // status, wrdsofar, timer, hint, row,col,  (longword? length)
@@ -173,9 +174,21 @@ namespace WordamentAndroid
             grd.LayoutParameters = rpg;
 
             mainLayout.AddView(grd);
+
+            ListView lstResults = new ListView(this)
+            {
+                Id= idLstResults,
+                LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MatchParent, RelativeLayout.LayoutParams.WrapContent),
+                FastScrollEnabled=true
+            };
+            mainLayout.AddView(lstResults);
+            ((RelativeLayout.LayoutParams)(lstResults.LayoutParameters)).AddRule(LayoutRules.Below, idGrd);
+
+
             var IsShowingResult = true;
             var fdidFinish = false;
             Task<List<Dictionary<string, LetterList>>> taskGetResultsAsync = null;
+            List<Dictionary<string, LetterList>> lstDictResults = null;
             var dtLastHInt = DateTime.Now;
             var nLastHintNum = 0;
             btnHint.Click += async (o, e) =>
@@ -198,17 +211,21 @@ namespace WordamentAndroid
 
             var timerEnabled = false;
             CancellationTokenSource cts = null;
-            async void Showresults()
+            void Showresults()
             {
                 cts?.Cancel();
                 btnHint.Enabled = false;
                 fdidFinish = false;
                 IsShowingResult = true;
                 timerEnabled = false;
-                btnNew.Text = "Calculating...";
-                var res = await taskGetResultsAsync;
-                taskGetResultsAsync = null;
-                // show the results
+                btnNew.Text = "Calc...";
+                var scoreAdapter = new WordScoreAdapter(lstDictResults[0]);
+                lstResults.Adapter = scoreAdapter;
+                lstResults.ItemClick += (o, e) =>
+                {
+                    //Android.Widget.Toast.MakeText(this, res1[e.Position].ToString(), Android.Widget.ToastLength.Long).Show();
+                };
+
                 btnNew.Text = "New";
             }
 
@@ -225,7 +242,9 @@ namespace WordamentAndroid
                         await taskGetResultsAsync;
                         taskGetResultsAsync = null;
                     }
+                    lstDictResults = null;
                     nLastHintNum = 0;
+                    lstResults.Adapter = null;
                     btnNew.Text = "Results";
                     grd.RemoveAllViews();
                     txtWordSoFar.Text = string.Empty;
@@ -254,6 +273,7 @@ namespace WordamentAndroid
                     btnHint.Enabled = false;
                     taskGetResultsAsync = GetResultsAsync();
                     await taskGetResultsAsync;
+                    lstDictResults = taskGetResultsAsync.Result;
                     btnNew.Enabled = true;
                     await Task.Delay(TimeSpan.FromSeconds(_HintDelay));
                     btnHint.Enabled = true;
@@ -688,6 +708,72 @@ namespace WordamentAndroid
                     return true;
             }
             return false;
+        }
+
+        public class WordScore
+        {
+            public string Word { get; set; }
+            public int Points { get; set; }
+            public LetterList LtrList { get; set; }
+            public override string ToString()
+            {
+                return $"{Word} |{Points}";
+            }
+        }
+        public class WordScoreAdapter : BaseAdapter<WordScore>
+        {
+            public List<WordScore> _lst;
+            public WordScoreAdapter(Dictionary<string,LetterList> result)
+            {
+                var listWords = from kvp in result
+                                orderby kvp.Value.Points descending
+                                select new
+                                {
+                                    Word = kvp.Key,
+                                    Pts = kvp.Value.Points,
+                                    ltrList = kvp.Value
+                                };
+                _lst = new List<WordScore>();
+                foreach (var w in listWords)
+                {
+                    _lst.Add(new WordScore()
+                    {
+                        Word=w.Word,
+                        Points= w.Pts,
+                        LtrList= w.ltrList
+
+                    });
+                }
+            }
+            public override WordScore this[int position] => _lst[position];
+
+            public override int Count => _lst.Count;
+
+            public override long GetItemId(int position)
+            {
+                return position;
+            }
+
+            public override View GetView(int position, View convertView, ViewGroup parent)
+            {
+                var viewRow = convertView;
+                try
+                {
+                    if (viewRow == null)
+                    {
+                        viewRow = LayoutInflater.From(parent.Context).Inflate(Resource.Layout.ResultsRow, parent, attachToRoot: false);
+                        var txtWord = viewRow.FindViewById<TextView>(Resource.Id.textViewWord);
+                        txtWord.Text = _lst[position].Word;
+                        var txtPoints = viewRow.FindViewById<TextView>(Resource.Id.textViewPoints);
+                        txtPoints.Text = _lst[position].Points.ToString();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(ex.ToString());
+                }
+                return viewRow;
+            }
         }
 
         public class RandLetterGenerator
