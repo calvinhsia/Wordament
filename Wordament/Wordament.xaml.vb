@@ -187,37 +187,22 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         End If
                     End If
                 End Sub
-            AddHandler btnNew.Click,
-                Async Sub()
-                    Dim IsMouseDown As Boolean = False
-                    Dim lamShowResults = Async Sub()
-                                             HintAvailable = False
-                                             fdidFinish = False
-                                             IsMouseDown = False
-                                             isShowingResult = True
-                                             timerEnabled = False
-                                             btnNew.Content = "calculating..."
-                                             Dim res = Await taskGetResultsAsync
-                                             taskGetResultsAsync = Nothing
-                                             ShowResults(res)
-                                             btnNew.Content = "_New"
-                                         End Sub
-                    isShowingResult = Not isShowingResult
-                    If Not isShowingResult Then
-                        fdidFinish = False
-                        If taskGetResultsAsync IsNot Nothing Then
-                            Await taskGetResultsAsync
-                            taskGetResultsAsync = Nothing
-                        End If
-                        nLastHintNum = 0
-                        _spResults.Children.Clear()
-                        btnNew.Content = "_Show Results"
-                        _pnl.Children.Clear()
-                        _gridUni.Children.Clear()
-                        StrWordSoFar = String.Empty
-                        _WrdHighestPointsFound = String.Empty
-                        Dim lstTilesSelected As New List(Of LtrTile)
-                        Dim funcUpdateWordSoFar As Action =
+
+            Dim IsMouseDown As Boolean = False
+            Dim lstTilesSelected As New List(Of LtrTile)
+            Dim lamShowResults = Async Sub()
+                                     HintAvailable = False
+                                     fdidFinish = False
+                                     IsMouseDown = False
+                                     isShowingResult = True
+                                     timerEnabled = False
+                                     btnNew.Content = "calculating..."
+                                     Dim res = Await taskGetResultsAsync
+                                     taskGetResultsAsync = Nothing
+                                     ShowResults(res)
+                                     btnNew.Content = "_New"
+                                 End Sub
+            Dim funcUpdateWordSoFar As Action =
                             Sub()
                                 Dim str = String.Empty
                                 For Each til In lstTilesSelected
@@ -234,7 +219,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                     End If
                                 End If
                             End Sub
-                        Dim funcGetTileUnderMouse As Func(Of MouseEventArgs, LtrTile) =
+            Dim funcGetTileUnderMouse As Func(Of MouseEventArgs, LtrTile) =
                                 Function(ev)
                                     Dim ltrTile As LtrTile = Nothing
                                     ' Determine which tile within grd.ActaulWidth, ActualHeight
@@ -262,36 +247,36 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                     End If
                                     Return ltrTile
                                 End Function
-                        Dim funcClearSelection As Action = Sub()
-                                                               For Each itm In lstTilesSelected
-                                                                   itm.UnSelectTile()
-                                                               Next
-                                                               lstTilesSelected.Clear()
-                                                               funcUpdateWordSoFar()
-                                                               IsMouseDown = False
-                                                           End Sub
+            Dim funcClearSelection As Action = Sub()
+                                                   For Each itm In lstTilesSelected
+                                                       itm.UnSelectTile()
+                                                   Next
+                                                   lstTilesSelected.Clear()
+                                                   funcUpdateWordSoFar()
+                                                   IsMouseDown = False
+                                               End Sub
 
-                        AddHandler _gridUni.MouseDown, Sub(o, ev)
-                                                           'AddStatusMsg($"grd.MouseDown")
-                                                           funcClearSelection()
-                                                           Dim ltrTile = funcGetTileUnderMouse(ev)
-                                                           If ltrTile IsNot Nothing Then
-                                                               If ltrTile._isSelected Then ' already selected
-                                                               Else
-                                                                   ltrTile.SelectTile()
-                                                                   lstTilesSelected.Add(ltrTile)
-                                                                   funcUpdateWordSoFar()
-                                                               End If
-                                                               IsMouseDown = True
-                                                           End If
-                                                       End Sub
-                        AddHandler _gridUni.MouseUp, Sub()
-                                                         If IsMouseDown Then
-                                                             'AddStatusMsg($"grd.MouseUp")
-                                                             funcClearSelection()
-                                                         End If
-                                                     End Sub
-                        AddHandler _gridUni.MouseMove,
+            AddHandler _gridUni.MouseDown, Sub(o, ev)
+                                               'AddStatusMsg($"grd.MouseDown")
+                                               funcClearSelection()
+                                               Dim ltrTile = funcGetTileUnderMouse(ev)
+                                               If ltrTile IsNot Nothing Then
+                                                   If ltrTile._isSelected Then ' already selected
+                                                   Else
+                                                       ltrTile.SelectTile()
+                                                       lstTilesSelected.Add(ltrTile)
+                                                       funcUpdateWordSoFar()
+                                                   End If
+                                                   IsMouseDown = True
+                                               End If
+                                           End Sub
+            AddHandler _gridUni.MouseUp, Sub()
+                                             If IsMouseDown Then
+                                                 'AddStatusMsg($"grd.MouseUp")
+                                                 funcClearSelection()
+                                             End If
+                                         End Sub
+            AddHandler _gridUni.MouseMove,
                                 Sub(o, ev)
                                     'If System.Windows.Input.Mouse.LeftButton = MouseButtonState.Pressed Then
 
@@ -333,10 +318,26 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                         End If
                                     End If
                                 End Sub
-                        AddHandler _gridUni.MouseLeave, Sub()
-                                                            '                                                            funcClearSelection()
-                                                        End Sub
+            AddHandler _gridUni.MouseLeave, Sub()
+                                                '                                                            funcClearSelection()
+                                            End Sub
 
+            AddHandler btnNew.Click,
+                Async Sub()
+                    isShowingResult = Not isShowingResult
+                    If Not isShowingResult Then
+                        fdidFinish = False
+                        If taskGetResultsAsync IsNot Nothing Then
+                            Await taskGetResultsAsync
+                            taskGetResultsAsync = Nothing
+                        End If
+                        nLastHintNum = 0
+                        _spResults.Children.Clear()
+                        btnNew.Content = "_Show Results"
+                        _pnl.Children.Clear()
+                        _gridUni.Children.Clear()
+                        StrWordSoFar = String.Empty
+                        _WrdHighestPointsFound = String.Empty
                         Await FillGridWithTilesAsync(_gridUni)
                         btnNew.IsEnabled = False
                         CountDownTime = 0

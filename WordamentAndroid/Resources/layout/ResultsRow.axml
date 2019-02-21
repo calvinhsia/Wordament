@@ -5,11 +5,13 @@
     android:layout_height="match_parent">
 	<TextView
 		android:text="Text"
-		android:layout_width="wrap_content"
+		android:layout_width="500px"
 		android:layout_height="wrap_content"
 		android:minWidth="25px"
 		android:minHeight="25px"
-		android:id="@+id/textViewWord" />
+		android:id="@+id/textViewWord"
+		android:textSize="40px"
+	/>
 	<TextView
 		android:text="Text2"
 		android:layout_width="wrap_content"
@@ -17,7 +19,8 @@
 		android:layout_alignParentRight="true"
 		android:layout_toRightOf="@id/textViewWord"
 		android:id="@+id/textViewPoints"
-		android:textAlignment="viewEnd"
-		android:paddingHorizontal="20px"  />
+		android:paddingHorizontal="20px"  
+		android:textSize="40px"
+	/>
 
 </RelativeLayout>

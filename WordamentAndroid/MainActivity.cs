@@ -41,7 +41,8 @@ namespace WordamentAndroid
         public const int idTimer = 40;
         public const int idGrd = 50;
         public const int idBtnHint = 60;
-        public const int idLstResults = 70;
+        public const int idLstResults1 = 70;
+        public const int idLstResults2 = 80;
         public bool _IsPaused;
         public LtrTile[,] _arrTiles;
 
@@ -142,7 +143,7 @@ namespace WordamentAndroid
             {
                 Id = idTxtStatus,
                 Text = "\r\n",
-                TextSize = 8,
+                TextSize = 10,
                 LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent)
                 {
                 }
@@ -168,7 +169,6 @@ namespace WordamentAndroid
                 AlignmentMode = GridAlign.Bounds
             };
             grd.SetBackgroundColor(Color.Black);
-            //            await FillGridWithTilesAsync(grd);
             var rpg = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MatchParent, RelativeLayout.LayoutParams.WrapContent);
             rpg.AddRule(LayoutRules.Below, idtxtWordSoFar);
             grd.LayoutParameters = rpg;
@@ -177,32 +177,57 @@ namespace WordamentAndroid
 
             ListView lstResults1 = new ListView(this)
             {
-                Id = idLstResults,
-                LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MatchParent, RelativeLayout.LayoutParams.WrapContent)
+                Id = idLstResults1,
+                LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X/2, RelativeLayout.LayoutParams.WrapContent)
             };
             mainLayout.AddView(lstResults1);
             ((RelativeLayout.LayoutParams)(lstResults1.LayoutParameters)).AddRule(LayoutRules.Below, idGrd);
 
-            WordScoreAdapter scoreAdapter = null;
-            lstResults1.ItemClick += async (o, e) =>
+            ListView lstResults2 = new ListView(this)
             {
-                var wrd = scoreAdapter[e.Position];
-                var ltrLst = wrd.LtrList;
-                var firstTile = _arrTiles[ltrLst[0]._row, ltrLst[0]._col];
-                var saveBackground = firstTile.Background;
-                foreach (var ltr in wrd.LtrList)
+                Id = idLstResults2,
+                LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 2, RelativeLayout.LayoutParams.WrapContent)
+            };
+            mainLayout.AddView(lstResults2);
+            ((RelativeLayout.LayoutParams)(lstResults2.LayoutParameters)).AddRule(LayoutRules.Below, idGrd);
+            ((RelativeLayout.LayoutParams)(lstResults2.LayoutParameters)).AddRule(LayoutRules.RightOf, idLstResults1);
+
+
+            WordScoreAdapter scoreAdapter1 = null;
+            WordScoreAdapter scoreAdapter2 = null;
+            var IsHighlighting = false;
+            async Task DoItemClick(object o, AdapterView.ItemClickEventArgs e, WordScoreAdapter scoreAdapter)
+            {
+                if (!IsHighlighting)
                 {
-                    var tile = _arrTiles[ltr._row, ltr._col];
-                    tile.SetBackgroundColor(Color.Red);
-                    await Task.Delay(400);
-                }
-                await Task.Delay(1000);
-                foreach (var ltr in wrd.LtrList)
-                {
-                    var tile = _arrTiles[ltr._row, ltr._col];
-                    tile.SetBackgroundColor(LtrTile.g_colorBackground);
+                    IsHighlighting = true;
+                    var wrd = scoreAdapter[e.Position];
+                    var ltrLst = wrd.LtrList;
+                    var firstTile = _arrTiles[ltrLst[0]._row, ltrLst[0]._col];
+                    var saveBackground = firstTile.Background;
+                    foreach (var ltr in wrd.LtrList)
+                    {
+                        var tile = _arrTiles[ltr._row, ltr._col];
+                        tile.SetBackgroundColor(Color.Red);
+                        await Task.Delay(400);
+                    }
+                    await Task.Delay(1000);
+                    foreach (var ltr in wrd.LtrList)
+                    {
+                        var tile = _arrTiles[ltr._row, ltr._col];
+                        tile.SetBackgroundColor(LtrTile.g_colorBackground);
+                    }
+                    IsHighlighting = false;
                 }
                 //Android.Widget.Toast.MakeText(this, res1[e.Position].ToString(), Android.Widget.ToastLength.Long).Show();
+            }
+            lstResults1.ItemClick += async (o, e) =>
+            {
+                await DoItemClick(o, e, scoreAdapter1);
+            };
+            lstResults2.ItemClick += async (o, e) =>
+            {
+                await DoItemClick(o, e, scoreAdapter2);
             };
 
 
@@ -240,9 +265,10 @@ namespace WordamentAndroid
                 IsShowingResult = true;
                 timerEnabled = false;
                 btnNew.Text = "Calc...";
-                scoreAdapter = new WordScoreAdapter(this, lstDictResults[0]);
-                lstResults1.Adapter = scoreAdapter;
-
+                scoreAdapter1 = new WordScoreAdapter(this, lstDictResults[0]);
+                scoreAdapter2 = new WordScoreAdapter(this, lstDictResults[1]);
+                lstResults1.Adapter = scoreAdapter1;
+                lstResults2.Adapter = scoreAdapter2;
                 btnNew.Text = "New";
             }
 
@@ -262,6 +288,7 @@ namespace WordamentAndroid
                     lstDictResults = null;
                     nLastHintNum = 0;
                     lstResults1.Adapter = null;
+                    lstResults2.Adapter = null;
                     btnNew.Text = "Results";
                     grd.RemoveAllViews();
                     txtWordSoFar.Text = string.Empty;
