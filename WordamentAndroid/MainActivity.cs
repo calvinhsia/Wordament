@@ -206,7 +206,7 @@ namespace WordamentAndroid
                     {
                         for (int iCol = 0; iCol < _nCols; iCol++)
                         {
-                            if (_arrTiles[iRow,iCol]._IsSelected)
+                            if (_arrTiles[iRow, iCol]._IsSelected)
                             {
                                 _arrTiles[iRow, iCol].UnSelectTile();
                             }
@@ -255,8 +255,15 @@ namespace WordamentAndroid
                   {
                       if (nLastHintNum < _WrdHighestPointsFound.Length - 1)
                       {
+                          if (nLastHintNum == 0)
+                          {
+                              AddStatusMsg($"Hint {nLastHintNum} Length ={_WrdHighestPointsFound.Length}");
+                          }
+                          else
+                          {
+                              AddStatusMsg($"Hint {nLastHintNum} {_WrdHighestPointsFound.Substring(0, nLastHintNum)}");
+                          }
                           nLastHintNum++;
-                          AddStatusMsg($"Hint {nLastHintNum} {_WrdHighestPointsFound.Substring(0, nLastHintNum)}");
                           btnHint.Enabled = false;
                           if (nLastHintNum < _WrdHighestPointsFound.Length - 1)
                           {
@@ -372,7 +379,8 @@ namespace WordamentAndroid
                         cts.Cancel();
                         var res = $"Got answer in {txtTimer.Text} {_WrdHighestPointsFound} Hints={nLastHintNum}";
                         AddStatusMsg(res);
-                        ClearSelection(); // beware recursion
+                        lstTilesSelected.Clear();
+                        //                        ClearSelection(); // beware recursion
                         //Android.App.AlertDialog.Builder alert = new Android.App.AlertDialog.Builder(this);
                         //alert.SetTitle("Calvin's Wordament");
                         //alert.SetMessage(res);
@@ -628,7 +636,7 @@ namespace WordamentAndroid
                                return isGood;
                            }
                            isGood = recurLam(_random.Next(_nRows), _random.Next(_nCols), 0);
-                           AddStatusMsg($"NRecurCalls ={nRecurCalls} WrdLen={randLongWrd.Length}");
+                           //AddStatusMsg($"NRecurCalls ={nRecurCalls} WrdLen={randLongWrd.Length}");
                        }
                    });
             }
