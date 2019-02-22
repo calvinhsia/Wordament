@@ -261,7 +261,7 @@ namespace WordamentAndroid
                           }
                           else
                           {
-                              AddStatusMsg($"Hint {nLastHintNum} {_WrdHighestPointsFound.Substring(0, nLastHintNum)}");
+                              AddStatusMsg($"Hint {nLastHintNum} Length= {_WrdHighestPointsFound.Length} {_WrdHighestPointsFound.Substring(0, nLastHintNum)}");
                           }
                           nLastHintNum++;
                           btnHint.Enabled = false;

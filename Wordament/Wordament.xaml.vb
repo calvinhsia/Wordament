@@ -181,7 +181,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                             If nLastHintNum = 0 Then
                                 AddStatusMsg($"Hint {nLastHintNum} Length= {_WrdHighestPointsFound.Length}")
                             Else
-                                AddStatusMsg($"Hint {nLastHintNum} {_WrdHighestPointsFound.Substring(0, nLastHintNum)}")
+                                AddStatusMsg($"Hint {nLastHintNum} Length= {_WrdHighestPointsFound.Length} {_WrdHighestPointsFound.Substring(0, nLastHintNum)}")
                             End If
                             nLastHintNum += 1
                             HintAvailable = False
@@ -615,7 +615,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         Dim ncurRow = g_Random.Next(_nRows)
                         Dim ncurCol = g_Random.Next(_nCols)
                         isGood = recurLam(ncurRow, ncurCol, 0)
-                        AddStatusMsg($"NRecurCalls= {nCalls} WrdLn={randLongWord.Length}")
+                        'AddStatusMsg($"NRecurCalls= {nCalls} WrdLn={randLongWord.Length}")
                         ' we recurred down and couldn't find a path
                     Loop
                 End Sub)
