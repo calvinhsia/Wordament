@@ -178,7 +178,7 @@ namespace WordamentAndroid
             ListView lstResults1 = new ListView(this)
             {
                 Id = idLstResults1,
-                LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X/2, RelativeLayout.LayoutParams.WrapContent)
+                LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 2, RelativeLayout.LayoutParams.WrapContent)
             };
             mainLayout.AddView(lstResults1);
             ((RelativeLayout.LayoutParams)(lstResults1.LayoutParameters)).AddRule(LayoutRules.Below, idGrd);
@@ -196,11 +196,22 @@ namespace WordamentAndroid
             WordScoreAdapter scoreAdapter1 = null;
             WordScoreAdapter scoreAdapter2 = null;
             var IsHighlighting = false;
-            async Task DoItemClick(object o, AdapterView.ItemClickEventArgs e, WordScoreAdapter scoreAdapter)
+            async Task DoResultItemClick(object o, AdapterView.ItemClickEventArgs e, WordScoreAdapter scoreAdapter)
             {
                 if (!IsHighlighting)
                 {
                     IsHighlighting = true;
+                    btnNew.Enabled = false;
+                    for (int iRow = 0; iRow < _nRows; iRow++) // left over selection from user input
+                    {
+                        for (int iCol = 0; iCol < _nCols; iCol++)
+                        {
+                            if (_arrTiles[iRow,iCol]._IsSelected)
+                            {
+                                _arrTiles[iRow, iCol].UnSelectTile();
+                            }
+                        }
+                    }
                     var wrd = scoreAdapter[e.Position];
                     var ltrLst = wrd.LtrList;
                     var firstTile = _arrTiles[ltrLst[0]._row, ltrLst[0]._col];
@@ -218,16 +229,17 @@ namespace WordamentAndroid
                         tile.SetBackgroundColor(LtrTile.g_colorBackground);
                     }
                     IsHighlighting = false;
+                    btnNew.Enabled = true;
                 }
                 //Android.Widget.Toast.MakeText(this, res1[e.Position].ToString(), Android.Widget.ToastLength.Long).Show();
             }
             lstResults1.ItemClick += async (o, e) =>
             {
-                await DoItemClick(o, e, scoreAdapter1);
+                await DoResultItemClick(o, e, scoreAdapter1);
             };
             lstResults2.ItemClick += async (o, e) =>
             {
-                await DoItemClick(o, e, scoreAdapter2);
+                await DoResultItemClick(o, e, scoreAdapter2);
             };
 
 
@@ -265,15 +277,24 @@ namespace WordamentAndroid
                 IsShowingResult = true;
                 timerEnabled = false;
                 btnNew.Text = "Calc...";
-                scoreAdapter1 = new WordScoreAdapter(this, lstDictResults[0]);
-                scoreAdapter2 = new WordScoreAdapter(this, lstDictResults[1]);
+                var dictCommonResults = lstDictResults[1];
+                var dictObscureResults = lstDictResults[0];
+                foreach (var kvp in dictCommonResults)
+                {
+                    if (dictObscureResults.ContainsKey(kvp.Key))
+                    {
+                        dictObscureResults.Remove(kvp.Key);
+                    }
+                }
+                scoreAdapter1 = new WordScoreAdapter(this, dictCommonResults);
+                scoreAdapter2 = new WordScoreAdapter(this, dictObscureResults);
                 lstResults1.Adapter = scoreAdapter1;
                 lstResults2.Adapter = scoreAdapter2;
                 btnNew.Text = "New";
             }
 
             await BtnNewClick(null, null);
-
+            var gridCanRespond = false;
             async Task BtnNewClick(object o, EventArgs e)
             {
                 IsShowingResult = !IsShowingResult;
@@ -290,9 +311,11 @@ namespace WordamentAndroid
                     lstResults1.Adapter = null;
                     lstResults2.Adapter = null;
                     btnNew.Text = "Results";
+                    gridCanRespond = false;
                     grd.RemoveAllViews();
                     txtWordSoFar.Text = string.Empty;
                     await FillGridWithTilesAsync(grd);
+                    gridCanRespond = true;
                     var nSecondsElapsed = 0;
                     cts = new CancellationTokenSource();
                     var tskTimer = Task.Run(async () =>
@@ -343,17 +366,21 @@ namespace WordamentAndroid
                 txtWordSoFar.Text = txt;
                 if (txt == _WrdHighestPointsFound)
                 {
-                    fdidFinish = true;
-                    cts.Cancel();
-                    var res = $"Got answer in {txtTimer.Text} {_WrdHighestPointsFound} Hints={nLastHintNum}";
-                    AddStatusMsg(res);
-                    //Android.App.AlertDialog.Builder alert = new Android.App.AlertDialog.Builder(this);
-                    //alert.SetTitle("Calvin's Wordament");
-                    //alert.SetMessage(res);
-                    //alert.SetPositiveButton("Ok", (o, e) => { });
-                    //var dlog = alert.Create();
-                    //dlog.Show();
-                    var t = BtnNewClick(null, null);
+                    if (!fdidFinish)
+                    {
+                        fdidFinish = true;
+                        cts.Cancel();
+                        var res = $"Got answer in {txtTimer.Text} {_WrdHighestPointsFound} Hints={nLastHintNum}";
+                        AddStatusMsg(res);
+                        ClearSelection(); // beware recursion
+                        //Android.App.AlertDialog.Builder alert = new Android.App.AlertDialog.Builder(this);
+                        //alert.SetTitle("Calvin's Wordament");
+                        //alert.SetMessage(res);
+                        //alert.SetPositiveButton("Ok", (o, e) => { });
+                        //var dlog = alert.Create();
+                        //dlog.Show();
+                        var t = BtnNewClick(null, null);
+                    }
                 }
             }
             void ClearSelection()
@@ -397,66 +424,77 @@ namespace WordamentAndroid
             }
             grd.Touch += (og, eg) =>
               {
-                  switch (eg.Event.Action)
+                  try
                   {
-                      case MotionEventActions.Down:
-                      case MotionEventActions.Move:
-                          var ltrTile = GetTileFromTouch(eg);
-                          if (ltrTile != null)
+                      if (!IsShowingResult)
+                      {
+                          switch (eg.Event.Action)
                           {
-                              LtrTile priorSelected = null;
-                              if (lstTilesSelected.Count > 0)
-                              {
-                                  priorSelected = lstTilesSelected[lstTilesSelected.Count - 1];
-                              }
-                              if (ltrTile._IsSelected)
-                              {
-                                  if (lstTilesSelected.Count > 1)
+                              case MotionEventActions.Down:
+                              case MotionEventActions.Move:
+                                  var ltrTile = GetTileFromTouch(eg);
+                                  if (ltrTile != null)
                                   {
-                                      var tilePenultimate = lstTilesSelected[lstTilesSelected.Count - 2];
-                                      // AddStatusMsg($"{tilePenultimate} {priorSelected} {ltrTile}");
-                                      if (ltrTile.Row == tilePenultimate.Row && ltrTile.Col == tilePenultimate.Col)
-                                      {// back to prior one
-                                          priorSelected.UnSelectTile();
-                                          lstTilesSelected.RemoveAt(lstTilesSelected.Count - 1);
-                                          UpdateWordSoFar();
-                                      }
-                                  }
-                              }
-                              else
-                              {
-                                  var okToSelect = false;
-                                  if (priorSelected == null)
-                                  {
-                                      okToSelect = true;
-                                  }
-                                  else
-                                  {
-                                      var dist = Math.Pow(priorSelected.Col - ltrTile.Col, 2) + Math.Pow(priorSelected.Row - ltrTile.Row, 2);
-                                      if (dist <= 2)
+                                      LtrTile priorSelected = null;
+                                      if (lstTilesSelected.Count > 0)
                                       {
-                                          okToSelect = true;
+                                          priorSelected = lstTilesSelected[lstTilesSelected.Count - 1];
+                                      }
+                                      if (ltrTile._IsSelected)
+                                      {
+                                          if (lstTilesSelected.Count > 1)
+                                          {
+                                              var tilePenultimate = lstTilesSelected[lstTilesSelected.Count - 2];
+                                              // AddStatusMsg($"{tilePenultimate} {priorSelected} {ltrTile}");
+                                              if (ltrTile.Row == tilePenultimate.Row && ltrTile.Col == tilePenultimate.Col)
+                                              {// back to prior one
+                                                  priorSelected.UnSelectTile();
+                                                  lstTilesSelected.RemoveAt(lstTilesSelected.Count - 1);
+                                                  UpdateWordSoFar();
+                                              }
+                                          }
                                       }
                                       else
                                       {
-                                          //                                          AddStatusMsg($"nosel {priorSelected} {ltrTile} {dist}");
+                                          var okToSelect = false;
+                                          if (priorSelected == null)
+                                          {
+                                              okToSelect = true;
+                                          }
+                                          else
+                                          {
+                                              var dist = Math.Pow(priorSelected.Col - ltrTile.Col, 2) + Math.Pow(priorSelected.Row - ltrTile.Row, 2);
+                                              if (dist <= 2)
+                                              {
+                                                  okToSelect = true;
+                                              }
+                                              else
+                                              {
+                                                  //                                          AddStatusMsg($"nosel {priorSelected} {ltrTile} {dist}");
+                                              }
+                                          }
+                                          if (okToSelect)
+                                          {
+                                              ltrTile.SelectTile();
+                                              lstTilesSelected.Add(ltrTile);
+                                              UpdateWordSoFar();
+                                          }
                                       }
                                   }
-                                  if (okToSelect)
-                                  {
-                                      ltrTile.SelectTile();
-                                      lstTilesSelected.Add(ltrTile);
-                                      UpdateWordSoFar();
-                                  }
-                              }
-                          }
-                          break;
+                                  break;
 
-                      case MotionEventActions.Up:
-                          ClearSelection();
-                          break;
-                      case MotionEventActions.Outside:
-                          break;
+                              case MotionEventActions.Up:
+                                  ClearSelection();
+                                  break;
+                              case MotionEventActions.Outside:
+                                  break;
+                          }
+                      }
+
+                  }
+                  catch (Exception ex)
+                  {
+                      AddStatusMsg($"GRD {ex.ToString()}");
                   }
               };
 

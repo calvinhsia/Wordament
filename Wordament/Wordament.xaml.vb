@@ -85,6 +85,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
     Private Shared _txtStatus As TextBox
     Private _gridUni As UniformGrid
+    Private _gridUniCanRespond As Boolean
     Private _spResults As StackPanel
     Private _seed As Integer
     Private _randLetGenerator As RandLetterGenerator
@@ -222,27 +223,29 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             Dim funcGetTileUnderMouse As Func(Of MouseEventArgs, LtrTile) =
                                 Function(ev)
                                     Dim ltrTile As LtrTile = Nothing
-                                    ' Determine which tile within grd.ActaulWidth, ActualHeight
-                                    Dim pos = ev.GetPosition(_gridUni)
-                                    Dim elem = _gridUni.InputHitTest(pos)
-                                    If elem IsNot Nothing AndAlso elem IsNot _gridUni Then
-                                        Do While elem.GetType <> GetType(LtrTile)
-                                            elem = CType(elem, FrameworkElement).Parent
-                                        Loop
-                                        ltrTile = CType(elem, LtrTile)
-                                    End If
-                                    If (ltrTile IsNot Nothing) Then
-                                        ' Using hittest makes the corners of tiles active, causing diagonals to be difficult
-                                        ' with fat fingers, so make a tile "hit" smaller than the tile
-                                        ' calculate position of center of tile, and distance from mouse
-                                        Dim pixX = pos.X / _gridUni.ActualWidth
-                                        Dim pixY = pos.Y / _gridUni.ActualHeight
-                                        Dim ctrX = ltrTile._col * _gridUni.ActualWidth / _nCols + ltrTile.ActualWidth / 2
-                                        Dim ctrY = ltrTile._row * _gridUni.ActualHeight / _nRows + ltrTile.ActualHeight / 2
-                                        Dim distToCtrOfTileSquared = Math.Pow((pos.X - ctrX), 2) + Math.Pow((pos.Y - ctrY), 2)
-                                        'AddStatusMsg($"x={pos.X:n2} y={pos.Y:n2}  {distToCtrOfTileSquared:n0}  {ltrTile}")
-                                        If (distToCtrOfTileSquared > ltrTile.ActualHeight * ltrTile.ActualWidth / 6) Then
-                                            ltrTile = Nothing
+                                    If _gridUniCanRespond Then
+                                        ' Determine which tile within grd.ActaulWidth, ActualHeight
+                                        Dim pos = ev.GetPosition(_gridUni)
+                                        Dim elem = _gridUni.InputHitTest(pos)
+                                        If elem IsNot Nothing AndAlso elem IsNot _gridUni Then
+                                            Do While elem.GetType <> GetType(LtrTile)
+                                                elem = CType(elem, FrameworkElement).Parent
+                                            Loop
+                                            ltrTile = CType(elem, LtrTile)
+                                        End If
+                                        If (ltrTile IsNot Nothing) Then
+                                            ' Using hittest makes the corners of tiles active, causing diagonals to be difficult
+                                            ' with fat fingers, so make a tile "hit" smaller than the tile
+                                            ' calculate position of center of tile, and distance from mouse
+                                            Dim pixX = pos.X / _gridUni.ActualWidth
+                                            Dim pixY = pos.Y / _gridUni.ActualHeight
+                                            Dim ctrX = ltrTile._col * _gridUni.ActualWidth / _nCols + ltrTile.ActualWidth / 2
+                                            Dim ctrY = ltrTile._row * _gridUni.ActualHeight / _nRows + ltrTile.ActualHeight / 2
+                                            Dim distToCtrOfTileSquared = Math.Pow((pos.X - ctrX), 2) + Math.Pow((pos.Y - ctrY), 2)
+                                            'AddStatusMsg($"x={pos.X:n2} y={pos.Y:n2}  {distToCtrOfTileSquared:n0}  {ltrTile}")
+                                            If (distToCtrOfTileSquared > ltrTile.ActualHeight * ltrTile.ActualWidth / 6) Then
+                                                ltrTile = Nothing
+                                            End If
                                         End If
                                     End If
                                     Return ltrTile
@@ -335,10 +338,12 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         _spResults.Children.Clear()
                         btnNew.Content = "_Show Results"
                         _pnl.Children.Clear()
+                        _gridUniCanRespond = False
                         _gridUni.Children.Clear()
                         StrWordSoFar = String.Empty
                         _WrdHighestPointsFound = String.Empty
                         Await FillGridWithTilesAsync(_gridUni)
+                        _gridUniCanRespond = True
                         btnNew.IsEnabled = False
                         CountDownTime = 0
                         timerEnabled = True
@@ -382,7 +387,14 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     Sub ShowResults(results As List(Of Dictionary(Of String, LetterList)))
         Dim dictnum = 0
         _spResults.Children.Clear()
-        For Each result In results
+        Dim dictCommonResults = results(1) 'small dict
+        Dim dictObsureResults = results(0) 'large dict
+        For Each kvp In dictCommonResults
+            If dictObsureResults.ContainsKey(kvp.Key) Then
+                dictObsureResults.Remove(kvp.Key)
+            End If
+        Next
+        For Each result In {dictCommonResults, dictObsureResults}
             dictnum += 1
             Dim spSingleResult = New StackPanel() With {.Orientation = Orientation.Vertical}
             _spResults.Children.Add(spSingleResult)
@@ -422,6 +434,14 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                     If lv.SelectedItems.Count > 0 Then
                         If Not fInHandler Then
                             fInHandler = True
+                            ' the 1st time through, there might be some tiles selected from user
+                            For iRow = 0 To _nRows - 1
+                                For iCol = 0 To _nCols - 1
+                                    If _arrTiles(iRow, iCol)._isSelected Then
+                                        _arrTiles(iRow, iCol).UnSelectTile()
+                                    End If
+                                Next
+                            Next
                             Dim itm = lv.SelectedItems(0)
                             Dim tdesc = TypeDescriptor.GetProperties(itm)
                             Dim ltrLst = CType(tdesc("lst").GetValue(itm), LetterList)
