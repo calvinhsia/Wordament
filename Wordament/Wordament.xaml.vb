@@ -7,7 +7,7 @@ Imports DictionaryLib
 
 Class WordamentWindow : Implements INotifyPropertyChanged
 
-    '.......................................... A  B  C  D  E  F  G  H  I  J   K  L  M  N  O  P  Q   R  S  T  U  V  W  X  Y  Z
+    '........................................... A  B  C  D  E  F  G  H  I  J   K  L  M  N  O  P  Q   R  S  T  U  V  W  X  Y  Z
     Public Shared g_LetterValues() As Integer = {2, 5, 3, 3, 1, 5, 4, 4, 2, 10, 6, 3, 2, 2, 2, 4, 12, 2, 2, 2, 2, 4, 6, 9, 5, 8}
     Public Shared g_Random As Random
 
@@ -177,7 +177,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             AddHandler btnHint.Click,
                 Async Sub()
                     If taskGetResultsAsync?.IsCompleted Then
-                        If (nLastHintNum < _WrdHighestPointsFound.Length - 1) Then
+                        If (nLastHintNum < _WrdHighestPointsFound.Length) Then
                             If nLastHintNum = 0 Then
                                 AddStatusMsg($"Hint {nLastHintNum} Length= {_WrdHighestPointsFound.Length}")
                             Else
@@ -656,7 +656,11 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                Dim oneresult = CalcWordList(dictnum)
                                res.Add(oneresult)
                                If (CType(dictnum, DictionaryLib.DictionaryType) = DictionaryType.Large) Then
-                                   Dim max = oneresult.OrderByDescending(Function(kvp) kvp.Value.Points).FirstOrDefault
+                                   Dim max = oneresult.
+                                        Where(Function(kvp) kvp.Key.Length >= _nMinWordLen).
+                                        OrderByDescending(Function(kvp) kvp.Key.Length).
+                                        ThenByDescending(Function(kvp) kvp.Value.Points).
+                                        FirstOrDefault
                                    _WrdHighestPointsFound = max.Value.Word
                                End If
                            Next
@@ -670,16 +674,15 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         Dim spellDict = New DictionaryLib.DictionaryLib(dictnum, g_Random)
         Dim resultWords = New Dictionary(Of String, LetterList)
         Dim arrVisited(_nRows - 1, _nCols - 1)
-        Dim VisitCell As Action(Of Integer, Integer, String, Integer, LetterList)
+        Dim VisitCell As Action(Of Integer, Integer, String, LetterList)
         Dim nVisits = 0
         Dim nLookups = 0
-        VisitCell = Sub(iRow As Integer, iCol As Integer, wordSoFar As String, ptsSoFar As Integer, ltrList As LetterList)
+        VisitCell = Sub(iRow As Integer, iCol As Integer, wordSoFar As String, ltrList As LetterList)
                         nVisits += 1
                         If iRow >= 0 AndAlso iCol >= 0 AndAlso iRow < _nRows AndAlso iCol < _nCols Then
                             Dim ltr = _arrTiles(iRow, iCol)
                             If Not arrVisited(iRow, iCol) Then
                                 wordSoFar += ltr._letter._letter.ToLower
-                                ptsSoFar += ltr._pts
                                 ltrList.Add(_arrTiles(iRow, iCol)._letter)
                                 If wordSoFar.Length >= 3 Then
                                     Dim compResult = 0
@@ -687,17 +690,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                     Dim isPartial = spellDict.SeekWord(wordSoFar, compResult)
                                     If Not String.IsNullOrEmpty(isPartial) AndAlso compResult = 0 Then
                                         If Not resultWords.ContainsKey(wordSoFar.ToUpper()) Then
-                                            Dim pts As Double = ptsSoFar
-                                            If wordSoFar.Length >= 5 Then
-                                                If wordSoFar.Length = 5 Then
-                                                    pts *= 1.5
-                                                ElseIf wordSoFar.Length < 8 Then
-                                                    pts *= 2
-                                                Else
-                                                    pts *= 2.5
-                                                End If
-                                            End If
-                                            resultWords.Add(wordSoFar.ToUpper(), New LetterList(ltrList, pts)) ' needs to be a copy
+                                            resultWords.Add(wordSoFar.ToUpper(), New LetterList(ltrList)) ' needs to be a copy
                                         End If
                                     Else
                                         ' not in dict so far: let's see if it's a partial match
@@ -708,14 +701,14 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                     End If
                                 End If
                                 arrVisited(iRow, iCol) = True
-                                VisitCell(iRow - 1, iCol - 1, wordSoFar, ptsSoFar, ltrList)
-                                VisitCell(iRow - 1, iCol, wordSoFar, ptsSoFar, ltrList)
-                                VisitCell(iRow - 1, iCol + 1, wordSoFar, ptsSoFar, ltrList)
-                                VisitCell(iRow, iCol - 1, wordSoFar, ptsSoFar, ltrList)
-                                VisitCell(iRow, iCol + 1, wordSoFar, ptsSoFar, ltrList)
-                                VisitCell(iRow + 1, iCol - 1, wordSoFar, ptsSoFar, ltrList)
-                                VisitCell(iRow + 1, iCol, wordSoFar, ptsSoFar, ltrList)
-                                VisitCell(iRow + 1, iCol + 1, wordSoFar, ptsSoFar, ltrList)
+                                VisitCell(iRow - 1, iCol - 1, wordSoFar, ltrList)
+                                VisitCell(iRow - 1, iCol, wordSoFar, ltrList)
+                                VisitCell(iRow - 1, iCol + 1, wordSoFar, ltrList)
+                                VisitCell(iRow, iCol - 1, wordSoFar, ltrList)
+                                VisitCell(iRow, iCol + 1, wordSoFar, ltrList)
+                                VisitCell(iRow + 1, iCol - 1, wordSoFar, ltrList)
+                                VisitCell(iRow + 1, iCol, wordSoFar, ltrList)
+                                VisitCell(iRow + 1, iCol + 1, wordSoFar, ltrList)
                                 ltrList.RemoveAt(ltrList.Count - 1)
                                 arrVisited(iRow, iCol) = False
                             End If
@@ -724,7 +717,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
         For iRow = 0 To _nRows - 1
             For iCol = 0 To _nCols - 1
-                VisitCell(iRow, iCol, String.Empty, 0, New LetterList)
+                VisitCell(iRow, iCol, String.Empty, New LetterList)
             Next
         Next
         'AddStatusMsg($"{dictnum} nvisits={nVisits} nlookups= {nLookups}")
@@ -736,20 +729,28 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         Public Sub New()
             MyBase.New()
         End Sub
-        Private ReadOnly _pts As Integer
-        Public Sub New(ByVal lst As LetterList, ByVal pts As Integer)
+        Public Sub New(ByVal lst As LetterList)
             MyBase.New()
-            _pts = pts
             Me.AddRange(lst)
         End Sub
 
         Public ReadOnly Property Points As Integer
             Get
-                Dim num = _pts
+                Dim pts = 0
+                For Each ltr In Me
+                    pts += ltr._pts
+                Next
+                If (Me.Count >= 5) Then
+                    If (Me.Count <= 8) Then
+                        pts = CInt(1.5 * pts)
+                    Else
+                        pts = pts * 2
+                    End If
+                End If
                 'If _pts = 0 Then
                 '    num = Aggregate a In Me Select a._pts Into Sum()
                 'End If
-                Return num
+                Return pts
             End Get
         End Property
         Public ReadOnly Property Word As String

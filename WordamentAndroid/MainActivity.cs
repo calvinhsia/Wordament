@@ -195,6 +195,7 @@ namespace WordamentAndroid
 
             WordScoreAdapter scoreAdapter1 = null;
             WordScoreAdapter scoreAdapter2 = null;
+            var gridCanRespondToTouch = false;
             var IsHighlighting = false;
             async Task DoResultItemClick(object o, AdapterView.ItemClickEventArgs e, WordScoreAdapter scoreAdapter)
             {
@@ -202,6 +203,7 @@ namespace WordamentAndroid
                 {
                     IsHighlighting = true;
                     btnNew.Enabled = false;
+                    gridCanRespondToTouch = false;
                     for (int iRow = 0; iRow < _nRows; iRow++) // left over selection from user input
                     {
                         for (int iCol = 0; iCol < _nCols; iCol++)
@@ -230,6 +232,7 @@ namespace WordamentAndroid
                     }
                     IsHighlighting = false;
                     btnNew.Enabled = true;
+                    gridCanRespondToTouch = true;
                 }
                 //Android.Widget.Toast.MakeText(this, res1[e.Position].ToString(), Android.Widget.ToastLength.Long).Show();
             }
@@ -244,7 +247,7 @@ namespace WordamentAndroid
 
 
             var IsShowingResult = true;
-            var fdidFinish = false;
+            var fdidGetLongWord = false;
             Task<List<Dictionary<string, LetterList>>> taskGetResultsAsync = null;
             List<Dictionary<string, LetterList>> lstDictResults = null;
             var dtLastHInt = DateTime.Now;
@@ -253,7 +256,7 @@ namespace WordamentAndroid
               {
                   if (taskGetResultsAsync != null && taskGetResultsAsync.IsCompleted)
                   {
-                      if (nLastHintNum < _WrdHighestPointsFound.Length - 1)
+                      if (nLastHintNum < _WrdHighestPointsFound.Length)
                       {
                           if (nLastHintNum == 0)
                           {
@@ -280,7 +283,6 @@ namespace WordamentAndroid
             {
                 cts?.Cancel();
                 btnHint.Enabled = false;
-                fdidFinish = false;
                 IsShowingResult = true;
                 timerEnabled = false;
                 btnNew.Text = "Calc...";
@@ -301,13 +303,12 @@ namespace WordamentAndroid
             }
 
             await BtnNewClick(null, null);
-            var gridCanRespond = false;
             async Task BtnNewClick(object o, EventArgs e)
             {
                 IsShowingResult = !IsShowingResult;
                 if (!IsShowingResult)
                 {
-                    fdidFinish = false;
+                    fdidGetLongWord = false;
                     if (taskGetResultsAsync != null)
                     {
                         await taskGetResultsAsync;
@@ -318,11 +319,11 @@ namespace WordamentAndroid
                     lstResults1.Adapter = null;
                     lstResults2.Adapter = null;
                     btnNew.Text = "Results";
-                    gridCanRespond = false;
+                    gridCanRespondToTouch = false;
                     grd.RemoveAllViews();
                     txtWordSoFar.Text = string.Empty;
                     await FillGridWithTilesAsync(grd);
-                    gridCanRespond = true;
+                    gridCanRespondToTouch = true;
                     var nSecondsElapsed = 0;
                     cts = new CancellationTokenSource();
                     var tskTimer = Task.Run(async () =>
@@ -373,20 +374,19 @@ namespace WordamentAndroid
                 txtWordSoFar.Text = txt;
                 if (txt == _WrdHighestPointsFound)
                 {
-                    if (!fdidFinish)
+                    if (!fdidGetLongWord)
                     {
-                        fdidFinish = true;
+                        fdidGetLongWord = true;
                         cts.Cancel();
-                        var res = $"Got answer in {txtTimer.Text} {_WrdHighestPointsFound} Hints={nLastHintNum}";
+                        var res = $"Got answer in {txtTimer.Text} {_WrdHighestPointsFound} Seconds. Hints={nLastHintNum}";
                         AddStatusMsg(res);
-                        lstTilesSelected.Clear();
                         //                        ClearSelection(); // beware recursion
-                        //Android.App.AlertDialog.Builder alert = new Android.App.AlertDialog.Builder(this);
-                        //alert.SetTitle("Calvin's Wordament");
-                        //alert.SetMessage(res);
-                        //alert.SetPositiveButton("Ok", (o, e) => { });
-                        //var dlog = alert.Create();
-                        //dlog.Show();
+                        Android.App.AlertDialog.Builder alert = new Android.App.AlertDialog.Builder(this);
+                        alert.SetTitle("Calvin's Wordament");
+                        alert.SetMessage(res);
+                        alert.SetPositiveButton("Ok", (o, e) => { });
+                        var dlog = alert.Create();
+                        dlog.Show();
                         var t = BtnNewClick(null, null);
                     }
                 }
@@ -410,9 +410,9 @@ namespace WordamentAndroid
                     X = (int)eg.Event.RawX - locg[0],
                     Y = (int)eg.Event.RawY - locg[1]
                 };
+                LtrTile tile = null;
                 var col = (int)((ptRel.X) * _nCols / grd.Width);
                 var row = (int)((ptRel.Y) * _nRows / grd.Height);
-                LtrTile tile = null;
                 if (col >= 0 && col < _nCols && row >= 0 && row < _nRows)
                 {
                     tile = _arrTiles[row, col];
@@ -434,11 +434,13 @@ namespace WordamentAndroid
               {
                   try
                   {
-                      if (!IsShowingResult)
+                      if (gridCanRespondToTouch)
                       {
                           switch (eg.Event.Action)
                           {
                               case MotionEventActions.Down:
+                                  ClearSelection();
+                                  goto case MotionEventActions.Move;
                               case MotionEventActions.Move:
                                   var ltrTile = GetTileFromTouch(eg);
                                   if (ltrTile != null)
@@ -683,7 +685,11 @@ namespace WordamentAndroid
                     res.Add(oneresult);
                     if (dictnum == DictionaryLib.DictionaryType.Large)
                     {
-                        _WrdHighestPointsFound = oneresult.OrderByDescending(kvp => kvp.Value.Points).FirstOrDefault().Value.Word;
+                        _WrdHighestPointsFound = oneresult
+                            .Where(kvp => kvp.Key.Length >= _nMinWordLen)
+                            .OrderByDescending(kvp => kvp.Key.Length)
+                            .ThenByDescending(kvp=>kvp.Value.Points)
+                            .FirstOrDefault().Value.Word;
                     }
                 }
             });
@@ -695,7 +701,7 @@ namespace WordamentAndroid
             var resultWords = new Dictionary<string, LetterList>();
             var spellDict = new DictionaryLib.DictionaryLib(dictnum, _random);
             bool[,] arrVisited = new bool[_nRows, _nCols];
-            void VisitCell(int iRow, int iCol, string wordSoFar, int ptsSoFar, LetterList ltrList)
+            void VisitCell(int iRow, int iCol, string wordSoFar, LetterList ltrList)
             {
                 if (iRow >= 0 && iCol >= 0 && iRow < _nRows && iCol < _nCols)
                 {
@@ -703,7 +709,6 @@ namespace WordamentAndroid
                     if (!arrVisited[iRow, iCol])
                     {
                         wordSoFar += ltr.Letter.ToLower();
-                        ptsSoFar += ltr.Points;
                         ltrList.Add(_arrTiles[iRow, iCol]._letter);
                         if (wordSoFar.Length >= 3)
                         {
@@ -712,20 +717,7 @@ namespace WordamentAndroid
                             {
                                 if (!resultWords.ContainsKey(wordSoFar.ToUpper()))
                                 {
-                                    double pts = ptsSoFar;
-                                    if (wordSoFar.Length >= 5)
-                                    {
-                                        pts *= 1.5;
-                                    }
-                                    else if (wordSoFar.Length < 8)
-                                    {
-                                        pts *= 2;
-                                    }
-                                    else
-                                    {
-                                        pts *= 2.5;
-                                    }
-                                    resultWords.Add(wordSoFar.ToUpper(), new LetterList(ltrList, (int)pts));
+                                    resultWords.Add(wordSoFar.ToUpper(), new LetterList(ltrList));
                                 }
                             }
                             else
@@ -738,14 +730,14 @@ namespace WordamentAndroid
                             }
                         }
                         arrVisited[iRow, iCol] = true;
-                        VisitCell(iRow - 1, iCol - 1, wordSoFar, ptsSoFar, ltrList);
-                        VisitCell(iRow - 1, iCol, wordSoFar, ptsSoFar, ltrList);
-                        VisitCell(iRow - 1, iCol + 1, wordSoFar, ptsSoFar, ltrList);
-                        VisitCell(iRow, iCol - 1, wordSoFar, ptsSoFar, ltrList);
-                        VisitCell(iRow, iCol + 1, wordSoFar, ptsSoFar, ltrList);
-                        VisitCell(iRow + 1, iCol - 1, wordSoFar, ptsSoFar, ltrList);
-                        VisitCell(iRow + 1, iCol, wordSoFar, ptsSoFar, ltrList);
-                        VisitCell(iRow + 1, iCol + 1, wordSoFar, ptsSoFar, ltrList);
+                        VisitCell(iRow - 1, iCol - 1, wordSoFar, ltrList);
+                        VisitCell(iRow - 1, iCol, wordSoFar, ltrList);
+                        VisitCell(iRow - 1, iCol + 1, wordSoFar, ltrList);
+                        VisitCell(iRow, iCol - 1, wordSoFar, ltrList);
+                        VisitCell(iRow, iCol + 1, wordSoFar, ltrList);
+                        VisitCell(iRow + 1, iCol - 1, wordSoFar, ltrList);
+                        VisitCell(iRow + 1, iCol, wordSoFar, ltrList);
+                        VisitCell(iRow + 1, iCol + 1, wordSoFar, ltrList);
                         ltrList.RemoveAt(ltrList.Count - 1);
                         arrVisited[iRow, iCol] = false;
                     }
@@ -755,7 +747,7 @@ namespace WordamentAndroid
             {
                 for (int iCol = 0; iCol < _nCols; iCol++)
                 {
-                    VisitCell(iRow, iCol, string.Empty, 0, new LetterList());
+                    VisitCell(iRow, iCol, string.Empty, new LetterList());
                 }
             }
             return resultWords;
@@ -892,12 +884,26 @@ namespace WordamentAndroid
 
         public class LetterList : List<SimpleLetter>
         {
-            readonly int _pts;
             public int Points
             {
                 get
                 {
-                    var pts = _pts;
+                    var pts = 0;
+                    foreach (var letr in this)
+                    {
+                        pts += letr._pts;
+                    }
+                    if (this.Count >= 5)
+                    {
+                        if (this.Count <= 8)
+                        {
+                            pts = (int)(pts * 1.5);
+                        }
+                        else
+                        {
+                            pts *= 2;
+                        }
+                    }
                     return pts;
                 }
             }
@@ -905,10 +911,9 @@ namespace WordamentAndroid
             {
 
             }
-            public LetterList(LetterList lst, int pts)
+            public LetterList(LetterList lst)
             {
                 this.AddRange(lst);
-                this._pts = pts;
             }
             public string Word
             {
