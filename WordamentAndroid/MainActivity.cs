@@ -1,5 +1,6 @@
 ﻿using Android.App;
 using Android.Content;
+using Android.Content.Res;
 using Android.Graphics;
 using Android.OS;
 using Android.Runtime;
@@ -17,7 +18,11 @@ using System.Threading.Tasks;
 
 namespace WordamentAndroid
 {
-    [Activity(Label = "@string/app_name", Theme = "@style/AppTheme", MainLauncher = true)]
+    [Activity(
+        Label = "@string/app_name",
+        Theme = "@style/AppTheme",
+        ConfigurationChanges = Android.Content.PM.ConfigChanges.Orientation | Android.Content.PM.ConfigChanges.ScreenSize | Android.Content.PM.ConfigChanges.KeyboardHidden, // prevent Activity restart,OnCreate called on Rotation
+        MainLauncher = true)]
     public class MainActivity : AppCompatActivity, BottomNavigationView.IOnNavigationItemSelectedListener
     {
         TextView txtStatus;
@@ -32,7 +37,7 @@ namespace WordamentAndroid
         public static int[] g_LetterValues = { 2, 5, 3, 3, 1, 5, 4, 4, 2, 10, 6, 3, 2, 2, 2, 4, 12, 2, 2, 2, 2, 4, 6, 9, 5, 8 };
         public static int _nCols = 4;
         public static int _nRows = 4;
-        public static int _HintDelay = 2;
+        public static int _HintDelay = 1;
         public int _nMinWordLen = 12;
         public bool _IsLongWord = true;
         public const int idBtnNew = 10;
@@ -46,12 +51,10 @@ namespace WordamentAndroid
         public bool _IsPaused;
         public LtrTile[,] _arrTiles;
 
-        public static Point _ptScreenSize = new Point(); // X = 1440, Y = 2792
+        public static Point _ptScreenSize = new Point(); // Samsung Galaxy 9Plus : X = 1440, Y = 2792   GetRealSize x=1440, y=2960
 
-        List<string> lstStatusLines = new List<string>();
         public void AddStatusMsg(string str)
         {
-
             if (Thread.CurrentThread.ManagedThreadId != _mainThread)
             {
                 RunOnUiThread(AddStatMsg);
@@ -64,13 +67,13 @@ namespace WordamentAndroid
             {
                 if (txtStatus != null)
                 {
-                    while (lstStatusLines.Count > 1)
+                    var txt = $"\n{DateTime.Now.ToString("hh:mm:ss:fff")} {str}";
+                    if (!string.IsNullOrEmpty(txtStatus.Text))
                     {
-                        lstStatusLines.RemoveAt(0);
+                        txt = txtStatus.Text + txt;
                     }
-                    var txt = $"{DateTime.Now.ToString("hh:mm:ss:fff")} {str}";
-                    lstStatusLines.Add(txt);
-                    txtStatus.Text = lstStatusLines[0] + "\r\n" + (lstStatusLines.Count > 1 ? lstStatusLines[1] : string.Empty);
+                    txtStatus.SetText(txt, TextView.BufferType.Normal);
+                    //                    txtStatus.Text = txt;
                 }
             }
         }
@@ -87,6 +90,17 @@ namespace WordamentAndroid
             //AddStatusMsg($"Resume");
             this._IsPaused = false;
         }
+        public override void OnConfigurationChanged(Configuration newConfig)
+        {
+            base.OnConfigurationChanged(newConfig);
+            switch(newConfig.Orientation)
+            {
+                case Android.Content.Res.Orientation.Landscape:
+                    break;
+                case Android.Content.Res.Orientation.Portrait:
+                    break;
+            }
+        }
         protected override async void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
@@ -101,9 +115,10 @@ namespace WordamentAndroid
                 seed = System.Environment.TickCount;
             }
             _random = new Random(seed);
-            //            var spellDict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small, _random);
             _randLetterGenerator = new RandLetterGenerator();
+
             WindowManager.DefaultDisplay.GetSize(_ptScreenSize);
+            // when rotating to the right,  WindowManager.DefaultDisplay.Rotation == Rotation270.
             SetContentView(Resource.Layout.activity_main);
 
             var mainLayout = FindViewById<RelativeLayout>(Resource.Id.container);
@@ -144,10 +159,14 @@ namespace WordamentAndroid
                 Id = idTxtStatus,
                 Text = "\r\n",
                 TextSize = 10,
-                LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent)
+                VerticalScrollBarEnabled = true,
+                Gravity =  GravityFlags.Bottom,
+                LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, 100)
                 {
                 }
             };
+            txtStatus.SetMaxLines(2);
+            txtStatus.MovementMethod = Android.Text.Method.ScrollingMovementMethod.Instance;
             ((RelativeLayout.LayoutParams)(txtStatus.LayoutParameters)).AddRule(LayoutRules.Below, idBtnNew);
             mainLayout.AddView(txtStatus);
 
@@ -191,7 +210,8 @@ namespace WordamentAndroid
             mainLayout.AddView(lstResults2);
             ((RelativeLayout.LayoutParams)(lstResults2.LayoutParameters)).AddRule(LayoutRules.Below, idGrd);
             ((RelativeLayout.LayoutParams)(lstResults2.LayoutParameters)).AddRule(LayoutRules.RightOf, idLstResults1);
-
+            AddStatusMsg($"{_ptScreenSize.X} {_ptScreenSize.Y}");
+            AddStatusMsg($"ff{WindowManager.DefaultDisplay.Flags}  nam={WindowManager.DefaultDisplay.Name} ");
 
             WordScoreAdapter scoreAdapter1 = null;
             WordScoreAdapter scoreAdapter2 = null;
@@ -688,7 +708,7 @@ namespace WordamentAndroid
                         _WrdHighestPointsFound = oneresult
                             .Where(kvp => kvp.Key.Length >= _nMinWordLen)
                             .OrderByDescending(kvp => kvp.Key.Length)
-                            .ThenByDescending(kvp=>kvp.Value.Points)
+                            .ThenByDescending(kvp => kvp.Value.Points)
                             .FirstOrDefault().Value.Word;
                     }
                 }
