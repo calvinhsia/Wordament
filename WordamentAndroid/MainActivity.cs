@@ -28,6 +28,13 @@ namespace WordamentAndroid
         TextView txtStatus;
         TextView txtWordSoFar;
         TextView txtTimer;
+        Button btnNew;
+        Button btnHint;
+        GridLayout grd;
+        ListView lstResults1;
+        ListView lstResults2;
+
+
         static Random _random;
         int _mainThread;
         RandLetterGenerator _randLetterGenerator;
@@ -93,17 +100,143 @@ namespace WordamentAndroid
         public override void OnConfigurationChanged(Configuration newConfig)
         {
             base.OnConfigurationChanged(newConfig);
-            switch(newConfig.Orientation)
+            WindowManager.DefaultDisplay.GetSize(_ptScreenSize);
+            SetLayoutForOrientation(newConfig.Orientation);
+        }
+
+        private void SetLayoutForOrientation(Android.Content.Res.Orientation orientation)
+        {
+            switch (orientation)
             {
-                case Android.Content.Res.Orientation.Landscape:
-                    break;
                 case Android.Content.Res.Orientation.Portrait:
+                    btnNew.LayoutParameters = new RelativeLayout.LayoutParams(500, RelativeLayout.LayoutParams.WrapContent);
+
+                    txtStatus.LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, 100);
+                    ((RelativeLayout.LayoutParams)(txtStatus.LayoutParameters)).AddRule(LayoutRules.Below, idBtnNew);
+
+                    txtWordSoFar.LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
+                    ((RelativeLayout.LayoutParams)(txtWordSoFar.LayoutParameters)).AddRule(LayoutRules.Below, idTxtStatus);
+
+                    grd.LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MatchParent, RelativeLayout.LayoutParams.WrapContent);
+                    ((RelativeLayout.LayoutParams)(grd.LayoutParameters)).AddRule(LayoutRules.Below, idtxtWordSoFar);
+
+                    lstResults1.LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 2, RelativeLayout.LayoutParams.WrapContent);
+                    ((RelativeLayout.LayoutParams)(lstResults1.LayoutParameters)).AddRule(LayoutRules.Below, idGrd);
+
+                    lstResults2.LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 2, RelativeLayout.LayoutParams.WrapContent);
+                    ((RelativeLayout.LayoutParams)(lstResults2.LayoutParameters)).AddRule(LayoutRules.Below, idGrd);
+                    ((RelativeLayout.LayoutParams)(lstResults2.LayoutParameters)).AddRule(LayoutRules.RightOf, idLstResults1);
+                    break;
+                case Android.Content.Res.Orientation.Landscape:
+                    txtWordSoFar.LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 2, RelativeLayout.LayoutParams.WrapContent);
+                    ((RelativeLayout.LayoutParams)(txtWordSoFar.LayoutParameters)).AddRule(LayoutRules.AlignRight, idGrd);
+
+                    grd.LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 2, RelativeLayout.LayoutParams.WrapContent);
+                    ((RelativeLayout.LayoutParams)(grd.LayoutParameters)).AddRule(LayoutRules.Below, idtxtWordSoFar);
+
+                    btnNew.LayoutParameters = new RelativeLayout.LayoutParams(500, RelativeLayout.LayoutParams.WrapContent);
+                    ((RelativeLayout.LayoutParams)(btnNew.LayoutParameters)).AddRule(LayoutRules.RightOf, idtxtWordSoFar);
+
+                    ((RelativeLayout.LayoutParams)(txtStatus.LayoutParameters)).AddRule(LayoutRules.Below, idBtnNew);
+                    ((RelativeLayout.LayoutParams)(txtStatus.LayoutParameters)).AddRule(LayoutRules.RightOf, idtxtWordSoFar);
+
+                    lstResults1.LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 4, RelativeLayout.LayoutParams.WrapContent);
+                    ((RelativeLayout.LayoutParams)(lstResults1.LayoutParameters)).AddRule(LayoutRules.RightOf, idGrd);
+                    ((RelativeLayout.LayoutParams)(lstResults1.LayoutParameters)).AddRule(LayoutRules.Below, idTxtStatus);
+
+                    lstResults2.LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 4, RelativeLayout.LayoutParams.WrapContent);
+                    ((RelativeLayout.LayoutParams)(lstResults2.LayoutParameters)).AddRule(LayoutRules.RightOf, idLstResults1);
+                    ((RelativeLayout.LayoutParams)(lstResults2.LayoutParameters)).AddRule(LayoutRules.Below, idTxtStatus);
+
                     break;
             }
+            btnHint.LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
+            ((RelativeLayout.LayoutParams)(btnHint.LayoutParameters)).AddRule(LayoutRules.RightOf, idBtnNew);
+
+            txtTimer.LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
+            ((RelativeLayout.LayoutParams)(txtTimer.LayoutParameters)).AddRule(LayoutRules.RightOf, idBtnHint);
         }
+
+        private void CreateLayoutAndControls()
+        {
+            // when rotating to the right,  WindowManager.DefaultDisplay.Rotation == Rotation270.
+            SetContentView(Resource.Layout.activity_main);
+
+            var mainLayout = FindViewById<RelativeLayout>(Resource.Id.container);
+            mainLayout.RemoveAllViews();
+            btnNew = new Button(this)
+            {
+                Text = $"Results",
+                Id = idBtnNew
+            };
+            mainLayout.AddView(btnNew);
+
+            btnHint = new Button(this)
+            {
+                Id = idBtnHint,
+                Text = "Hint"
+            };
+            mainLayout.AddView(btnHint);
+
+            txtTimer = new TextView(this)
+            {
+                Id = idTimer,
+                Text = "timer",
+                TextSize = 30
+            };
+            mainLayout.AddView(txtTimer);
+
+            txtStatus = new TextView(this)
+            {
+                Id = idTxtStatus,
+                TextSize = 10,
+                VerticalScrollBarEnabled = true,
+                Gravity = GravityFlags.Bottom
+            };
+            txtStatus.SetMaxLines(2);
+            txtStatus.MovementMethod = Android.Text.Method.ScrollingMovementMethod.Instance;
+            mainLayout.AddView(txtStatus);
+
+            txtWordSoFar = new TextView(this)
+            {
+                Id = idtxtWordSoFar,
+                Text = "wordsofar",
+                TextSize = 20
+            };
+            mainLayout.AddView(txtWordSoFar);
+
+            grd = new GridLayout(this)
+            {
+                Id = idGrd,
+                ColumnCount = _nCols,
+                RowCount = _nRows,
+                AlignmentMode = GridAlign.Bounds
+            };
+            grd.SetBackgroundColor(Color.Black);
+
+            mainLayout.AddView(grd);
+
+            lstResults1 = new ListView(this)
+            {
+                Id = idLstResults1
+            };
+            mainLayout.AddView(lstResults1);
+
+            lstResults2 = new ListView(this)
+            {
+                Id = idLstResults2
+            };
+            mainLayout.AddView(lstResults2);
+            AddStatusMsg($"{_ptScreenSize.X} {_ptScreenSize.Y}");
+            AddStatusMsg($"ff{WindowManager.DefaultDisplay.Flags}  nam={WindowManager.DefaultDisplay.Name} ");
+
+            SetLayoutForOrientation(Android.Content.Res.Orientation.Portrait);
+        }
+
         protected override async void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
+            WindowManager.DefaultDisplay.GetSize(_ptScreenSize);
             _mainThread = Thread.CurrentThread.ManagedThreadId;
             var seed = 0;
             if (System.Diagnostics.Debugger.IsAttached)
@@ -117,101 +250,7 @@ namespace WordamentAndroid
             _random = new Random(seed);
             _randLetterGenerator = new RandLetterGenerator();
 
-            WindowManager.DefaultDisplay.GetSize(_ptScreenSize);
-            // when rotating to the right,  WindowManager.DefaultDisplay.Rotation == Rotation270.
-            SetContentView(Resource.Layout.activity_main);
-
-            var mainLayout = FindViewById<RelativeLayout>(Resource.Id.container);
-            var btnNew = new Button(this)
-            {
-                Text = $"Results",
-                Id = idBtnNew,
-                LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent)
-            };
-            btnNew.LayoutParameters.Width = 500;
-            mainLayout.AddView(btnNew);
-
-
-            var btnHint = new Button(this)
-            {
-                Id = idBtnHint,
-                Text = "Hint",
-                LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent)
-            };
-            ((RelativeLayout.LayoutParams)(btnHint.LayoutParameters)).AddRule(LayoutRules.RightOf, idBtnNew);
-            mainLayout.AddView(btnHint);
-
-            txtTimer = new TextView(this)
-            {
-                Id = idTimer,
-                Text = "timer",
-                TextSize = 30,
-                LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent)
-                {
-                }
-            };
-            ((RelativeLayout.LayoutParams)(txtTimer.LayoutParameters)).AddRule(LayoutRules.RightOf, idBtnHint);
-            mainLayout.AddView(txtTimer);
-
-            // status, wrdsofar, timer, hint, row,col,  (longword? length)
-            txtStatus = new TextView(this)
-            {
-                Id = idTxtStatus,
-                Text = "\r\n",
-                TextSize = 10,
-                VerticalScrollBarEnabled = true,
-                Gravity =  GravityFlags.Bottom,
-                LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, 100)
-                {
-                }
-            };
-            txtStatus.SetMaxLines(2);
-            txtStatus.MovementMethod = Android.Text.Method.ScrollingMovementMethod.Instance;
-            ((RelativeLayout.LayoutParams)(txtStatus.LayoutParameters)).AddRule(LayoutRules.Below, idBtnNew);
-            mainLayout.AddView(txtStatus);
-
-            txtWordSoFar = new TextView(this)
-            {
-                Id = idtxtWordSoFar,
-                Text = "wordsofar",
-                TextSize = 20,
-                LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent)
-            };
-            ((RelativeLayout.LayoutParams)(txtWordSoFar.LayoutParameters)).AddRule(LayoutRules.Below, idTxtStatus);
-            mainLayout.AddView(txtWordSoFar);
-
-            var grd = new GridLayout(this)
-            {
-                Id = idGrd,
-                ColumnCount = _nCols,
-                RowCount = _nRows,
-                AlignmentMode = GridAlign.Bounds
-            };
-            grd.SetBackgroundColor(Color.Black);
-            var rpg = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MatchParent, RelativeLayout.LayoutParams.WrapContent);
-            rpg.AddRule(LayoutRules.Below, idtxtWordSoFar);
-            grd.LayoutParameters = rpg;
-
-            mainLayout.AddView(grd);
-
-            ListView lstResults1 = new ListView(this)
-            {
-                Id = idLstResults1,
-                LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 2, RelativeLayout.LayoutParams.WrapContent)
-            };
-            mainLayout.AddView(lstResults1);
-            ((RelativeLayout.LayoutParams)(lstResults1.LayoutParameters)).AddRule(LayoutRules.Below, idGrd);
-
-            ListView lstResults2 = new ListView(this)
-            {
-                Id = idLstResults2,
-                LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 2, RelativeLayout.LayoutParams.WrapContent)
-            };
-            mainLayout.AddView(lstResults2);
-            ((RelativeLayout.LayoutParams)(lstResults2.LayoutParameters)).AddRule(LayoutRules.Below, idGrd);
-            ((RelativeLayout.LayoutParams)(lstResults2.LayoutParameters)).AddRule(LayoutRules.RightOf, idLstResults1);
-            AddStatusMsg($"{_ptScreenSize.X} {_ptScreenSize.Y}");
-            AddStatusMsg($"ff{WindowManager.DefaultDisplay.Flags}  nam={WindowManager.DefaultDisplay.Name} ");
+            CreateLayoutAndControls();
 
             WordScoreAdapter scoreAdapter1 = null;
             WordScoreAdapter scoreAdapter2 = null;
@@ -998,7 +1037,14 @@ namespace WordamentAndroid
                 var l = new GridLayout.LayoutParams();
                 l.SetMargins(margin, margin, margin, margin);
                 //            l.SetGravity(GravityFlags.FillHorizontal);
-                l.Width = MainActivity._ptScreenSize.X / MainActivity._nCols - 2 * margin;
+                if (MainActivity._ptScreenSize.X > MainActivity._ptScreenSize.Y) //landscape
+                {
+                    l.Width = MainActivity._ptScreenSize.X / 2 / MainActivity._nCols - 2 * margin;
+                }
+                else
+                {
+                    l.Width = MainActivity._ptScreenSize.X / MainActivity._nCols - 2 * margin;
+                }
 
                 this.TextAlignment = TextAlignment.Center;
                 this.LayoutParameters = l;
