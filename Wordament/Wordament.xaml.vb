@@ -806,7 +806,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
             Dim txt As New TextBlock With {
                 .Text = _letter._letter,
-                .FontSize = If(nTotalCols > 10, 14, 60 - (nTotalCols - 6) * 5),
+                .FontSize = If(nTotalCols > 10, 14, 60 - (nTotalCols - 6) * 10),
                 .HorizontalAlignment = HorizontalAlignment.Center,
                 .Foreground = Brushes.White
             }

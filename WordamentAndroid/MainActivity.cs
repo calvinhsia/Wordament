@@ -433,19 +433,20 @@ namespace WordamentAndroid
                 txtWordSoFar.Text = txt;
                 if (txt == _WrdHighestPointsFound)
                 {
-                    if (!fdidGetLongWord)
+                    if (!fdidGetLongWord && !IsShowingResult)
                     {
                         fdidGetLongWord = true;
                         cts.Cancel();
                         var res = $"Got answer in {txtTimer.Text} {_WrdHighestPointsFound} Seconds. Hints={nLastHintNum}";
                         AddStatusMsg(res);
-                        //                        ClearSelection(); // beware recursion
-                        Android.App.AlertDialog.Builder alert = new Android.App.AlertDialog.Builder(this);
-                        alert.SetTitle("Calvin's Wordament");
-                        alert.SetMessage(res);
-                        alert.SetPositiveButton("Ok", (o, e) => { });
-                        var dlog = alert.Create();
-                        dlog.Show();
+                        Android.Widget.Toast.MakeText(this, res, Android.Widget.ToastLength.Long).Show();
+
+                        //Android.App.AlertDialog.Builder alert = new Android.App.AlertDialog.Builder(this);
+                        //alert.SetTitle("Calvin's Wordament");
+                        //alert.SetMessage(res);
+                        //alert.SetPositiveButton("Ok", (o, e) => { });
+                        //var dlog = alert.Create();
+                        //dlog.Show();
                         var t = BtnNewClick(null, null);
                     }
                 }
@@ -1036,7 +1037,6 @@ namespace WordamentAndroid
                 this.TextSize = 50;
                 var l = new GridLayout.LayoutParams();
                 l.SetMargins(margin, margin, margin, margin);
-                //            l.SetGravity(GravityFlags.FillHorizontal);
                 if (MainActivity._ptScreenSize.X > MainActivity._ptScreenSize.Y) //landscape
                 {
                     l.Width = MainActivity._ptScreenSize.X / 2 / MainActivity._nCols - 2 * margin;
