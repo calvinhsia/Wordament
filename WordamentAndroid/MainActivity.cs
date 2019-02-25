@@ -45,6 +45,7 @@ namespace WordamentAndroid
         public static int _nCols = 4;
         public static int _nRows = 4;
         public static int _HintDelay = 100;
+        List<string> _lstHints = new List<string>();
         public int _nMinWordLen = 12;
         public bool _IsLongWord = true;
         public const int idBtnNew = 10;
@@ -161,6 +162,7 @@ namespace WordamentAndroid
         {
             // when rotating to the right,  WindowManager.DefaultDisplay.Rotation == Rotation270.
             SetContentView(Resource.Layout.activity_main);
+            Android.Widget.Toast.MakeText(this, $"Find a word of length >={_nMinWordLen}, horizontally, vertically, or diagonally", Android.Widget.ToastLength.Long).Show();
 
             var mainLayout = FindViewById<RelativeLayout>(Resource.Id.container);
             mainLayout.RemoveAllViews();
@@ -315,23 +317,16 @@ namespace WordamentAndroid
               {
                   if (taskGetResultsAsync != null && taskGetResultsAsync.IsCompleted)
                   {
-                      if (nLastHintNum <= _WrdHighestPointsFound.Length)
+                      if (nLastHintNum < _lstHints.Count)
                       {
-                          if (nLastHintNum == 0)
-                          {
-                              AddStatusMsg($"Hint {nLastHintNum} Length ={_WrdHighestPointsFound.Length}");
-                          }
-                          else
-                          {
-                              AddStatusMsg($"Hint {nLastHintNum} Length= {_WrdHighestPointsFound.Length} {_WrdHighestPointsFound.Substring(0, nLastHintNum)}");
-                          }
-                          btnHint.Enabled = false;
-                          nLastHintNum++;
-                          if (nLastHintNum <= _WrdHighestPointsFound.Length)
-                          {
-                              await Task.Delay(TimeSpan.FromMilliseconds(_HintDelay));
-                              btnHint.Enabled = true;
-                          }
+                          AddStatusMsg($"Hint {nLastHintNum} {_lstHints[nLastHintNum]}");
+                      }
+                      btnHint.Enabled = false;
+                      nLastHintNum++;
+                      if (nLastHintNum < _lstHints.Count)
+                      {
+                          await Task.Delay(TimeSpan.FromMilliseconds(_HintDelay));
+                          btnHint.Enabled = true;
                       }
                   }
               };
@@ -409,6 +404,7 @@ namespace WordamentAndroid
                     await taskGetResultsAsync;
                     lstDictResults = taskGetResultsAsync.Result;
                     btnNew.Enabled = true;
+                    await CalculateHintAsync();
                     await Task.Delay(TimeSpan.FromMilliseconds(_HintDelay));
                     btnHint.Enabled = true;
                 }
@@ -575,6 +571,78 @@ namespace WordamentAndroid
             //textMessage = FindViewById<TextView>(Resource.Id.message);
             //BottomNavigationView navigation = FindViewById<BottomNavigationView>(Resource.Id.navigation);
             //navigation.SetOnNavigationItemSelectedListener(this);
+        }
+
+        private Task CalculateHintAsync()
+        {
+            _lstHints.Clear();
+            var lstHintTiles = new List<string>();
+            for (int i = 1; i <= _WrdHighestPointsFound.Length; i++)
+            {
+                lstHintTiles.Add($"{_WrdHighestPointsFound.Substring(0, i)}");
+            }
+            var lstOtherHints = new List<string>()
+            {
+                $"Word length = {_WrdHighestPointsFound.Length}"
+            };
+            foreach (var ltr in _arrTiles)
+            {
+                if (!_WrdHighestPointsFound.Contains(ltr._letter._letter))
+                {
+                    lstOtherHints.Add($"NO '{ltr._letter._letter}'");
+                }
+            }
+            // now shuffle the other hints
+            for (int i = 0; i < lstOtherHints.Count; i++)
+            {
+                var r = _random.Next(lstOtherHints.Count);
+                var tmp = lstOtherHints[r];
+                lstOtherHints[r] = lstOtherHints[i];
+                lstOtherHints[i] = tmp;
+            }
+            // now interleave the 2 hints randomly: the ltr hints must be sequential
+            var nTotalHints = lstOtherHints.Count + lstHintTiles.Count;
+            var ndxLstOtherHints = 0;
+            var ndxLstTileHints = 0;
+            for (int i = 0; i < nTotalHints; i++)
+            {
+                var userOtherHInts = false;
+                var useTileHints = false;
+                var r = _random.Next(nTotalHints);
+                if (r < lstHintTiles.Count)
+                {
+                    if (ndxLstTileHints< lstHintTiles.Count)
+                    {
+                        useTileHints = true;
+                    }
+                    else
+                    {
+                        userOtherHInts = true;
+                    }
+                }
+                else
+                {
+                    if (ndxLstOtherHints < lstOtherHints.Count)
+                    {
+                        userOtherHInts = true;
+                    }
+                    else
+                    {
+                        useTileHints = true;
+                    }
+                }
+                if (useTileHints)
+                {
+                    _lstHints.Add(lstHintTiles[ndxLstTileHints]);
+                    ndxLstTileHints++;
+                }
+                if (userOtherHInts)
+                {
+                    _lstHints.Add(lstOtherHints[ndxLstOtherHints]);
+                    ndxLstOtherHints++;
+                }
+            }
+            return Task.FromResult<int>(0);
         }
 
         List<string> _lstLongWords = new List<string>();

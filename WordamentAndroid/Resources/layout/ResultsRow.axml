@@ -10,7 +10,7 @@
 		android:minWidth="25px"
 		android:minHeight="25px"
 		android:id="@+id/textViewWord"
-		android:textSize="40px"
+		android:textSize="50px"
 	/>
 	<TextView
 		android:text="Text2"
@@ -20,7 +20,7 @@
 		android:layout_toRightOf="@id/textViewWord"
 		android:id="@+id/textViewPoints"
 		android:paddingHorizontal="20px"  
-		android:textSize="40px"
+		android:textSize="50px"
 	/>
 
 </RelativeLayout>

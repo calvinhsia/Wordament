@@ -68,10 +68,15 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         End Set
     End Property
 
+    ''' <summary>
+    ''' If we're doing long words
+    ''' </summary>
+    ''' <returns></returns>
     Public Property _IsLongWrd = True
     Public Property _nMinWordLen = 12
     Private _HintAvailable As Boolean
-    Private HintDelay As Integer
+    Private _HintDelay As Integer
+    Private _lstHints As New List(Of String)
     Public Property HintAvailable
         Get
             Return _HintAvailable
@@ -106,9 +111,9 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             _seed = Environment.TickCount
             If Debugger.IsAttached Then
                 _seed = 1
-                HintDelay = 100
+                _HintDelay = 100
             Else
-                HintDelay = 100
+                _HintDelay = 100
             End If
             g_Random = New Random(_seed)
             _randLetGenerator = New RandLetterGenerator
@@ -177,18 +182,14 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             AddHandler btnHint.Click,
                 Async Sub()
                     If taskGetResultsAsync?.IsCompleted Then
-                        If (nLastHintNum <= _WrdHighestPointsFound.Length) Then
-                            If nLastHintNum = 0 Then
-                                AddStatusMsg($"Hint {nLastHintNum} Length= {_WrdHighestPointsFound.Length}")
-                            Else
-                                AddStatusMsg($"Hint {nLastHintNum} Length= {_WrdHighestPointsFound.Length} {_WrdHighestPointsFound.Substring(0, nLastHintNum)}")
-                            End If
-                            HintAvailable = False
-                            nLastHintNum += 1
-                            If (nLastHintNum <= _WrdHighestPointsFound.Length) Then
-                                Await Task.Delay(TimeSpan.FromMilliseconds(HintDelay))
-                                HintAvailable = True
-                            End If
+                        If (nLastHintNum < _lstHints.Count) Then
+                            AddStatusMsg($"Hint {nLastHintNum} {_lstHints(nLastHintNum)}")
+                        End If
+                        HintAvailable = False
+                        nLastHintNum += 1
+                        If (nLastHintNum < _lstHints.Count) Then
+                            Await Task.Delay(TimeSpan.FromMilliseconds(_HintDelay))
+                            HintAvailable = True
                         End If
                     End If
                 End Sub
@@ -355,7 +356,8 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         taskGetResultsAsync = GetResultsAsync()
                         Await taskGetResultsAsync
                         btnNew.IsEnabled = True
-                        Await Task.Delay(TimeSpan.FromMilliseconds(HintDelay))
+                        Await CalculateHintsAsync()
+                        Await Task.Delay(TimeSpan.FromMilliseconds(_HintDelay))
                         HintAvailable = True
                         'Await taskGetResultsAsync.ContinueWith(Async Function(prev)
                         '                                           Await Task.Delay(TimeSpan.FromSeconds(HintDelay))
@@ -373,6 +375,66 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             Me.Content = ex.ToString
         End Try
     End Sub
+
+    Private Function CalculateHintsAsync() As Task
+        ' add hints for : length or word, 1 for each ltr of word, and 1 each for lettertiles that are not in the word, then randomize
+        _lstHints.Clear()
+        Dim lstHintTiles = New List(Of String)
+        For i = 1 To _WrdHighestPointsFound.Length
+            lstHintTiles.Add($"{_WrdHighestPointsFound.Substring(0, i)}")
+        Next
+
+        Dim lstOtherHints = New List(Of String) From {
+            $"Word length = {_WrdHighestPointsFound.Length}"
+        }
+        Dim charsNotInWord = String.Empty
+        For Each ltr In _arrTiles
+            If Not _WrdHighestPointsFound.Contains(ltr._letter._letter) AndAlso
+                Not charsNotInWord.Contains(ltr._letter._letter) Then
+                lstOtherHints.Add($"NO '{ltr._letter._letter}'")
+                charsNotInWord += ltr._letter._letter
+            End If
+        Next
+        ' now shuffle the other hints
+        For i = 0 To lstOtherHints.Count - 1
+            Dim r = g_Random.Next(lstOtherHints.Count)
+            Dim tmp = lstOtherHints(r)
+            lstOtherHints(r) = lstOtherHints(i)
+            lstOtherHints(i) = tmp
+        Next
+        ' now interleave the 2 hints randomly: the ltr hints must be sequential
+        Dim nTotalHints = lstOtherHints.Count + lstHintTiles.Count
+        Dim ndxLstOtherHints = 0
+        Dim ndxLstTileHints = 0
+        For i = 0 To nTotalHints - 1
+            Dim r = g_Random.Next(nTotalHints)
+            Dim useOtherhints = False
+            Dim useTileHints = False
+            If (r < lstHintTiles.Count) Then
+                If (ndxLstTileHints < lstHintTiles.Count) Then
+                    useTileHints = True
+                Else
+                    useOtherhints = True
+                End If
+            Else
+                If (ndxLstOtherHints < lstOtherHints.Count) Then
+                    useOtherhints = True
+                Else
+                    useTileHints = True
+                End If
+            End If
+            If (useOtherhints) Then
+                _lstHints.Add(lstOtherHints(ndxLstOtherHints))
+                ndxLstOtherHints += 1
+            End If
+            If (useTileHints) Then
+                _lstHints.Add(lstHintTiles(ndxLstTileHints))
+                ndxLstTileHints += 1
+            End If
+            'AddStatusMsg($"hh={i} {_lstHints(i)}")
+        Next
+        Return Task.FromResult(Of Integer)(0)
+    End Function
 
     Protected Sub OnMyPropertyChanged(<CallerMemberName> Optional propname As String = "")
         Dim args = New PropertyChangedEventArgs(propname)
