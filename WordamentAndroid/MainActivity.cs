@@ -44,7 +44,7 @@ namespace WordamentAndroid
         public static int[] g_LetterValues = { 2, 5, 3, 3, 1, 5, 4, 4, 2, 10, 6, 3, 2, 2, 2, 4, 12, 2, 2, 2, 2, 4, 6, 9, 5, 8 };
         public static int _nCols = 4;
         public static int _nRows = 4;
-        public static int _HintDelay = 1;
+        public static int _HintDelay = 100;
         public int _nMinWordLen = 12;
         public bool _IsLongWord = true;
         public const int idBtnNew = 10;
@@ -315,7 +315,7 @@ namespace WordamentAndroid
               {
                   if (taskGetResultsAsync != null && taskGetResultsAsync.IsCompleted)
                   {
-                      if (nLastHintNum < _WrdHighestPointsFound.Length)
+                      if (nLastHintNum <= _WrdHighestPointsFound.Length)
                       {
                           if (nLastHintNum == 0)
                           {
@@ -325,11 +325,11 @@ namespace WordamentAndroid
                           {
                               AddStatusMsg($"Hint {nLastHintNum} Length= {_WrdHighestPointsFound.Length} {_WrdHighestPointsFound.Substring(0, nLastHintNum)}");
                           }
-                          nLastHintNum++;
                           btnHint.Enabled = false;
-                          if (nLastHintNum < _WrdHighestPointsFound.Length - 1)
+                          nLastHintNum++;
+                          if (nLastHintNum <= _WrdHighestPointsFound.Length)
                           {
-                              await Task.Delay(TimeSpan.FromSeconds(_HintDelay));
+                              await Task.Delay(TimeSpan.FromMilliseconds(_HintDelay));
                               btnHint.Enabled = true;
                           }
                       }
@@ -409,7 +409,7 @@ namespace WordamentAndroid
                     await taskGetResultsAsync;
                     lstDictResults = taskGetResultsAsync.Result;
                     btnNew.Enabled = true;
-                    await Task.Delay(TimeSpan.FromSeconds(_HintDelay));
+                    await Task.Delay(TimeSpan.FromMilliseconds(_HintDelay));
                     btnHint.Enabled = true;
                 }
                 else

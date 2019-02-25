@@ -106,9 +106,9 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             _seed = Environment.TickCount
             If Debugger.IsAttached Then
                 _seed = 1
-                HintDelay = 2
+                HintDelay = 100
             Else
-                HintDelay = 2
+                HintDelay = 100
             End If
             g_Random = New Random(_seed)
             _randLetGenerator = New RandLetterGenerator
@@ -177,16 +177,16 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             AddHandler btnHint.Click,
                 Async Sub()
                     If taskGetResultsAsync?.IsCompleted Then
-                        If (nLastHintNum < _WrdHighestPointsFound.Length) Then
+                        If (nLastHintNum <= _WrdHighestPointsFound.Length) Then
                             If nLastHintNum = 0 Then
                                 AddStatusMsg($"Hint {nLastHintNum} Length= {_WrdHighestPointsFound.Length}")
                             Else
                                 AddStatusMsg($"Hint {nLastHintNum} Length= {_WrdHighestPointsFound.Length} {_WrdHighestPointsFound.Substring(0, nLastHintNum)}")
                             End If
-                            nLastHintNum += 1
                             HintAvailable = False
-                            If (nLastHintNum < _WrdHighestPointsFound.Length - 1) Then
-                                Await Task.Delay(TimeSpan.FromSeconds(HintDelay))
+                            nLastHintNum += 1
+                            If (nLastHintNum <= _WrdHighestPointsFound.Length) Then
+                                Await Task.Delay(TimeSpan.FromMilliseconds(HintDelay))
                                 HintAvailable = True
                             End If
                         End If
@@ -355,7 +355,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         taskGetResultsAsync = GetResultsAsync()
                         Await taskGetResultsAsync
                         btnNew.IsEnabled = True
-                        Await Task.Delay(TimeSpan.FromSeconds(HintDelay))
+                        Await Task.Delay(TimeSpan.FromMilliseconds(HintDelay))
                         HintAvailable = True
                         'Await taskGetResultsAsync.ContinueWith(Async Function(prev)
                         '                                           Await Task.Delay(TimeSpan.FromSeconds(HintDelay))
