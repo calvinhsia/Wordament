@@ -419,7 +419,7 @@ namespace WordamentAndroid
             };
 
             var lstTilesSelected = new List<LtrTile>();
-            void UpdateWordSoFar()
+            async void UpdateWordSoFar()
             {
                 var txt = string.Empty;
                 foreach (var tile in lstTilesSelected)
@@ -443,7 +443,7 @@ namespace WordamentAndroid
                         //alert.SetPositiveButton("Ok", (o, e) => { });
                         //var dlog = alert.Create();
                         //dlog.Show();
-                        var t = BtnNewClick(null, null);
+                        await BtnNewClick(null, null);
                     }
                 }
             }
@@ -585,11 +585,13 @@ namespace WordamentAndroid
             {
                 $"Word length = {_WrdHighestPointsFound.Length}"
             };
+            var charsNotInWord = string.Empty;
             foreach (var ltr in _arrTiles)
             {
-                if (!_WrdHighestPointsFound.Contains(ltr._letter._letter))
+                if (!_WrdHighestPointsFound.Contains(ltr._letter._letter) && !charsNotInWord.Contains(ltr._letter._letter))
                 {
                     lstOtherHints.Add($"NO '{ltr._letter._letter}'");
+                    charsNotInWord += ltr._letter._letter;
                 }
             }
             // now shuffle the other hints
@@ -656,7 +658,9 @@ namespace WordamentAndroid
             {
                 await Task.Run(() =>
                    {
-                       var spellDict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small, _random);
+                       var spellDict = new DictionaryLib.DictionaryLib(
+                           _nMinWordLen<15?  DictionaryLib.DictionaryType.Small : DictionaryLib.DictionaryType.Large
+                           , _random);
                        int[] directions = new int[8];
                        for (int i = 0; i < 8; i++)
                        {
@@ -1102,9 +1106,9 @@ namespace WordamentAndroid
                 Row = row; Col = col;
                 this.SetBackgroundColor(g_colorBackground);
                 this.SetTextColor(Color.White);
-                this.TextSize = 50;
                 var l = new GridLayout.LayoutParams();
                 l.SetMargins(margin, margin, margin, margin);
+                this.TextSize = 45;
                 if (MainActivity._ptScreenSize.X > MainActivity._ptScreenSize.Y) //landscape
                 {
                     l.Width = MainActivity._ptScreenSize.X / 2 / MainActivity._nCols - 2 * margin;
