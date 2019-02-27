@@ -613,7 +613,7 @@ namespace WordamentAndroid
                 var r = _random.Next(nTotalHints);
                 if (r < lstHintTiles.Count)
                 {
-                    if (ndxLstTileHints< lstHintTiles.Count)
+                    if (ndxLstTileHints < lstHintTiles.Count)
                     {
                         useTileHints = true;
                     }
@@ -659,7 +659,7 @@ namespace WordamentAndroid
                 await Task.Run(() =>
                    {
                        var spellDict = new DictionaryLib.DictionaryLib(
-                           _nMinWordLen<15?  DictionaryLib.DictionaryType.Small : DictionaryLib.DictionaryType.Large
+                           _nMinWordLen < 15 ? DictionaryLib.DictionaryType.Small : DictionaryLib.DictionaryType.Large
                            , _random);
                        int[] directions = new int[8];
                        for (int i = 0; i < 8; i++)

@@ -158,27 +158,27 @@ namespace DictionaryLib
             word = word.ToLower();
             var result = string.Empty;
             compResult = 0;
-            var let1 = 0;
-            var let2 = 0; //'a'
+            byte let1 = 0;
+            byte let2 = 0; //'a'
             if (word.Length > 1)
             {
-                let1 = word[0] - 97;
+                let1 = (byte)(word[0] - 97);
             }
             let2 = 0; //'a'
             if (word.Length > 1)
             {
-                let2 = word[1] - 97;
+                let2 = (byte)(word[1] - 97);
             }
             SetDictPosTo2Letters(let1, let2);
             result = GetNextWord(out compResult, WordStop: word);
             return result;
         }
 
-        void SetDictPosTo2Letters(int let1, int let2 = 0)
+        void SetDictPosTo2Letters(byte let1, byte let2 = 0)
         {
             _havePartialNib = false;
             _nibndx = _dictHeader.nibPairPtr[let1 * 26 + let2].nibbleOffset;
-            _MyWordSoFar.SetWord(new string(new[] { Convert.ToChar(let1 + 97), Convert.ToChar(let2 + 97) }));
+            _MyWordSoFar.SetWord((byte)(let1 + 97), (byte)(let2 + 97));
             if ((int)(_nibndx & 1) > 0)
             {
                 GetNextNib();
@@ -274,7 +274,7 @@ namespace DictionaryLib
                         }
                         newchar = _dictHeader.tab1[nib];
                     }
-                    _MyWordSoFar.AddByte(Convert.ToByte(newchar));
+                    _MyWordSoFar.AddByte((byte)newchar);
                 }
                 if (nib == DictHeader.EOFChar)
                 {
@@ -416,7 +416,7 @@ namespace DictionaryLib
                     }
                     else
                     {
-                        SetDictPosTo2Letters(i, j);
+                        SetDictPosTo2Letters((byte)i, (byte)j);
                         var r = GetNextWord(cntSkip: rnum - sum);
                         return r;
                     }
@@ -468,20 +468,24 @@ namespace DictionaryLib
             _currentLength = word.Length;
             for (int ndx = 0; ndx < word.Length; ndx++)
             {
-                _wordBytes[ndx] = Convert.ToByte(word[ndx]);
+                _wordBytes[ndx] = (byte)word[ndx];
             }
+        }
+        public void SetWord(byte byte1, byte byte2)
+        {
+            _currentLength = 2;
+            _wordBytes[0] = byte1;
+            _wordBytes[1] = byte2;
         }
         public string GetWord()
         {
-            //var xx = new ASCIIEncoding();
-            //xx.GetString(_wordBytes);
             return Encoding.ASCII.GetString(_wordBytes, 0, _currentLength);
         }
         public void AddByte(byte b)
         {
             _wordBytes[_currentLength++] = b;
         }
-        public int WordLength { get { return _currentLength; } }
+        public int WordLength => _currentLength;
         public void SetLength(int Length)
         {
             _currentLength = Length;

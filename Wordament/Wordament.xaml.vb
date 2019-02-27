@@ -196,7 +196,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
             Dim IsMouseDown As Boolean = False
             Dim lstTilesSelected As New List(Of LtrTile)
-            Dim lamShowResults = Async Sub()
+            Dim lamShowResults = Async Function()
                                      HintAvailable = False
                                      fdidFinish = False
                                      IsMouseDown = False
@@ -207,24 +207,24 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                      taskGetResultsAsync = Nothing
                                      ShowResults(res)
                                      btnNew.Content = "_New"
-                                 End Sub
+                                 End Function
             Dim funcUpdateWordSoFar As Action =
-                            Sub()
-                                Dim str = String.Empty
-                                For Each til In lstTilesSelected
-                                    str += til.ToString()
-                                Next
-                                StrWordSoFar = $"{str}"
-                                If _IsLongWrd AndAlso taskGetResultsAsync IsNot Nothing AndAlso str.Length >= _nMinWordLen Then
-                                    If _WrdHighestPointsFound.Length = str.Length Then
-                                        If _WrdHighestPointsFound = str Then
-                                            fdidFinish = True
-                                            AddStatusMsg($"Got answer in {GetTimeAsString(CountDownTime)} {str}")
-                                            lamShowResults()
-                                        End If
-                                    End If
-                                End If
-                            End Sub
+                           Async Sub()
+                               Dim str = String.Empty
+                               For Each til In lstTilesSelected
+                                   str += til.ToString()
+                               Next
+                               StrWordSoFar = $"{str}"
+                               If _IsLongWrd AndAlso taskGetResultsAsync IsNot Nothing AndAlso str.Length >= _nMinWordLen Then
+                                   If _WrdHighestPointsFound.Length = str.Length Then
+                                       If _WrdHighestPointsFound = str Then
+                                           fdidFinish = True
+                                           AddStatusMsg($"Got answer in {GetTimeAsString(CountDownTime)} {str}")
+                                           Await lamShowResults()
+                                       End If
+                                   End If
+                               End If
+                           End Sub
             Dim funcGetTileUnderMouse As Func(Of MouseEventArgs, LtrTile) =
                                 Function(ev)
                                     Dim ltrTile As LtrTile = Nothing
@@ -364,7 +364,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         '                                           HintAvailable = True
                         '                                       End Function)
                     Else
-                        lamShowResults()
+                        Await lamShowResults()
                     End If
                     'Width = 800
                     'Height = 800
