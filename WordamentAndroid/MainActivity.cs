@@ -690,13 +690,6 @@ namespace WordamentAndroid
                            var randLongWrd = _lstLongWords[randnum];
                            // attempt to place in array
                            // shuffle directions
-                           for (int i = 0; i < 8; i++)
-                           {
-                               var r = _random.Next(8);
-                               var tmp = directions[i];
-                               directions[i] = directions[r];
-                               directions[r] = tmp;
-                           }
                            bool recurLam(int r, int c, int ndx)
                            {
                                nRecurCalls++;
@@ -706,6 +699,13 @@ namespace WordamentAndroid
                                {
                                    isGood = true;
                                    return true;
+                               }
+                               for (int i = 0; i < 8; i++)
+                               {
+                                   var rnd = _random.Next(8);
+                                   var tmp = directions[i];
+                                   directions[i] = directions[rnd];
+                                   directions[rnd] = tmp;
                                }
                                for (int idir = 0; idir < 8; idir++)
                                {

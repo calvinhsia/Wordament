@@ -607,12 +607,6 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         '                randLongWord = "ABCDEFGHIJ"
                         ' now place the word in the grid. Start with a random
                         ' randomize the order of the directions we try
-                        For j = 0 To 7
-                            Dim r = g_Random.Next(8)
-                            Dim tmp = directions(j)
-                            directions(j) = directions(r)
-                            directions(r) = tmp
-                        Next
                         Dim nCalls = 0
                         arr = Array.CreateInstance(GetType(Char), _nRows, _nCols)
                         ' Given r,c of empty square with current letter index, put ltr in square
@@ -627,6 +621,12 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                  isGood = True
                                  Return True
                              End If
+                             For j = 0 To 7
+                                 Dim rnd = g_Random.Next(8)
+                                 Dim tmp = directions(j)
+                                 directions(j) = directions(rnd)
+                                 directions(rnd) = tmp
+                             Next
                              For idir = 0 To 7
                                  isGood = True
                                  Dim newr = r
