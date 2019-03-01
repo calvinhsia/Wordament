@@ -25,6 +25,7 @@ namespace WordamentAndroid
         MainLauncher = true)]
     public class MainActivity : AppCompatActivity, BottomNavigationView.IOnNavigationItemSelectedListener
     {
+        TextView txtTitle;
         TextView txtStatus;
         TextView txtWordSoFar;
         TextView txtTimer;
@@ -48,6 +49,7 @@ namespace WordamentAndroid
         List<string> _lstHints = new List<string>();
         public int _nMinWordLen = 12;
         public bool _IsLongWord = true;
+        public int idTitleText;
         public const int idBtnNew = 10;
         public const int idTxtStatus = 20;
         public const int idtxtWordSoFar = 30;
@@ -111,6 +113,16 @@ namespace WordamentAndroid
             {
                 case Android.Content.Res.Orientation.Portrait:
                     btnNew.LayoutParameters = new RelativeLayout.LayoutParams(500, RelativeLayout.LayoutParams.WrapContent);
+                    ((RelativeLayout.LayoutParams)(btnNew.LayoutParameters)).AddRule(LayoutRules.Below, idTitleText);
+
+                    btnHint.LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
+                    ((RelativeLayout.LayoutParams)(btnHint.LayoutParameters)).AddRule(LayoutRules.RightOf, idBtnNew);
+                    ((RelativeLayout.LayoutParams)(btnHint.LayoutParameters)).AddRule(LayoutRules.Below, idTitleText);
+
+                    txtTimer.LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
+                    ((RelativeLayout.LayoutParams)(txtTimer.LayoutParameters)).AddRule(LayoutRules.Below, idTitleText);
+                    ((RelativeLayout.LayoutParams)(txtTimer.LayoutParameters)).AddRule(LayoutRules.RightOf, idBtnHint);
+
 
                     txtStatus.LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, 100);
                     ((RelativeLayout.LayoutParams)(txtStatus.LayoutParameters)).AddRule(LayoutRules.Below, idBtnNew);
@@ -129,33 +141,25 @@ namespace WordamentAndroid
                     ((RelativeLayout.LayoutParams)(lstResults2.LayoutParameters)).AddRule(LayoutRules.RightOf, idLstResults1);
                     break;
                 case Android.Content.Res.Orientation.Landscape:
-                    txtWordSoFar.LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 2, RelativeLayout.LayoutParams.WrapContent);
-                    ((RelativeLayout.LayoutParams)(txtWordSoFar.LayoutParameters)).AddRule(LayoutRules.AlignRight, idGrd);
 
-                    grd.LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 2, RelativeLayout.LayoutParams.WrapContent);
-                    ((RelativeLayout.LayoutParams)(grd.LayoutParameters)).AddRule(LayoutRules.Below, idtxtWordSoFar);
-
-                    btnNew.LayoutParameters = new RelativeLayout.LayoutParams(500, RelativeLayout.LayoutParams.WrapContent);
-                    ((RelativeLayout.LayoutParams)(btnNew.LayoutParameters)).AddRule(LayoutRules.RightOf, idtxtWordSoFar);
-
-                    ((RelativeLayout.LayoutParams)(txtStatus.LayoutParameters)).AddRule(LayoutRules.Below, idBtnNew);
-                    ((RelativeLayout.LayoutParams)(txtStatus.LayoutParameters)).AddRule(LayoutRules.RightOf, idtxtWordSoFar);
 
                     lstResults1.LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 4, RelativeLayout.LayoutParams.WrapContent);
-                    ((RelativeLayout.LayoutParams)(lstResults1.LayoutParameters)).AddRule(LayoutRules.RightOf, idGrd);
                     ((RelativeLayout.LayoutParams)(lstResults1.LayoutParameters)).AddRule(LayoutRules.Below, idTxtStatus);
 
                     lstResults2.LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 4, RelativeLayout.LayoutParams.WrapContent);
                     ((RelativeLayout.LayoutParams)(lstResults2.LayoutParameters)).AddRule(LayoutRules.RightOf, idLstResults1);
                     ((RelativeLayout.LayoutParams)(lstResults2.LayoutParameters)).AddRule(LayoutRules.Below, idTxtStatus);
 
+                    txtWordSoFar.LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 2, RelativeLayout.LayoutParams.WrapContent);
+                    ((RelativeLayout.LayoutParams)(txtWordSoFar.LayoutParameters)).AddRule(LayoutRules.RightOf, idLstResults2);
+
+                    grd.LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 2, RelativeLayout.LayoutParams.WrapContent);
+                    ((RelativeLayout.LayoutParams)(grd.LayoutParameters)).AddRule(LayoutRules.Below, idtxtWordSoFar);
+                    ((RelativeLayout.LayoutParams)(grd.LayoutParameters)).AddRule(LayoutRules.RightOf, idLstResults2);
+
                     break;
             }
-            btnHint.LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
-            ((RelativeLayout.LayoutParams)(btnHint.LayoutParameters)).AddRule(LayoutRules.RightOf, idBtnNew);
 
-            txtTimer.LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
-            ((RelativeLayout.LayoutParams)(txtTimer.LayoutParameters)).AddRule(LayoutRules.RightOf, idBtnHint);
         }
 
         private void CreateLayoutAndControls()
@@ -165,7 +169,8 @@ namespace WordamentAndroid
             Android.Widget.Toast.MakeText(this, $"Find a word of length >={_nMinWordLen}, horizontally, vertically, or diagonally", Android.Widget.ToastLength.Long).Show();
 
             var mainLayout = FindViewById<RelativeLayout>(Resource.Id.container);
-            mainLayout.RemoveAllViews();
+            txtTitle = FindViewById<TextView>(Resource.Id.textViewTitle);
+            idTitleText = txtTitle.Id;
             btnNew = new Button(this)
             {
                 Text = $"Results",
