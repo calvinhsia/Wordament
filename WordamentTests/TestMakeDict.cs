@@ -282,7 +282,7 @@ namespace WordamentTests
                 }
             }
             hashLarge.Remove("miscinceptions");
-            //todo: remove substantialia
+            //todo: remove "substantialia", "nonconfin"
 
             // when chaning contents of dictionary, this test will fail until you update the resources, 
             // XCOPY /dy C:\Users\calvinh\Source\Repos\Wordament\WordamentTests\bin\Debug\*.bin C:\Users\calvinh\Source\Repos\Wordament\Dictionary\Resources
