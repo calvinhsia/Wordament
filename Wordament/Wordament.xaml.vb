@@ -256,6 +256,14 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                     Return ltrTile
                                 End Function
             Dim funcClearSelection As Action = Sub()
+                                                   If StrWordSoFar?.Length >= _nMinWordLen AndAlso Not fdidFinish Then
+                                                       If taskGetResultsAsync.IsCompleted Then
+                                                           Dim lstBigDictResult = taskGetResultsAsync.Result(0)
+                                                           If lstBigDictResult.ContainsKey(StrWordSoFar) Then
+                                                               AddStatusMsg($"Close, but no cigar {StrWordSoFar}")
+                                                           End If
+                                                       End If
+                                                   End If
                                                    For Each itm In lstTilesSelected
                                                        itm.UnSelectTile()
                                                    Next
@@ -359,10 +367,6 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         Await CalculateHintsAsync()
                         Await Task.Delay(TimeSpan.FromMilliseconds(_HintDelay))
                         HintAvailable = True
-                        'Await taskGetResultsAsync.ContinueWith(Async Function(prev)
-                        '                                           Await Task.Delay(TimeSpan.FromSeconds(HintDelay))
-                        '                                           HintAvailable = True
-                        '                                       End Function)
                     Else
                         Await lamShowResults()
                     End If

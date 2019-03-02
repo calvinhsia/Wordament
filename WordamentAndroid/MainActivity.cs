@@ -454,6 +454,17 @@ namespace WordamentAndroid
             }
             void ClearSelection()
             {
+                if (txtWordSoFar != null && 
+                    !string.IsNullOrEmpty(txtWordSoFar.Text) && 
+                    taskGetResultsAsync != null && 
+                    taskGetResultsAsync.IsCompleted)
+                {
+                    var bigDictResult = taskGetResultsAsync.Result[0];
+                    if (bigDictResult.ContainsKey(txtWordSoFar.Text))
+                    {
+                        Android.Widget.Toast.MakeText(this, $"Close, but no cigar {txtWordSoFar.Text}", Android.Widget.ToastLength.Long).Show();
+                    }
+                }
                 foreach (var tile in lstTilesSelected)
                 {
                     tile.UnSelectTile();
