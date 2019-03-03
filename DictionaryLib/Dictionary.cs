@@ -324,41 +324,39 @@ namespace DictionaryLib
                 }
             }
             var lstAnagrams = new HashSet<string>();
-            LogMessage($"DoAnagrm {myWord}");
+            LogMessage($"DoAnagram {myWord}");
+            var origLen = myWord.WordLength;
+            int nCnt = 0;
             RecurFindAnagram(0);
             void RecurFindAnagram(int nLevel)
             {
-                int tryLen = myWord.WordLength - nLevel;
-                for (int i = 0; i < tryLen; i++)
+                for (int i = nLevel; i < myWord.WordLength; i++)
                 {
-                    //LogMessage($"{nLevel} {myWord.GetWord()}");
-                    if (nLevel < myWord.WordLength - 1)
+                    if (nLevel > 1)// tree pruning
                     {
-                        if (nLevel > 1)// tree pruning
+                        myWord.SetLength(nLevel);
+                        var testWord = myWord.GetWord();
+                        var partial = SeekWord(testWord, out var compResult);
+                        myWord.SetLength(origLen);
+                        if (!partial.StartsWith(testWord))
                         {
-                            var origLen = myWord.WordLength;
-                            myWord.SetLength(nLevel);
-                            var testWord = myWord.GetWord();
-                            var partial = SeekWord(testWord, out var compResult);
-                            myWord.SetLength(origLen);
-                            if (!partial.StartsWith(testWord))
-                            {
-                                LogMessage($"prune {nLevel}  {testWord}  {partial}");
-                                return;
-                            }
+                            LogMessage($"prune {nLevel}  {testWord}  {partial}");
+                            return;
                         }
-                        byte tmp = myWord._wordBytes[nLevel]; // swap nlevel and nlevel+i
-                        myWord._wordBytes[nLevel] = myWord._wordBytes[nLevel + i];
-                        myWord._wordBytes[nLevel + i] = tmp;
+                    }
+                    byte tmp = myWord._wordBytes[i]; // swap nlevel and i. These will be equal 1st time through for identity permutation
+                    myWord._wordBytes[i] = myWord._wordBytes[nLevel];
+                    myWord._wordBytes[nLevel] = tmp;
+                    if (nLevel + 1 < myWord.WordLength)
+                    {
                         RecurFindAnagram(nLevel + 1);
-                        // restore swap
-                        myWord._wordBytes[nLevel + i] = myWord._wordBytes[nLevel];
-                        myWord._wordBytes[nLevel] = tmp;
                     }
                     else
                     { // got full permutation
                         var candidate = myWord.GetWord();
-                        LogMessage($"   cand {nLevel} {candidate}");
+                        nCnt++;
+                        LogMessage($"FAnag {nCnt,3} {candidate}");
+                        //                        LogMessage($"   cand {nLevel} {candidate}");
                         if (IsWord(candidate))
                         {
                             if (!lstAnagrams.Contains(candidate))
@@ -369,9 +367,11 @@ namespace DictionaryLib
                             }
                         }
                     }
-
+                    // restore swap
+                    //                        var tmp2 = myWord._wordBytes[nLevel];
+                    myWord._wordBytes[nLevel] = myWord._wordBytes[i];
+                    myWord._wordBytes[i] = tmp;
                 }
-
             }
         }
 

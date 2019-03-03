@@ -164,14 +164,15 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             _spResults = CType(mainGrid.FindName("spResults"), StackPanel)
 
             Dim timerEnabled = False
-            Dim timer = New DispatcherTimer(TimeSpan.FromSeconds(1),
-                                            DispatcherPriority.Normal,
-                                            Sub()
-                                                If timerEnabled Then
-                                                    CountDownTime += 1
-                                                End If
-                                            End Sub,
-                                             _txtStatus.Dispatcher)
+            Dim timer = New DispatcherTimer(
+                TimeSpan.FromSeconds(1),
+                    DispatcherPriority.Normal,
+                    Sub()
+                        If timerEnabled Then
+                            CountDownTime += 1
+                        End If
+                    End Sub,
+                        _txtStatus.Dispatcher)
 
             Dim isShowingResult = True ' either is showing a board without results, or board with results
             Dim fdidFinish = False
@@ -196,144 +197,155 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
             Dim IsMouseDown As Boolean = False
             Dim lstTilesSelected As New List(Of LtrTile)
-            Dim lamShowResults = Async Function()
-                                     HintAvailable = False
-                                     fdidFinish = False
-                                     IsMouseDown = False
-                                     isShowingResult = True
-                                     timerEnabled = False
-                                     btnNew.Content = "calculating..."
-                                     Dim res = Await taskGetResultsAsync
-                                     taskGetResultsAsync = Nothing
-                                     ShowResults(res)
-                                     btnNew.Content = "_New"
-                                 End Function
+            Dim lamShowResults =
+                Async Function()
+                    HintAvailable = False
+                    fdidFinish = False
+                    IsMouseDown = False
+                    isShowingResult = True
+                    timerEnabled = False
+                    btnNew.Content = "calculating..."
+                    Dim res = Await taskGetResultsAsync
+                    taskGetResultsAsync = Nothing
+                    ShowResults(res)
+                    btnNew.Content = "_New"
+                End Function
             Dim funcUpdateWordSoFar As Action =
-                           Async Sub()
-                               Dim str = String.Empty
-                               For Each til In lstTilesSelected
-                                   str += til.ToString()
-                               Next
-                               StrWordSoFar = $"{str}"
-                               If _IsLongWrd AndAlso taskGetResultsAsync IsNot Nothing AndAlso str.Length >= _nMinWordLen Then
-                                   If _WrdHighestPointsFound.Length = str.Length Then
-                                       If _WrdHighestPointsFound = str Then
-                                           fdidFinish = True
-                                           AddStatusMsg($"Got answer in {GetTimeAsString(CountDownTime)} {str}")
-                                           Await lamShowResults()
-                                       End If
-                                   End If
-                               End If
-                           End Sub
+                    Async Sub()
+                        Dim str = String.Empty
+                        For Each til In lstTilesSelected
+                            str += til.ToString()
+                        Next
+                        StrWordSoFar = $"{str}"
+                        If _IsLongWrd AndAlso taskGetResultsAsync IsNot Nothing AndAlso str.Length >= _nMinWordLen Then
+                            If _WrdHighestPointsFound.Length = str.Length Then
+                                If _WrdHighestPointsFound = str Then
+                                    fdidFinish = True
+                                    AddStatusMsg($"Got answer in {GetTimeAsString(CountDownTime)} {str}")
+                                    Await lamShowResults()
+                                End If
+                            End If
+                        End If
+                    End Sub
             Dim funcGetTileUnderMouse As Func(Of MouseEventArgs, LtrTile) =
-                                Function(ev)
-                                    Dim ltrTile As LtrTile = Nothing
-                                    If _gridUniCanRespond Then
-                                        ' Determine which tile within grd.ActaulWidth, ActualHeight
-                                        Dim pos = ev.GetPosition(_gridUni)
-                                        Dim elem = _gridUni.InputHitTest(pos)
-                                        If elem IsNot Nothing AndAlso elem IsNot _gridUni Then
-                                            Do While elem.GetType <> GetType(LtrTile)
-                                                elem = CType(elem, FrameworkElement).Parent
-                                            Loop
-                                            ltrTile = CType(elem, LtrTile)
-                                        End If
-                                        If (ltrTile IsNot Nothing) Then
-                                            ' Using hittest makes the corners of tiles active, causing diagonals to be difficult
-                                            ' with fat fingers, so make a tile "hit" smaller than the tile
-                                            ' calculate position of center of tile, and distance from mouse
-                                            Dim pixX = pos.X / _gridUni.ActualWidth
-                                            Dim pixY = pos.Y / _gridUni.ActualHeight
-                                            Dim ctrX = ltrTile._col * _gridUni.ActualWidth / _nCols + ltrTile.ActualWidth / 2
-                                            Dim ctrY = ltrTile._row * _gridUni.ActualHeight / _nRows + ltrTile.ActualHeight / 2
-                                            Dim distToCtrOfTileSquared = Math.Pow((pos.X - ctrX), 2) + Math.Pow((pos.Y - ctrY), 2)
-                                            'AddStatusMsg($"x={pos.X:n2} y={pos.Y:n2}  {distToCtrOfTileSquared:n0}  {ltrTile}")
-                                            If (distToCtrOfTileSquared > ltrTile.ActualHeight * ltrTile.ActualWidth / 6) Then
-                                                ltrTile = Nothing
-                                            End If
-                                        End If
+                        Function(ev)
+                            Dim ltrTile As LtrTile = Nothing
+                            If _gridUniCanRespond Then
+                                ' Determine which tile within grd.ActaulWidth, ActualHeight
+                                Dim pos = ev.GetPosition(_gridUni)
+                                Dim elem = _gridUni.InputHitTest(pos)
+                                If elem IsNot Nothing AndAlso elem IsNot _gridUni Then
+                                    Do While elem.GetType <> GetType(LtrTile)
+                                        elem = CType(elem, FrameworkElement).Parent
+                                    Loop
+                                    ltrTile = CType(elem, LtrTile)
+                                End If
+                                If (ltrTile IsNot Nothing) Then
+                                    ' Using hittest makes the corners of tiles active, causing diagonals to be difficult
+                                    ' with fat fingers, so make a tile "hit" smaller than the tile
+                                    ' calculate position of center of tile, and distance from mouse
+                                    Dim pixX = pos.X / _gridUni.ActualWidth
+                                    Dim pixY = pos.Y / _gridUni.ActualHeight
+                                    Dim ctrX = ltrTile._col * _gridUni.ActualWidth / _nCols + ltrTile.ActualWidth / 2
+                                    Dim ctrY = ltrTile._row * _gridUni.ActualHeight / _nRows + ltrTile.ActualHeight / 2
+                                    Dim distToCtrOfTileSquared = Math.Pow((pos.X - ctrX), 2) + Math.Pow((pos.Y - ctrY), 2)
+                                    'AddStatusMsg($"x={pos.X:n2} y={pos.Y:n2}  {distToCtrOfTileSquared:n0}  {ltrTile}")
+                                    If (distToCtrOfTileSquared > ltrTile.ActualHeight * ltrTile.ActualWidth / 6) Then
+                                        ltrTile = Nothing
                                     End If
-                                    Return ltrTile
-                                End Function
-            Dim funcClearSelection As Action = Sub()
-                                                   If StrWordSoFar?.Length >= _nMinWordLen AndAlso Not fdidFinish Then
-                                                       If taskGetResultsAsync.IsCompleted Then
-                                                           Dim lstBigDictResult = taskGetResultsAsync.Result(0)
-                                                           If lstBigDictResult.ContainsKey(StrWordSoFar) Then
-                                                               AddStatusMsg($"Close, but no cigar {StrWordSoFar}")
-                                                           End If
-                                                       End If
-                                                   End If
-                                                   For Each itm In lstTilesSelected
-                                                       itm.UnSelectTile()
-                                                   Next
-                                                   lstTilesSelected.Clear()
-                                                   funcUpdateWordSoFar()
-                                                   IsMouseDown = False
-                                               End Sub
+                                End If
+                            End If
+                            Return ltrTile
+                        End Function
+            Dim funcClearSelection As Action =
+                Sub()
+                    If Not fdidFinish AndAlso StrWordSoFar IsNot Nothing Then
 
-            AddHandler _gridUni.MouseDown, Sub(o, ev)
-                                               'AddStatusMsg($"grd.MouseDown")
-                                               funcClearSelection()
-                                               Dim ltrTile = funcGetTileUnderMouse(ev)
-                                               If ltrTile IsNot Nothing Then
-                                                   If ltrTile._isSelected Then ' already selected
-                                                   Else
-                                                       ltrTile.SelectTile()
-                                                       lstTilesSelected.Add(ltrTile)
-                                                       funcUpdateWordSoFar()
-                                                   End If
-                                                   IsMouseDown = True
-                                               End If
-                                           End Sub
-            AddHandler _gridUni.MouseUp, Sub()
-                                             If IsMouseDown Then
-                                                 'AddStatusMsg($"grd.MouseUp")
-                                                 funcClearSelection()
-                                             End If
-                                         End Sub
+                        If taskGetResultsAsync IsNot Nothing AndAlso taskGetResultsAsync.IsCompleted Then
+                            Dim lstBigDictResult = taskGetResultsAsync.Result(0)
+                            If lstBigDictResult.ContainsKey(StrWordSoFar) Then
+                                If StrWordSoFar?.Length >= 6 AndAlso StrWordSoFar?.Length < 9 Then
+                                    AddStatusMsg($"Not bad! {StrWordSoFar}")
+                                ElseIf StrWordSoFar?.Length >= 9 AndAlso StrWordSoFar?.Length < _nMinWordLen Then
+                                    AddStatusMsg($"Nearly there! {StrWordSoFar}")
+                                ElseIf StrWordSoFar.Length >= _nMinWordLen Then
+                                    AddStatusMsg($"Close, but no cigar {StrWordSoFar}")
+                                End If
+                            End If
+                        End If
+                    End If
+                    For Each itm In lstTilesSelected
+                        itm.UnSelectTile()
+                    Next
+                    lstTilesSelected.Clear()
+                    funcUpdateWordSoFar()
+                    IsMouseDown = False
+                End Sub
+
+            AddHandler _gridUni.MouseDown,
+                Sub(o, ev)
+                    'AddStatusMsg($"grd.MouseDown")
+                    funcClearSelection()
+                    Dim ltrTile = funcGetTileUnderMouse(ev)
+                    If ltrTile IsNot Nothing Then
+                        If ltrTile._isSelected Then ' already selected
+                        Else
+                            ltrTile.SelectTile()
+                            lstTilesSelected.Add(ltrTile)
+                            funcUpdateWordSoFar()
+                        End If
+                        IsMouseDown = True
+                    End If
+                End Sub
+            AddHandler _gridUni.MouseUp,
+                Sub()
+                    If IsMouseDown Then
+                        'AddStatusMsg($"grd.MouseUp")
+                        funcClearSelection()
+                    End If
+                End Sub
             AddHandler _gridUni.MouseMove,
-                                Sub(o, ev)
-                                    'If System.Windows.Input.Mouse.LeftButton = MouseButtonState.Pressed Then
+                    Sub(o, ev)
+                        'If System.Windows.Input.Mouse.LeftButton = MouseButtonState.Pressed Then
 
-                                    'End If
-                                    '                                                      AddStatusMsg($"mm {IsMouseDown} {fdidFinish}")
-                                    If IsMouseDown AndAlso Not fdidFinish Then
-                                        Dim ltrTile = funcGetTileUnderMouse(ev)
-                                        If ltrTile IsNot Nothing Then
-                                            Dim priorSelected As LtrTile = Nothing
-                                            If lstTilesSelected.Count > 0 Then
-                                                priorSelected = lstTilesSelected(lstTilesSelected.Count - 1)
-                                            End If
-                                            If ltrTile._isSelected Then ' already selected: ' if it is selected, user, might have gone back to prior selection
-                                                If (lstTilesSelected.Count > 1) Then
-                                                    Dim penult = lstTilesSelected(lstTilesSelected.Count - 2)
-                                                    If (penult._row = ltrTile._row AndAlso penult._col = ltrTile._col) Then 'moved back to prior 1. unselect last one
-                                                        priorSelected.UnSelectTile()
-                                                        lstTilesSelected.RemoveAt(lstTilesSelected.Count - 1)
-                                                        funcUpdateWordSoFar()
-                                                    End If
-                                                End If
-                                            Else
-                                                Dim okToSelect = False
-                                                If priorSelected Is Nothing Then
-                                                    okToSelect = True
-                                                Else
-                                                    ' the distance between the current pos and the last should be 1
-                                                    Dim dist = Math.Pow(priorSelected._col - ltrTile._col, 2) + Math.Pow(priorSelected._row - ltrTile._row, 2)
-                                                    If dist <= 2 Then
-                                                        okToSelect = True
-                                                    End If
-                                                End If
-                                                If okToSelect Then
-                                                    ltrTile.SelectTile()
-                                                    lstTilesSelected.Add(ltrTile)
-                                                    funcUpdateWordSoFar()
-                                                End If
-                                            End If
+                        'End If
+                        '                                                      AddStatusMsg($"mm {IsMouseDown} {fdidFinish}")
+                        If IsMouseDown AndAlso Not fdidFinish Then
+                            Dim ltrTile = funcGetTileUnderMouse(ev)
+                            If ltrTile IsNot Nothing Then
+                                Dim priorSelected As LtrTile = Nothing
+                                If lstTilesSelected.Count > 0 Then
+                                    priorSelected = lstTilesSelected(lstTilesSelected.Count - 1)
+                                End If
+                                If ltrTile._isSelected Then ' already selected: ' if it is selected, user, might have gone back to prior selection
+                                    If (lstTilesSelected.Count > 1) Then
+                                        Dim penult = lstTilesSelected(lstTilesSelected.Count - 2)
+                                        If (penult._row = ltrTile._row AndAlso penult._col = ltrTile._col) Then 'moved back to prior 1. unselect last one
+                                            priorSelected.UnSelectTile()
+                                            lstTilesSelected.RemoveAt(lstTilesSelected.Count - 1)
+                                            funcUpdateWordSoFar()
                                         End If
                                     End If
-                                End Sub
+                                Else
+                                    Dim okToSelect = False
+                                    If priorSelected Is Nothing Then
+                                        okToSelect = True
+                                    Else
+                                        ' the distance between the current pos and the last should be 1
+                                        Dim dist = Math.Pow(priorSelected._col - ltrTile._col, 2) + Math.Pow(priorSelected._row - ltrTile._row, 2)
+                                        If dist <= 2 Then
+                                            okToSelect = True
+                                        End If
+                                    End If
+                                    If okToSelect Then
+                                        ltrTile.SelectTile()
+                                        lstTilesSelected.Add(ltrTile)
+                                        funcUpdateWordSoFar()
+                                    End If
+                                End If
+                            End If
+                        End If
+                    End Sub
             AddHandler _gridUni.MouseLeave, Sub()
                                                 '                                                            funcClearSelection()
                                             End Sub

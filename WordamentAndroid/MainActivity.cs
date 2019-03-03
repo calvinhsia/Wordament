@@ -455,15 +455,28 @@ namespace WordamentAndroid
             void ClearSelection()
             {
                 if (txtWordSoFar != null &&
+                    !fdidGetLongWord &&
                     txtWordSoFar.Left >= _nMinWordLen &&
-                    !string.IsNullOrEmpty(txtWordSoFar.Text) && 
-                    taskGetResultsAsync != null && 
+                    !string.IsNullOrEmpty(txtWordSoFar.Text) &&
+                    taskGetResultsAsync != null &&
                     taskGetResultsAsync.IsCompleted)
                 {
                     var bigDictResult = taskGetResultsAsync.Result[0];
                     if (bigDictResult.ContainsKey(txtWordSoFar.Text))
                     {
-                        Android.Widget.Toast.MakeText(this, $"Close, but no cigar {txtWordSoFar.Text}", Android.Widget.ToastLength.Long).Show();
+                        var lenW = txtWordSoFar.Text.Length;
+                        if (lenW >= 6 && lenW < 9)
+                        {
+                            Android.Widget.Toast.MakeText(this, $"Not bad! {txtWordSoFar.Text}", Android.Widget.ToastLength.Long).Show();
+                        }
+                        else if (lenW >= 9 && lenW < _nMinWordLen)
+                        {
+                            Android.Widget.Toast.MakeText(this, $"Nearly There! {txtWordSoFar.Text}", Android.Widget.ToastLength.Long).Show();
+                        }
+                        else if (lenW >= _nMinWordLen)
+                        {
+                            Android.Widget.Toast.MakeText(this, $"Close, but no cigar {txtWordSoFar.Text}", Android.Widget.ToastLength.Long).Show();
+                        }
                     }
                 }
                 foreach (var tile in lstTilesSelected)
