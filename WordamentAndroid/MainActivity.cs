@@ -454,7 +454,8 @@ namespace WordamentAndroid
             }
             void ClearSelection()
             {
-                if (txtWordSoFar != null && 
+                if (txtWordSoFar != null &&
+                    txtWordSoFar.Left >= _nMinWordLen &&
                     !string.IsNullOrEmpty(txtWordSoFar.Text) && 
                     taskGetResultsAsync != null && 
                     taskGetResultsAsync.IsCompleted)
