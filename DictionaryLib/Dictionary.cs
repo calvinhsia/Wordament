@@ -307,7 +307,22 @@ namespace DictionaryLib
             return _MyWordSoFar.GetWord();
         }
 
-        public void FindAnagrams(string word, Action<string> act)
+        public enum AnagramType
+        {
+            /// <summary>
+            /// resulting words must be same length as original word
+            /// </summary>
+            WholeWord,
+            /// <summary>
+            /// Resulting words have length > 3, 4, 5, etc. and are <= original word length 
+            /// </summary>
+            SubWord3 = 3,
+            SubWord4 = 4,
+            SubWord5 = 5,
+            SubWord6 = 6,
+            SubWord7 = 7
+        }
+        public void FindAnagrams(string word, AnagramType anagramType, Func<string, bool> act)
         {
             MyWord myWord = new MyWord(word);
             // sort bytes
@@ -327,44 +342,71 @@ namespace DictionaryLib
             LogMessage($"DoAnagram {myWord}");
             var origLen = myWord.WordLength;
             int nCnt = 0;
+            var isAborting = false;
             RecurFindAnagram(0);
+            void GotPermutationToTest(int nLevel)
+            {
+                var candidate = myWord.GetWord(anagramType == AnagramType.WholeWord ? 0 : nLevel);
+                nCnt++;
+                LogMessage($"Anag Cand {nCnt,3} {candidate}");
+                if (IsWord(candidate))
+                {
+                    if (!lstAnagrams.Contains(candidate))
+                    {
+                        LogMessage($"   GotAnag {nLevel} {candidate}");
+                        lstAnagrams.Add(candidate);
+                        if (!act(candidate))
+                        {
+                            isAborting = true;
+                        }
+                    }
+                }
+            }
             void RecurFindAnagram(int nLevel)
             {
-                for (int i = nLevel; i < myWord.WordLength; i++)
+                for (int i = nLevel; i < myWord.WordLength && !isAborting; i++)
                 {
-                    if (nLevel > 1)// tree pruning
+                    switch (anagramType)
                     {
-                        myWord.SetLength(nLevel);
-                        var testWord = myWord.GetWord();
-                        var partial = SeekWord(testWord, out var compResult);
-                        myWord.SetLength(origLen);
-                        if (!partial.StartsWith(testWord))
-                        {
-                            LogMessage($"prune {nLevel}  {testWord}  {partial}");
-                            return;
-                        }
+                        case AnagramType.WholeWord:
+                            if (nLevel > 1)// tree pruning
+                            {
+                                var testWord = myWord.GetWord(DesiredLength: nLevel);
+                                var partial = SeekWord(testWord, out var compResult);
+                                if (!partial.StartsWith(testWord))
+                                {
+                                    LogMessage($"prune {nLevel}  {testWord}  {partial}");
+                                    return;
+                                }
+                            }
+                            break;
+                        default:
+                            var len = (int)anagramType;
+                            if (nLevel >= len)
+                            {
+                                GotPermutationToTest(nLevel);
+                                var testWord = myWord.GetWord(DesiredLength: nLevel);
+                                var partial = SeekWord(testWord, out var compResult);
+                                if (!partial.StartsWith(testWord))
+                                {
+                                    LogMessage($"prune {nLevel}  {testWord}  {partial}");
+                                    return;
+                                }
+                            }
+                            break;
                     }
                     byte tmp = myWord._wordBytes[i]; // swap nlevel and i. These will be equal 1st time through for identity permutation
                     myWord._wordBytes[i] = myWord._wordBytes[nLevel];
                     myWord._wordBytes[nLevel] = tmp;
-                    if (nLevel + 1 < myWord.WordLength)
+                    if (!isAborting)
                     {
-                        RecurFindAnagram(nLevel + 1);
-                    }
-                    else
-                    { // got full permutation
-                        var candidate = myWord.GetWord();
-                        nCnt++;
-                        LogMessage($"FAnag {nCnt,3} {candidate}");
-                        //                        LogMessage($"   cand {nLevel} {candidate}");
-                        if (IsWord(candidate))
+                        if (nLevel + 1 < myWord.WordLength)
                         {
-                            if (!lstAnagrams.Contains(candidate))
-                            {
-                                LogMessage($"   GotAnag {nLevel} {candidate}");
-                                lstAnagrams.Add(candidate);
-                                act(candidate);
-                            }
+                            RecurFindAnagram(nLevel + 1);
+                        }
+                        else
+                        { // got full permutation
+                            GotPermutationToTest(nLevel + 1);
                         }
                     }
                     // restore swap
@@ -440,7 +482,7 @@ namespace DictionaryLib
 
 
     /// <summary>
-    /// represent a word as a byte array, reducing need to convert to char/string for perf
+    /// represent a word as a byte array, reducing need to convert to char/string for perf. Not null terminated
     /// </summary>
     internal class MyWord : IComparable
     {
@@ -477,9 +519,19 @@ namespace DictionaryLib
             _wordBytes[0] = byte1;
             _wordBytes[1] = byte2;
         }
-        public string GetWord()
+        /// <summary>
+        /// Get the length of the word. If DesiredLength is non-zero, return the min(DesiredLength, CurrentLength)
+        /// </summary>
+        /// <param name="DesiredLength"></param>
+        /// <returns></returns>
+        public string GetWord(int DesiredLength = 0)
         {
-            return Encoding.ASCII.GetString(_wordBytes, 0, _currentLength);
+            var len = _currentLength;
+            if (DesiredLength != 0)
+            {
+                len = Math.Min(DesiredLength, len);
+            }
+            return Encoding.ASCII.GetString(_wordBytes, 0, len);
         }
         public void AddByte(byte b)
         {

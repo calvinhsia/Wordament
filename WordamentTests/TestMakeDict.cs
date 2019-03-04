@@ -18,6 +18,12 @@ namespace WordamentTests
         {
             TestContext.WriteLine(msg);
         }
+
+        [TestInitialize]
+        public void TestInit()
+        {
+            LogMessage($"Test Init {DateTime.Now.ToString()} {TestContext.TestName}");
+        }
         public TestBase()
         {
             void LogMsgAction(string str) => LogMessage(str);
@@ -105,10 +111,12 @@ namespace WordamentTests
             //word = "harigds";
             //word = "keepdan";
             LogMessage($"doing anagrams {word}");
-            dict.FindAnagrams(word, (str) =>
+            dict.FindAnagrams(word, DictionaryLib.DictionaryLib.AnagramType.WholeWord, (str) =>
             {
                 lstAnagrams.Add(str);
+                return true; // continue
             });
+            Console.WriteLine($"# anagrams found = {lstAnagrams.Count}");
             foreach (var anagram in lstAnagrams)
             {
                 Console.WriteLine($"Found anagram {anagram}");
@@ -117,6 +125,67 @@ namespace WordamentTests
             Assert.IsTrue(lstAnagrams.Contains("rediscount"));
             Assert.IsTrue(lstAnagrams.Contains("introduces"));
             Assert.IsTrue(lstAnagrams.Contains("reductions"));
+        }
+
+        [TestMethod]
+        public void TestDoSubAnagrams()
+        {
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
+            var lstAnagrams = new List<string>();
+            var word = "count";
+            var anagType = DictionaryLib.DictionaryLib.AnagramType.SubWord5;
+            LogMessage($"doing subanagrams {anagType} {word}");
+            dict.FindAnagrams(word,
+                DictionaryLib.DictionaryLib.AnagramType.SubWord3,
+                (str) =>
+            {
+                lstAnagrams.Add(str);
+                return true; // continue
+            });
+            Console.WriteLine($"# anagrams found = {lstAnagrams.Count}");
+            foreach (var anagram in lstAnagrams)
+            {
+                Console.WriteLine($"Found anagram {anagram}");
+            }
+            Assert.IsTrue(lstAnagrams.Contains("con"));
+            Assert.IsTrue(lstAnagrams.Contains("cont"));
+            Assert.IsTrue(lstAnagrams.Contains("cot"));
+            Assert.IsTrue(lstAnagrams.Contains("count"));
+            Assert.IsTrue(lstAnagrams.Contains("cut"));
+            Assert.IsTrue(lstAnagrams.Contains("not"));
+            Assert.IsTrue(lstAnagrams.Contains("nut"));
+            Assert.IsTrue(lstAnagrams.Contains("ont"));
+            Assert.IsTrue(lstAnagrams.Contains("oct"));
+            Assert.IsTrue(lstAnagrams.Contains("out"));
+            Assert.IsTrue(lstAnagrams.Contains("ton"));
+            Assert.IsTrue(lstAnagrams.Contains("unto"));
+            Assert.AreEqual(12, lstAnagrams.Count);
+        }
+
+        [TestMethod]
+        public void TestDoSubAnagrams5()
+        {
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
+            var lstAnagrams = new List<string>();
+            var word = "discount";
+            var anagType = DictionaryLib.DictionaryLib.AnagramType.SubWord5;
+            LogMessage($"doing subanagrams {anagType} {word}");
+            dict.FindAnagrams(word,
+                DictionaryLib.DictionaryLib.AnagramType.SubWord5,
+                (str) =>
+                {
+                    lstAnagrams.Add(str);
+                    return true; // continue
+                });
+            Console.WriteLine($"# anagrams found = {lstAnagrams.Count}");
+            foreach (var anagram in lstAnagrams)
+            {
+                Console.WriteLine($"Found anagram {anagram}");
+            }
+            Assert.IsTrue(lstAnagrams.Contains("tucson"));
+            Assert.IsTrue(lstAnagrams.Contains("conduit"));
+            Assert.IsTrue(lstAnagrams.Contains("donuts"));
+            Assert.AreEqual(32, lstAnagrams.Count);
         }
 
 
@@ -278,18 +347,18 @@ namespace WordamentTests
                 if (!hashLarge.Contains(wrd))
                 {
                     hashLarge.Add(wrd);
-//                    Console.WriteLine($"sm not in lrg = {wrd}");
+                    //                    Console.WriteLine($"sm not in lrg = {wrd}");
                 }
             }
             hashLarge.Remove("miscinceptions");
-            //todo: remove "substantialia", "nonconfin"
+            //todo: remove "substantialia", "nonconfin", "surdity"
 
             // when chaning contents of dictionary, this test will fail until you update the resources, 
             // XCOPY /dy C:\Users\calvinh\Source\Repos\Wordament\WordamentTests\bin\Debug\*.bin C:\Users\calvinh\Source\Repos\Wordament\Dictionary\Resources
 
-            for (uint dictNum = 1; dictNum <=2 ; dictNum++)
+            for (uint dictNum = 1; dictNum <= 2; dictNum++)
             {
-                List<string> lstWords =null;
+                List<string> lstWords = null;
                 if ((DictionaryType)dictNum == DictionaryType.Small)
                 {
                     lstWords = lstSMall;
