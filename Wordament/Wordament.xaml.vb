@@ -144,7 +144,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Vertical">
                         <StackPanel Orientation="Horizontal">
-                            <TextBox Width="300" FontSize="24" IsReadOnly="True" Text="{Binding Path=StrWordSoFar}"/>
+                            <TextBox Name="txtWordSoFar" Width="300" FontSize="24" IsReadOnly="True" Text="{Binding Path=StrWordSoFar}"/>
                             <TextBox Width="90" FontSize="24" IsReadOnly="True" Text="{Binding Path=CountDownTimeStr}"/>
                         </StackPanel>
                         <UniformGrid Name="grdUniform" Height="500" Width="500" Background="#FF000000" HorizontalAlignment="Left"></UniformGrid>
@@ -162,7 +162,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             Dim btnHint = CType(mainGrid.FindName("btnHint"), Button)
             _gridUni = CType(mainGrid.FindName("grdUniform"), UniformGrid)
             _spResults = CType(mainGrid.FindName("spResults"), StackPanel)
-
+            Dim txtWordSoFar = CType(mainGrid.FindName("txtWordSoFar"), TextBox)
             Dim timerEnabled = False
             Dim timer = New DispatcherTimer(
                 TimeSpan.FromSeconds(1),
@@ -260,13 +260,12 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             Dim funcClearSelection As Action =
                 Sub()
                     If Not fdidFinish AndAlso StrWordSoFar IsNot Nothing Then
-
                         If taskGetResultsAsync IsNot Nothing AndAlso taskGetResultsAsync.IsCompleted Then
                             Dim lstBigDictResult = taskGetResultsAsync.Result(0)
                             If lstBigDictResult.ContainsKey(StrWordSoFar) Then
-                                If StrWordSoFar?.Length >= 6 AndAlso StrWordSoFar?.Length < 9 Then
+                                If StrWordSoFar.Length >= 6 AndAlso StrWordSoFar.Length < 9 Then
                                     AddStatusMsg($"Not bad! {StrWordSoFar}")
-                                ElseIf StrWordSoFar?.Length >= 9 AndAlso StrWordSoFar?.Length < _nMinWordLen Then
+                                ElseIf StrWordSoFar.Length >= 9 AndAlso StrWordSoFar.Length < _nMinWordLen Then
                                     AddStatusMsg($"Nearly there! {StrWordSoFar}")
                                 ElseIf StrWordSoFar.Length >= _nMinWordLen Then
                                     AddStatusMsg($"Close, but no cigar {StrWordSoFar}")
@@ -350,6 +349,20 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                                 '                                                            funcClearSelection()
                                             End Sub
 
+            AddHandler txtWordSoFar.MouseMove, Sub()
+                                                   If Not String.IsNullOrEmpty(StrWordSoFar) Then
+                                                       Dim x = "none"
+                                                       If System.Windows.Input.Mouse.LeftButton = MouseButtonState.Pressed Then
+                                                           x = "left"
+                                                           AddStatusMsg($"tlicccc {x}")
+                                                           Dim disp = txtWordSoFar.Dispatcher
+                                                           disp.BeginInvoke(Sub()
+                                                                                System.Diagnostics.Process.Start($"https://www.merriam-webster.com/dictionary/{StrWordSoFar}")
+                                                                            End Sub)
+
+                                                       End If
+                                                   End If
+                                               End Sub
             AddHandler btnNew.Click,
                 Async Sub()
                     isShowingResult = Not isShowingResult
@@ -529,7 +542,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                             Dim ltrLst = CType(tdesc("lst").GetValue(itm), LetterList)
 
                             Dim firstTile = _arrTiles(ltrLst(0)._row, ltrLst(0)._col)
-
+                            StrWordSoFar = ltrLst.Word
                             Dim saveback = firstTile.Background
                             For Each ltr In ltrLst
                                 Dim tile = _arrTiles(ltr._row, ltr._col)

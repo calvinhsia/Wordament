@@ -282,6 +282,7 @@ namespace WordamentAndroid
                     }
                     var wrd = scoreAdapter[e.Position];
                     var ltrLst = wrd.LtrList;
+                    txtWordSoFar.Text = ltrLst.Word;
                     var firstTile = _arrTiles[ltrLst[0]._row, ltrLst[0]._col];
                     var saveBackground = firstTile.Background;
                     foreach (var ltr in wrd.LtrList)
@@ -311,7 +312,19 @@ namespace WordamentAndroid
                 await DoResultItemClick(o, e, scoreAdapter2);
             };
 
-
+            txtWordSoFar.Click += (o, e) =>
+            {
+                try
+                {
+                    var uri = Android.Net.Uri.Parse($@"https://www.merriam-webster.com/dictionary/{txtWordSoFar.Text}");
+                    var intent = new Intent(Intent.ActionView, uri);
+                    StartActivity(intent);
+                }
+                catch (Exception ex)
+                {
+                    AddStatusMsg($"click {ex.ToString()}");
+                }
+            };
             var IsShowingResult = true;
             var fdidGetLongWord = false;
             Task<List<Dictionary<string, LetterList>>> taskGetResultsAsync = null;
