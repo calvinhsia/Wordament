@@ -344,6 +344,17 @@ namespace DictionaryLib
             int nCnt = 0;
             var isAborting = false;
             RecurFindAnagram(0);
+            void FoundAnagram(string candidate)
+            {
+                if (!lstAnagrams.Contains(candidate))
+                {
+                    lstAnagrams.Add(candidate);
+                    if (!act(candidate))
+                    {
+                        isAborting = true;
+                    }
+                }
+            }
             void GotPermutationToTest(int nLevel)
             {
                 var candidate = myWord.GetWord(anagramType == AnagramType.WholeWord ? 0 : nLevel);
@@ -351,15 +362,7 @@ namespace DictionaryLib
                 LogMessage($"Anag Cand {nCnt,3} {candidate}");
                 if (IsWord(candidate))
                 {
-                    if (!lstAnagrams.Contains(candidate))
-                    {
-                        LogMessage($"   GotAnag {nLevel} {candidate}");
-                        lstAnagrams.Add(candidate);
-                        if (!act(candidate))
-                        {
-                            isAborting = true;
-                        }
-                    }
+                    FoundAnagram(candidate);
                 }
             }
             void RecurFindAnagram(int nLevel)
@@ -384,9 +387,12 @@ namespace DictionaryLib
                             var len = (int)anagramType;
                             if (nLevel >= len)
                             {
-                                GotPermutationToTest(nLevel);
                                 var testWord = myWord.GetWord(DesiredLength: nLevel);
                                 var partial = SeekWord(testWord, out var compResult);
+                                if (compResult == 0)
+                                {
+                                    FoundAnagram(partial);
+                                }
                                 if (!partial.StartsWith(testWord))
                                 {
                                     LogMessage($"prune {nLevel}  {testWord}  {partial}");
