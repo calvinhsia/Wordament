@@ -307,6 +307,56 @@ namespace DictionaryLib
             return _MyWordSoFar.GetWord();
         }
 
+        /// <summary>
+        /// given a bunch of letters, find all words in dictionary that contain only those letters (could be dup letters)
+        /// e.g. for "admit", returns "madam", "dam", "timid"
+        /// </summary>
+        /// <param name="inputLetters"></param>
+        public IEnumerable<string> FindSubWordsFromLetters(string inputLetters, AnagramType anagramType)
+        {
+            if (inputLetters.Length > 2)
+            {
+                LogMessage($"Input {inputLetters}"); //"discountttt"
+                                                     // make it no duplicates and disinct and sorted
+                inputLetters = new string(inputLetters.Distinct().OrderBy(l => l).ToArray());
+                LogMessage($"Sorted {inputLetters}");  //"cdinostu"
+                var lastinputLetter = inputLetters[inputLetters.Length - 1];
+                SeekWord(inputLetters.Substring(0, 2));
+                while (true)
+                {
+                    var testWord = GetNextWord();
+                    if (string.IsNullOrEmpty(testWord))
+                    {
+                        LogMessage("Reached end of dictionary");
+                        break;
+                    }
+                    if (testWord[0] > lastinputLetter)
+                    {
+                        LogMessage($"ending because got word beyond last letter {lastinputLetter} {testWord}");
+                        break;
+                    }
+                    if (testWord.Length >= (int)anagramType)
+                    {
+                        var testWordLetters = new string(testWord.Distinct().OrderBy(l => l).ToArray());
+                        var isGood = true;
+                        foreach (var let in testWordLetters)
+                        {
+                            if (!inputLetters.Contains(let))
+                            {
+                                isGood = false;
+                                break;
+                            }
+                        }
+                        if (isGood)
+                        {
+                            LogMessage($"got word {testWord} {testWordLetters}");
+                            yield return testWord;
+                        }
+                    }
+                }
+            }
+        }
+
         public enum AnagramType
         {
             /// <summary>
@@ -339,7 +389,7 @@ namespace DictionaryLib
                 }
             }
             var lstAnagrams = new HashSet<string>();
-            LogMessage($"DoAnagram {myWord}");
+            LogMessage($"Do Anagram {myWord}");
             var origLen = myWord.WordLength;
             int nCnt = 0;
             var isAborting = false;
@@ -353,16 +403,6 @@ namespace DictionaryLib
                     {
                         isAborting = true;
                     }
-                }
-            }
-            void GotPermutationToTest(int nLevel)
-            {
-                var candidate = myWord.GetWord(anagramType == AnagramType.WholeWord ? 0 : nLevel);
-                nCnt++;
-                LogMessage($"Anag Cand {nCnt,3} {candidate}");
-                if (IsWord(candidate))
-                {
-                    FoundAnagram(candidate);
                 }
             }
             void RecurFindAnagram(int nLevel)
@@ -401,24 +441,29 @@ namespace DictionaryLib
                             }
                             break;
                     }
-                    byte tmp = myWord._wordBytes[i]; // swap nlevel and i. These will be equal 1st time through for identity permutation
-                    myWord._wordBytes[i] = myWord._wordBytes[nLevel];
-                    myWord._wordBytes[nLevel] = tmp;
                     if (!isAborting)
                     {
+                        byte tmp = myWord._wordBytes[i]; // swap nlevel and i. These will be equal 1st time through for identity permutation
+                        myWord._wordBytes[i] = myWord._wordBytes[nLevel];
+                        myWord._wordBytes[nLevel] = tmp;
                         if (nLevel + 1 < myWord.WordLength)
                         {
                             RecurFindAnagram(nLevel + 1);
                         }
                         else
                         { // got full permutation
-                            GotPermutationToTest(nLevel + 1);
+                            var candidate = myWord.GetWord(anagramType == AnagramType.WholeWord ? 0 : nLevel + 1);
+                            nCnt++;
+                            LogMessage($"Anag Cand {nCnt,3} {candidate}");
+                            if (IsWord(candidate))
+                            {
+                                FoundAnagram(candidate);
+                            }
                         }
+                        // restore swap
+                        myWord._wordBytes[nLevel] = myWord._wordBytes[i];
+                        myWord._wordBytes[i] = tmp;
                     }
-                    // restore swap
-                    //                        var tmp2 = myWord._wordBytes[nLevel];
-                    myWord._wordBytes[nLevel] = myWord._wordBytes[i];
-                    myWord._wordBytes[i] = tmp;
                 }
             }
         }

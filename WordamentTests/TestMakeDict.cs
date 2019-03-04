@@ -163,12 +163,12 @@ namespace WordamentTests
         }
 
         [TestMethod]
-        public void TestDoSubAnagrams5()
+        public void TestDoSubAnagrams3()
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
             var lstAnagrams = new List<string>();
             var word = "discount";
-            var anagType = DictionaryLib.DictionaryLib.AnagramType.SubWord5;
+            var anagType = DictionaryLib.DictionaryLib.AnagramType.SubWord3;
             LogMessage($"doing subanagrams {anagType} {word}");
             dict.FindAnagrams(word,
                 DictionaryLib.DictionaryLib.AnagramType.SubWord5,
@@ -186,6 +186,81 @@ namespace WordamentTests
             Assert.IsTrue(lstAnagrams.Contains("conduit"));
             Assert.IsTrue(lstAnagrams.Contains("donuts"));
             Assert.AreEqual(32, lstAnagrams.Count);
+        }
+
+
+        [TestMethod]
+        public void TestDoSubAnagrams5()
+        {
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
+            var lstAnagrams = new List<string>();
+            var word = "discount";
+            var anagType = DictionaryLib.DictionaryLib.AnagramType.SubWord5;
+            LogMessage($"doing subanagrams {anagType} {word}");
+            dict.FindAnagrams(word, anagType,
+                (str) =>
+                {
+                    lstAnagrams.Add(str);
+                    return true; // continue
+                });
+            Console.WriteLine($"# anagrams found = {lstAnagrams.Count}");
+            foreach (var anagram in lstAnagrams)
+            {
+                Console.WriteLine($"Found anagram {anagram}");
+            }
+            Assert.IsTrue(lstAnagrams.Contains("tucson"));
+            Assert.IsTrue(lstAnagrams.Contains("conduit"));
+            Assert.IsTrue(lstAnagrams.Contains("donuts"));
+            Assert.AreEqual(32, lstAnagrams.Count);
+        }
+
+        [TestMethod]
+        public void TestDoSubAnagrams3Long()
+        {
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
+            var lstAnagrams = new List<string>();
+            var word = "counterrevolutionary";
+            var anagType = DictionaryLib.DictionaryLib.AnagramType.SubWord3;
+            LogMessage($"doing subword {anagType} {word}");
+            foreach (var subword in dict.FindSubWordsFromLetters(word, anagType))
+            {
+                lstAnagrams.Add(subword);
+            }
+            Console.WriteLine($"# subword found = {lstAnagrams.Count}");
+            foreach (var anagram in lstAnagrams)
+            {
+                Console.WriteLine($"Found subword {anagram}");
+            }
+            Assert.IsTrue(lstAnagrams.Contains("accountancy"));
+            Assert.IsTrue(lstAnagrams.Contains("act"));
+            Assert.IsTrue(lstAnagrams.Contains("vaccine"));
+            Assert.AreEqual(2400, lstAnagrams.Count);
+        }
+
+
+        [TestMethod]
+        public void TestDoFindSubWordsFromLetters()
+        {
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
+            var lstAnagrams = new List<string>();
+            var word = "discountttt";
+            var anagType = DictionaryLib.DictionaryLib.AnagramType.SubWord5;
+            LogMessage($"doing subwords {anagType} {word}");
+            foreach (var subword in dict.FindSubWordsFromLetters(word,
+                DictionaryLib.DictionaryLib.AnagramType.SubWord5))
+            {
+                lstAnagrams.Add(subword);
+            }
+            Console.WriteLine($"# subwords found = {lstAnagrams.Count}");
+            foreach (var anagram in lstAnagrams)
+            {
+                Console.WriteLine($"Found subwords {anagram}");
+            }
+            Assert.IsTrue(lstAnagrams.Contains("concussion"));
+            Assert.IsTrue(lstAnagrams.Contains("tucson"));
+            Assert.IsTrue(lstAnagrams.Contains("conduit"));
+            Assert.IsTrue(lstAnagrams.Contains("donuts"));
+            Assert.AreEqual(158, lstAnagrams.Count);
         }
 
 
