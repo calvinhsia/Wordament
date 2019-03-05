@@ -56,8 +56,21 @@ namespace WordamentTests
             Assert.AreEqual("test", partial);
 
             partial = dict.SeekWord("testdddddd", out compResult);
-            Assert.AreEqual(1, compResult);
+            Assert.IsTrue(compResult > 0);
             Assert.AreEqual("tested", partial);
+
+            partial = dict.SeekWord("contemptuousl", out compResult);
+            Assert.IsTrue(compResult > 0);
+            Assert.AreEqual("contemptuously", partial);
+
+            partial = dict.SeekWord("contemplatio", out compResult);
+            Assert.IsTrue(compResult > 0);
+            Assert.AreEqual("contemplation", partial);
+
+            partial = dict.SeekWord("contemplatip", out compResult);
+            Assert.IsTrue(compResult > 0);
+            Assert.AreEqual("contemplative", partial);
+
         }
 
 
