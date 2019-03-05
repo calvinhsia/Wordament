@@ -116,7 +116,7 @@ namespace WordamentTests
                 lstAnagrams.Add(str);
                 return true; // continue
             });
-            Console.WriteLine($"# anagrams found = {lstAnagrams.Count}");
+            Console.WriteLine($"Got {lstAnagrams.Count} results in {dict._nRecursionCnt:n0} calls");
             foreach (var anagram in lstAnagrams)
             {
                 Console.WriteLine($"Found anagram {anagram}");
@@ -125,6 +125,7 @@ namespace WordamentTests
             Assert.IsTrue(lstAnagrams.Contains("rediscount"));
             Assert.IsTrue(lstAnagrams.Contains("introduces"));
             Assert.IsTrue(lstAnagrams.Contains("reductions"));
+            Assert.AreEqual(20395, dict._nRecursionCnt);
         }
 
         [TestMethod]
@@ -143,6 +144,7 @@ namespace WordamentTests
                 return true; // continue
             });
             Console.WriteLine($"# anagrams found = {lstAnagrams.Count}");
+            Console.WriteLine($"Got {lstAnagrams.Count} results in {dict._nRecursionCnt:n0} calls");
             foreach (var anagram in lstAnagrams)
             {
                 Console.WriteLine($"Found anagram {anagram}");
@@ -160,6 +162,7 @@ namespace WordamentTests
             Assert.IsTrue(lstAnagrams.Contains("ton"));
             Assert.IsTrue(lstAnagrams.Contains("unto"));
             Assert.AreEqual(12, lstAnagrams.Count);
+            Assert.AreEqual(144, dict._nRecursionCnt);
         }
 
         [TestMethod]
@@ -177,7 +180,7 @@ namespace WordamentTests
                     lstAnagrams.Add(str);
                     return true; // continue
                 });
-            Console.WriteLine($"# anagrams found = {lstAnagrams.Count}");
+            Console.WriteLine($"Got {lstAnagrams.Count} results in {dict._nRecursionCnt:n0} calls");
             foreach (var anagram in lstAnagrams)
             {
                 Console.WriteLine($"Found anagram {anagram}");
@@ -186,6 +189,7 @@ namespace WordamentTests
             Assert.IsTrue(lstAnagrams.Contains("conduit"));
             Assert.IsTrue(lstAnagrams.Contains("donuts"));
             Assert.AreEqual(32, lstAnagrams.Count);
+            Assert.AreEqual(1967, dict._nRecursionCnt);
         }
 
 
@@ -203,7 +207,7 @@ namespace WordamentTests
                     lstAnagrams.Add(str);
                     return true; // continue
                 });
-            Console.WriteLine($"# anagrams found = {lstAnagrams.Count}");
+            Console.WriteLine($"Got {lstAnagrams.Count} results in {dict._nRecursionCnt:n0} calls");
             foreach (var anagram in lstAnagrams)
             {
                 Console.WriteLine($"Found anagram {anagram}");
@@ -212,10 +216,11 @@ namespace WordamentTests
             Assert.IsTrue(lstAnagrams.Contains("conduit"));
             Assert.IsTrue(lstAnagrams.Contains("donuts"));
             Assert.AreEqual(32, lstAnagrams.Count);
+            Assert.AreEqual(1967, dict._nRecursionCnt);
         }
 
         [TestMethod]
-        public void TestDoSubAnagrams3Long()
+        public void TestDoSubWords3Long()
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
             var lstAnagrams = new List<string>();
@@ -226,7 +231,7 @@ namespace WordamentTests
             {
                 lstAnagrams.Add(subword);
             }
-            Console.WriteLine($"# subword found = {lstAnagrams.Count}");
+            Console.WriteLine($"Got {lstAnagrams.Count} results in {dict._nRecursionCnt:n0} calls");
             foreach (var anagram in lstAnagrams)
             {
                 Console.WriteLine($"Found subword {anagram}");
@@ -316,6 +321,7 @@ namespace WordamentTests
         }
 
         [TestMethod]
+        [Ignore]
         public void TestPerfForTrace()
         {
             var oldDict = new OldDictWrapper(1);

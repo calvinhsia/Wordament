@@ -372,6 +372,8 @@ namespace DictionaryLib
             SubWord6 = 6,
             SubWord7 = 7
         }
+        public int _nRecursionCnt = 0;
+
         public void FindAnagrams(string word, AnagramType anagramType, Func<string, bool> act)
         {
             MyWord myWord = new MyWord(word);
@@ -390,79 +392,65 @@ namespace DictionaryLib
             }
             var lstAnagrams = new HashSet<string>();
             LogMessage($"Do Anagram {myWord}");
-            var origLen = myWord.WordLength;
-            int nCnt = 0;
             var isAborting = false;
+            var lenFromAnagramType = (int)anagramType;
             RecurFindAnagram(0);
-            void FoundAnagram(string candidate)
-            {
-                if (!lstAnagrams.Contains(candidate))
-                {
-                    lstAnagrams.Add(candidate);
-                    if (!act(candidate))
-                    {
-                        isAborting = true;
-                    }
-                }
-            }
             void RecurFindAnagram(int nLevel)
             {
-                for (int i = nLevel; i < myWord.WordLength && !isAborting; i++)
+                _nRecursionCnt++;
+                if (nLevel < myWord.WordLength)
                 {
-                    switch (anagramType)
+                    if (nLevel > 1)// tree pruning
                     {
-                        case AnagramType.WholeWord:
-                            if (nLevel > 1)// tree pruning
-                            {
-                                var testWord = myWord.GetWord(DesiredLength: nLevel);
-                                var partial = SeekWord(testWord, out var compResult);
-                                if (!partial.StartsWith(testWord))
-                                {
-                                    LogMessage($"prune {nLevel}  {testWord}  {partial}");
-                                    return;
-                                }
-                            }
-                            break;
-                        default:
-                            var len = (int)anagramType;
-                            if (nLevel >= len)
-                            {
-                                var testWord = myWord.GetWord(DesiredLength: nLevel);
-                                var partial = SeekWord(testWord, out var compResult);
-                                if (compResult == 0)
-                                {
-                                    FoundAnagram(partial);
-                                }
-                                if (!partial.StartsWith(testWord))
-                                {
-                                    LogMessage($"prune {nLevel}  {testWord}  {partial}");
-                                    return;
-                                }
-                            }
-                            break;
+                        var testWord = myWord.GetWord(DesiredLength: nLevel);
+                        var partial = SeekWord(testWord, out var compResult);
+                        if (!partial.StartsWith(testWord))
+                        {
+                            LogMessage($"prune {nLevel}  {testWord}  {partial}");
+                            return;
+                        }
                     }
-                    if (!isAborting)
+                    if (anagramType != AnagramType.WholeWord)
+                    {
+                        if (nLevel >= lenFromAnagramType)
+                        {
+                            var testWord = myWord.GetWord(DesiredLength: nLevel);
+                            var partial = SeekWord(testWord, out var compResult);
+                            if (compResult == 0)
+                            {
+                                FoundAnagram(partial);
+                            }
+                        }
+                    }
+                    for (int i = nLevel; i < myWord.WordLength && !isAborting; i++)
                     {
                         byte tmp = myWord._wordBytes[i]; // swap nlevel and i. These will be equal 1st time through for identity permutation
                         myWord._wordBytes[i] = myWord._wordBytes[nLevel];
                         myWord._wordBytes[nLevel] = tmp;
-                        if (nLevel + 1 < myWord.WordLength)
-                        {
-                            RecurFindAnagram(nLevel + 1);
-                        }
-                        else
-                        { // got full permutation
-                            var candidate = myWord.GetWord(anagramType == AnagramType.WholeWord ? 0 : nLevel + 1);
-                            nCnt++;
-                            LogMessage($"Anag Cand {nCnt,3} {candidate}");
-                            if (IsWord(candidate))
-                            {
-                                FoundAnagram(candidate);
-                            }
-                        }
+                        RecurFindAnagram(nLevel + 1);
                         // restore swap
                         myWord._wordBytes[nLevel] = myWord._wordBytes[i];
                         myWord._wordBytes[i] = tmp;
+                    }
+                }
+                else
+                { // got full permutation
+                    var candidate = myWord.GetWord();
+                    LogMessage($"Anag Cand {_nRecursionCnt,3} {candidate}");
+                    if (IsWord(candidate))
+                    {
+                        FoundAnagram(candidate);
+                    }
+                }
+                void FoundAnagram(string candidate)
+                {
+                    if (!lstAnagrams.Contains(candidate)) // duplicate prevention
+                    {
+                        lstAnagrams.Add(candidate);
+                        if (!act(candidate))
+                        {
+                            isAborting = true;
+                        }
                     }
                 }
             }

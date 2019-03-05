@@ -472,7 +472,6 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
     Friend Shared Sub AddStatusMsg(msg As String)
         msg = $"{DateTime.Now.ToString("hh:mm:ss")} {Thread.CurrentThread.ManagedThreadId} {msg} {vbCrLf}"
-        Dim x = _txtStatus.Dispatcher
         _txtStatus.Dispatcher.BeginInvoke(Sub()
                                               _txtStatus.AppendText(msg)
                                               _txtStatus.ScrollToEnd()
