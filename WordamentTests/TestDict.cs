@@ -33,13 +33,13 @@ namespace WordamentTests
     }
 
     [TestClass]
-    public class TestMakeDict : TestBase
+    public class TestDict : TestBase
     {
 
         [TestMethod]
         public void TestSeekWord()
         {
-            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
             foreach (var str in new[] { "zys", "me", "aband", "", "z", "mel", "asdf" })
             {
                 var res = dict.SeekWord(str);
@@ -50,6 +50,14 @@ namespace WordamentTests
             Assert.AreEqual(dict.SeekWord("mel"), "melancholia");
             Assert.AreEqual(dict.SeekWord("aband"), "abandon");
             Assert.AreEqual(dict.SeekWord("asdf"), "asdic");
+
+            var partial = dict.SeekWord("test", out var compResult);
+            Assert.AreEqual(0, compResult);
+            Assert.AreEqual("test", partial);
+
+            partial = dict.SeekWord("testdddddd", out compResult);
+            Assert.AreEqual(1, compResult);
+            Assert.AreEqual("tested", partial);
         }
 
 

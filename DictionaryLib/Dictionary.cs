@@ -326,19 +326,20 @@ namespace DictionaryLib
         public void FindAnagrams(string word, AnagramType anagramType, Func<string, bool> act)
         {
             MyWord myWord = new MyWord(word);
-            // sort bytes
-            for (int i = 0; i < myWord.WordLength; i++)
-            {
-                for (int j = 0; j < i; j++)
-                {
-                    if (myWord._wordBytes[i] < myWord._wordBytes[j])
-                    {
-                        var tmp = myWord._wordBytes[i];
-                        myWord._wordBytes[i] = myWord._wordBytes[j];
-                        myWord._wordBytes[j] = tmp;
-                    }
-                }
-            }
+            // sort bytes, with null at the end
+            myWord._wordBytes = myWord._wordBytes.OrderBy(b => b == '\0' ? 127 : b).ToArray();
+            //for (int i = 0; i < myWord.WordLength; i++)
+            //{
+            //    for (int j = 0; j < i; j++)
+            //    {
+            //        if (myWord._wordBytes[i] < myWord._wordBytes[j])
+            //        {
+            //            var tmp = myWord._wordBytes[i];
+            //            myWord._wordBytes[i] = myWord._wordBytes[j];
+            //            myWord._wordBytes[j] = tmp;
+            //        }
+            //    }
+            //}
             var lstAnagrams = new HashSet<string>();
             LogMessage($"Do Anagram {myWord}");
             var isAborting = false;
@@ -355,7 +356,7 @@ namespace DictionaryLib
                         var partial = SeekWord(testWord, out var compResult);
                         if (!partial.StartsWith(testWord))
                         {
-                            LogMessage($"prune {nLevel}  {testWord}  {partial}");
+//                            LogMessage($"prune {nLevel}  {testWord}  {partial}");
                             return;
                         }
                     }
@@ -385,7 +386,7 @@ namespace DictionaryLib
                 else
                 { // got full permutation
                     var candidate = myWord.GetWord();
-                    LogMessage($"Anag Cand {_nRecursionCnt,3} {candidate}");
+  //                  LogMessage($"Anag Cand {_nRecursionCnt,3} {candidate}");
                     if (IsWord(candidate))
                     {
                         FoundAnagram(candidate);
