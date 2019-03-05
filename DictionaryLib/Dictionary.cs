@@ -12,55 +12,6 @@ using System.Threading.Tasks;
 
 namespace DictionaryLib
 {
-    public class DictionaryResult
-    {
-        public string Word;
-        internal DictionaryState dictionaryState;
-        public DictionaryResult GetNextResult()
-        {
-            return this.dictionaryState.GetNextWord();
-        }
-    }
-    internal class DictionaryState
-    {
-        internal DictionaryLib dictionary;
-        internal byte partialNib = 0;
-        internal bool havePartialNib = false;
-        internal int nibndx;
-        internal string wordSoFar = string.Empty;
-        internal DictionaryResult GetNextWord()
-        {
-            DictionaryResult dictionaryResult = new DictionaryResult();
-            return dictionaryResult;
-        }
-        byte GetNextNib()
-        {
-            byte result;
-            if (havePartialNib)
-            {
-                result = partialNib;
-            }
-            else
-            {
-                var ndx = Marshal.SizeOf<DictHeader>() + nibndx / 2;
-                if (ndx < dictionary._dictBytes.Length)
-                {
-                    partialNib = dictionary._dictBytes[ndx];
-                    result = (byte)(partialNib >> 4);
-                    partialNib = (byte)(partialNib & 0xf);
-                }
-                else
-                {
-                    result = DictHeader.EOFChar;
-                }
-            }
-            nibndx++;
-            havePartialNib = !havePartialNib;
-            //                LogMessage($"  GetNextNib {nibndx} {result}");
-            return result;
-        }
-    }
-
     public enum DictionaryType
     {
         /// <summary>
