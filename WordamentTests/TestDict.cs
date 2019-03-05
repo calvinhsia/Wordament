@@ -40,6 +40,11 @@ namespace WordamentTests
         public void TestSeekWord()
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
+
+
+            var x = dict.SeekWord("a", out var cres);
+
+
             foreach (var str in new[] { "zys", "me", "aband", "", "z", "mel", "asdf" })
             {
                 var res = dict.SeekWord(str);

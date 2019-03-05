@@ -26,6 +26,7 @@ namespace DictionaryLib
 
     public class DictionaryLib
     {
+        const byte LetterA = 97;
         internal DictHeader _dictHeader;
         internal int _dictHeaderSize;
         internal DictionaryType _dictionaryType;
@@ -108,26 +109,26 @@ namespace DictionaryLib
             word = word.ToLower();
             var result = string.Empty;
             compResult = 0;
-            byte let1 = 0;
-            byte let2 = 0; //'a'
+            byte let1 = LetterA;
+            byte let2 = LetterA;
             if (word.Length > 0)
             {
-                let1 = (byte)(word[0] - 97);
+                let1 = (byte)(word[0]);
             }
             if (word.Length > 1)
             {
-                let2 = (byte)(word[1] - 97);
+                let2 = (byte)(word[1]);
             }
             SetDictPosTo2Letters(let1, let2);
             result = GetNextWord(out compResult, WordStop: word);
             return result;
         }
 
-        void SetDictPosTo2Letters(byte let1, byte let2 = 0)
+        void SetDictPosTo2Letters(byte let1, byte let2 = LetterA)
         {
             _havePartialNib = false;
-            _nibndx = _dictHeader.nibPairPtr[let1 * 26 + let2].nibbleOffset;
-            _MyWordSoFar.SetWord((byte)(let1 + 97), (byte)(let2 + 97));
+            _nibndx = _dictHeader.nibPairPtr[(let1 - LetterA) * 26 + let2 - LetterA].nibbleOffset;
+            _MyWordSoFar.SetWord(let1, let2);
             if ((int)(_nibndx & 1) > 0)
             {
                 GetNextNib();
@@ -356,7 +357,7 @@ namespace DictionaryLib
                         var partial = SeekWord(testWord, out var compResult);
                         if (!partial.StartsWith(testWord))
                         {
-//                            LogMessage($"prune {nLevel}  {testWord}  {partial}");
+                            //                            LogMessage($"prune {nLevel}  {testWord}  {partial}");
                             return;
                         }
                     }
@@ -386,7 +387,7 @@ namespace DictionaryLib
                 else
                 { // got full permutation
                     var candidate = myWord.GetWord();
-  //                  LogMessage($"Anag Cand {_nRecursionCnt,3} {candidate}");
+                    //                  LogMessage($"Anag Cand {_nRecursionCnt,3} {candidate}");
                     if (IsWord(candidate))
                     {
                         FoundAnagram(candidate);
@@ -447,7 +448,7 @@ namespace DictionaryLib
                     }
                     else
                     {
-                        SetDictPosTo2Letters((byte)i, (byte)j);
+                        SetDictPosTo2Letters((byte)(i + LetterA), (byte)(j + LetterA));
                         var r = GetNextWord(cntSkip: rnum - sum);
                         return r;
                     }
