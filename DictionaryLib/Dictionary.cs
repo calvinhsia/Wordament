@@ -12,7 +12,6 @@ using System.Threading.Tasks;
 
 namespace DictionaryLib
 {
-    //todo find words in small not in large "miscinceptions", "containedness"
     public class DictionaryResult
     {
         public string Word;
@@ -145,9 +144,9 @@ namespace DictionaryLib
         /// IOW, 2 consecutive words in dictionary: abcdefone, abcdeftwo (and dict does not have abc,abcdefg)
         /// Search for 
         ///     abc => returns abcdef (abc not found)
-        ///     abcdef=> returns abcdef (match)
+        ///     abcdefone=> returns abcdefone (match)
         ///     abcdefg=> returns abcdefone
-        ///     acbdefs=> returns abcdeftwo
+        ///     abcdefs=> returns abcdeftwo
         /// 
         ///// </summary>
         /// </summary>
@@ -160,11 +159,10 @@ namespace DictionaryLib
             compResult = 0;
             byte let1 = 0;
             byte let2 = 0; //'a'
-            if (word.Length > 1)
+            if (word.Length > 0)
             {
                 let1 = (byte)(word[0] - 97);
             }
-            let2 = 0; //'a'
             if (word.Length > 1)
             {
                 let2 = (byte)(word[1] - 97);

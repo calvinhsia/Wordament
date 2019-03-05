@@ -351,10 +351,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
             AddHandler txtWordSoFar.MouseMove, Sub()
                                                    If Not String.IsNullOrEmpty(StrWordSoFar) Then
-                                                       Dim x = "none"
                                                        If System.Windows.Input.Mouse.LeftButton = MouseButtonState.Pressed Then
-                                                           x = "left"
-                                                           AddStatusMsg($"tlicccc {x}")
                                                            Dim disp = txtWordSoFar.Dispatcher
                                                            disp.BeginInvoke(Sub()
                                                                                 System.Diagnostics.Process.Start($"https://www.merriam-webster.com/dictionary/{StrWordSoFar}")
