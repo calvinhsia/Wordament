@@ -37,8 +37,9 @@ namespace MakeDictionary
                 tab1 = " acdegilmnorstu", // A 0 in the nib stream indicates end of word, so the 0th entry isn't used: 15 is escape to next table
                 tab2 = " bfhjkpqvwxzy", // 0th entry isn't used
             };
-            dictHeader.nibPairPtr = new DictHeaderNibbleEntry[26 * 26];
+            dictHeader.nibPairPtr = new DictHeaderNibbleEntry[26 * 26 * 26];
             var nibpairNdx = 0;
+            var let0 = 'a';
             var let1 = 'a';
             var let2 = 'a';
             var wordSofar = string.Empty;
@@ -103,17 +104,19 @@ namespace MakeDictionary
                         maxWordLen = word.Length;
                     }
                     var curWordNdx = curNibNdx;
-                    if (word[0] == let1 && (word.Length < 2 || word[1] == let2))
+                    if (word[0] == let0 && (word.Length < 2 || word[1] == let1) && (word.Length < 3 || word[2] == let2))
                     {
                         // same bucket
                     }
                     else
                     { // diff bucket
-                        let1 = word[0];
-                        let2 = word.Length > 1 ? word[1] : 'a';
-                        nibpairNdx = (let1 - 97) * 26 + let2 - 97;
+                        let0 = word[0];
+                        let1 = word.Length > 1 ? word[1] : 'a';
+                        let2 = word.Length > 2 ? word[2] : 'a';
+
+                        nibpairNdx = ((let0 - 97) * 26 + let1 - 97) * 26 + let2 - 97;
                         dictHeader.nibPairPtr[nibpairNdx].nibbleOffset = curNibNdx;
-                        LogMessage($"AddBucket  {let1} {let2} {word} {curNibNdx:x4}");
+                        LogMessage($"AddBucket  {let0} {let1} {let2} {word} {curNibNdx:x4}");
                     }
                     dictHeader.nibPairPtr[nibpairNdx].cnt++;
                     // each word starts with the length to keep from the prior word. e.g. from "common" to "computer", the 1st 3 letters are the same, so lenToKeep = 3
@@ -180,8 +183,11 @@ namespace MakeDictionary
             {
                 for (int j = 0; j < 26; j++)
                 {
-                    cntwrds += dictHeader.nibPairPtr[i * 26 + j].cnt;
-                    LogMessage($"{Convert.ToChar(i + 65)} {Convert.ToChar(j + 65)} {dictHeader.nibPairPtr[i * 26 + j].nibbleOffset:x4}  {dictHeader.nibPairPtr[i * 26 + j].cnt}");
+                    for (int k = 0; k < 26; k++)
+                    {
+                        cntwrds += dictHeader.nibPairPtr[(i * 26 + j) * 26 + k].cnt;
+                        LogMessage($"{Convert.ToChar(i + 65)} {Convert.ToChar(j + 65)} {Convert.ToChar(k + 65)} {dictHeader.nibPairPtr[(i * 26 + j) * 26 + k].nibbleOffset:x4}  {dictHeader.nibPairPtr[(i * 26 + j) * 26 + k].cnt}");
+                    }
                 }
             }
             LogMessage($"TotWrds = {dictHeader.wordCount}   TotNibtblcnt={cntwrds}");

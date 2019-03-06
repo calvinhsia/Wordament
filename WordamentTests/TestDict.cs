@@ -442,14 +442,14 @@ namespace WordamentTests
         public void TestMakedDict()
         {
             LogMessage($"{TestContext.TestName}  {DateTime.Now.ToString("MM/dd/yy hh:mm:ss")}");
-            var lstSMall = GetOldDictWords((uint)DictionaryType.Small);
+            var lstSmall = GetOldDictWords((uint)DictionaryType.Small);
             var lstlarge = GetOldDictWords((uint)DictionaryType.Large);
             var hashLarge = new HashSet<string>();
             foreach (var wrd in lstlarge)
             {
                 hashLarge.Add(wrd);
             }
-            foreach (var wrd in lstSMall)
+            foreach (var wrd in lstSmall)
             {
                 if (!hashLarge.Contains(wrd))
                 {
@@ -457,10 +457,19 @@ namespace WordamentTests
                     //                    Console.WriteLine($"sm not in lrg = {wrd}");
                 }
             }
-            hashLarge.Remove("miscinceptions");
+            foreach (var str in new[]
+            {
+                "miscinceptions",
+                "substantialia",
+                "nonconfin",
+                "surdity"
+            })
+            {
+                hashLarge.Remove(str);
+            }
             //todo: remove "substantialia", "nonconfin", "surdity"
 
-            // when chaning contents of dictionary, this test will fail until you update the resources, 
+            // when changing contents of dictionary, this test will fail until you update the resources, 
             // XCOPY /dy C:\Users\calvinh\Source\Repos\Wordament\WordamentTests\bin\Debug\*.bin C:\Users\calvinh\Source\Repos\Wordament\Dictionary\Resources
 
             for (uint dictNum = 1; dictNum <= 2; dictNum++)
@@ -468,7 +477,7 @@ namespace WordamentTests
                 List<string> lstWords = null;
                 if ((DictionaryType)dictNum == DictionaryType.Small)
                 {
-                    lstWords = lstSMall;
+                    lstWords = lstSmall;
                 }
                 else
                 {

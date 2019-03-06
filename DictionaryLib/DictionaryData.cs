@@ -61,8 +61,9 @@ namespace DictionaryData
         /// <summary>
         /// 26*26 array of DictHeaderNibbleEntry 
         /// AA, AB, AC... BA,BB,BC.... the first one points to e.g. "aardvark", next to "abandon", etc.
+        ///   now changed to 3 letter index: 26*26*26: aaa, aab, etc.
         /// </summary>
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 26 * 26)]
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 26 * 26 * 26)]
         public DictHeaderNibbleEntry[] nibPairPtr;
 
         public byte[] GetBytes()

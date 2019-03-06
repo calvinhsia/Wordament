@@ -109,26 +109,31 @@ namespace DictionaryLib
             word = word.ToLower();
             var result = string.Empty;
             compResult = 0;
+            byte let0 = LetterA;
             byte let1 = LetterA;
             byte let2 = LetterA;
             if (word.Length > 0)
             {
-                let1 = (byte)(word[0]);
+                let0 = (byte)(word[0]);
             }
             if (word.Length > 1)
             {
-                let2 = (byte)(word[1]);
+                let1 = (byte)(word[1]);
             }
-            SetDictPosTo2Letters(let1, let2);
+            if (word.Length > 2)
+            {
+                let2 = (byte)(word[2]);
+            }
+            SetDictPosTo2Letters(let0, let1, let2);
             result = GetNextWord(out compResult, WordStop: word);
             return result;
         }
 
-        void SetDictPosTo2Letters(byte let1, byte let2 = LetterA)
+        void SetDictPosTo2Letters(byte let0, byte let1 = LetterA, byte let2 = LetterA)
         {
             _havePartialNib = false;
-            _nibndx = _dictHeader.nibPairPtr[(let1 - LetterA) * 26 + let2 - LetterA].nibbleOffset;
-            _MyWordSoFar.SetWord(let1, let2);
+            _nibndx = _dictHeader.nibPairPtr[((let0 - LetterA) * 26 + let1 - LetterA) * 26 + let2 - LetterA].nibbleOffset;
+            _MyWordSoFar.SetWord(let0, let1);
             if ((int)(_nibndx & 1) > 0)
             {
                 GetNextNib();
@@ -436,21 +441,24 @@ namespace DictionaryLib
         public string RandomWord()
         {
             var rnum = _random.Next(_dictHeader.wordCount);
-            int sum = 0, i = 0, j = 0;
+            int sum = 0, i = 0, j = 0, k = 0;
             for (i = 0; i < 26; i++)
             {
                 for (j = 0; j < 26; j++)
                 {
-                    var cnt = _dictHeader.nibPairPtr[i * 26 + j].cnt;
-                    if (sum + cnt < rnum)
+                    for (k =0; k<26; k++)
                     {
-                        sum += cnt;
-                    }
-                    else
-                    {
-                        SetDictPosTo2Letters((byte)(i + LetterA), (byte)(j + LetterA));
-                        var r = GetNextWord(cntSkip: rnum - sum);
-                        return r;
+                        var cnt = _dictHeader.nibPairPtr[(i * 26 + j) + k].cnt;
+                        if (sum + cnt < rnum)
+                        {
+                            sum += cnt;
+                        }
+                        else
+                        {
+                            SetDictPosTo2Letters((byte)(i + LetterA), (byte)(j + LetterA));
+                            var r = GetNextWord(cntSkip: rnum - sum);
+                            return r;
+                        }
                     }
                 }
             }
