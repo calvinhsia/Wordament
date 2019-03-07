@@ -87,7 +87,7 @@ namespace DictionaryLib
 
         public string SeekWord(string word)
         {
-            return SeekWord(word, out var compResult);
+            return SeekWord(word, out var _);
         }
 
         /// <summary>
@@ -108,8 +108,6 @@ namespace DictionaryLib
         public string SeekWord(string word, out int compResult)
         {
             word = word.ToLower();
-            var result = string.Empty;
-            compResult = 0;
             byte let0 = LetterA;
             byte let1 = LetterA;
             byte let2 = LetterA;
@@ -126,7 +124,7 @@ namespace DictionaryLib
                 let2 = (byte)(word[2]);
             }
             SetDictPos(let0, let1, let2);
-            result = GetNextWord(out compResult, WordStop: word);
+            var result = GetNextWord(out compResult, WordStop: word);
             return result;
         }
 
@@ -168,12 +166,12 @@ namespace DictionaryLib
         }
         public string GetNextWord()
         {
-            return GetNextWord(out int compareResult, WordStop: null, cntSkip: 0);
+            return GetNextWord(out int _, WordStop: null, cntSkip: 0);
         }
 
         internal string GetNextWord(string WordStop = null, int cntSkip = 0)
         {
-            return GetNextWord(out int compareResult, WordStop, cntSkip);
+            return GetNextWord(out int _, WordStop, cntSkip);
         }
 
         /// <summary>
@@ -187,7 +185,7 @@ namespace DictionaryLib
         internal string GetNextWord(out int compareResult, string WordStop = null, int cntSkip = 0)
         {
             Debug.Assert((WordStop == null) || cntSkip == 0);
-            byte nib = 0;
+            byte nib;
             MyWord stopAtWord = null;
             compareResult = 0;
             if (!string.IsNullOrEmpty(WordStop))
@@ -428,7 +426,7 @@ namespace DictionaryLib
                         }
                         break;
                     default:
-                        var testWord = SeekWord(word, out var cmp);
+                        SeekWord(word, out var cmp);
                         if (cmp == 0)
                         {
                             isWord = true;
@@ -442,7 +440,7 @@ namespace DictionaryLib
         public string RandomWord()
         {
             var rnum = _random.Next(_dictHeader.wordCount);
-            int sum = 0, i = 0, j = 0, k = 0;
+            int sum = 0, i, j, k;
             for (i = 0; i < NumLetters; i++)
             {
                 for (j = 0; j < NumLetters; j++)
@@ -456,7 +454,7 @@ namespace DictionaryLib
                         }
                         else
                         {
-                            SetDictPos((byte)(i + LetterA), (byte)(j + LetterA));
+                            SetDictPos((byte)(i + LetterA), (byte)(j + LetterA), (byte)(k + LetterA));
                             var r = GetNextWord(cntSkip: rnum - sum);
                             return r;
                         }
@@ -468,7 +466,8 @@ namespace DictionaryLib
 
         internal IEnumerable<string> FindMatchRegEx(string strPattern)
         {
-            var wrd = SeekWord("a");
+            string wrd;
+            SeekWord("a");
             while (!string.IsNullOrEmpty(wrd = GetNextWord()))
             {
                 if (System.Text.RegularExpressions.Regex.IsMatch(wrd, strPattern))
@@ -485,18 +484,18 @@ namespace DictionaryLib
     /// </summary>
     internal class MyWord : IComparable
     {
-        readonly private int maxWordLen;
+        readonly int maxWordLen = 30;
         internal byte[] _wordBytes;
         int _currentLength;
 
         MyWord()
         {
-            this.maxWordLen = 30;
-            this._wordBytes = new byte[this.maxWordLen];
+            this._wordBytes = new byte[maxWordLen];
             _currentLength = 0;
         }
         public MyWord(int maxWordLen) : this()
         {
+            this.maxWordLen = maxWordLen;
         }
 
         public MyWord(string word) : this()
