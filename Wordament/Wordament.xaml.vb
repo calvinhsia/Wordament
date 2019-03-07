@@ -349,14 +349,18 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                                 '                                                            funcClearSelection()
                                             End Sub
 
-            AddHandler txtWordSoFar.MouseMove, Sub()
+            Dim IsLookingUpWordOnLine = False ' debounce: lots of mousemoves shouldn't trigger lots of lookups
+            AddHandler txtWordSoFar.MouseMove, Async Sub()
                                                    If Not String.IsNullOrEmpty(StrWordSoFar) Then
-                                                       If System.Windows.Input.Mouse.LeftButton = MouseButtonState.Pressed Then
+                                                       If Not IsLookingUpWordOnLine AndAlso System.Windows.Input.Mouse.LeftButton = MouseButtonState.Pressed Then
+                                                           IsLookingUpWordOnLine = True
                                                            Dim disp = txtWordSoFar.Dispatcher
-                                                           disp.BeginInvoke(Sub()
-                                                                                System.Diagnostics.Process.Start($"https://www.merriam-webster.com/dictionary/{StrWordSoFar}")
-                                                                            End Sub)
+                                                           Await disp.BeginInvoke(Sub()
+                                                                                      System.Diagnostics.Process.Start($"https://www.merriam-webster.com/dictionary/{StrWordSoFar}")
+                                                                                  End Sub)
 
+                                                           Await Task.Delay(TimeSpan.FromSeconds(3))
+                                                           IsLookingUpWordOnLine = False
                                                        End If
                                                    End If
                                                End Sub

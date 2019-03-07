@@ -467,10 +467,10 @@ namespace WordamentTests
             {
                 hashLarge.Remove(str);
             }
-            //todo: remove "substantialia", "nonconfin", "surdity"
+            //todo: remove "misinforman"
 
             // when changing contents of dictionary, this test will fail until you update the resources, 
-            // XCOPY /dy C:\Users\calvinh\Source\Repos\Wordament\WordamentTests\bin\Debug\*.bin C:\Users\calvinh\Source\Repos\Wordament\Dictionary\Resources
+            // XCOPY /dy C:\Users\calvinh\Source\Repos\Wordament\WordamentTests\bin\Debug\*.bin C:\Users\calvinh\Source\Repos\Wordament\DictionaryLib\Resources
 
             for (uint dictNum = 1; dictNum <= 2; dictNum++)
             {

@@ -26,7 +26,8 @@ namespace DictionaryLib
 
     public class DictionaryLib
     {
-        const byte LetterA = 97;
+        public const byte LetterA = 97; // 'a'
+        public const int NumLetters = 26; // # letters in alphabet
         internal DictHeader _dictHeader;
         internal int _dictHeaderSize;
         internal DictionaryType _dictionaryType;
@@ -124,15 +125,15 @@ namespace DictionaryLib
             {
                 let2 = (byte)(word[2]);
             }
-            SetDictPosTo2Letters(let0, let1, let2);
+            SetDictPos(let0, let1, let2);
             result = GetNextWord(out compResult, WordStop: word);
             return result;
         }
 
-        void SetDictPosTo2Letters(byte let0, byte let1 = LetterA, byte let2 = LetterA)
+        void SetDictPos(byte let0, byte let1 = LetterA, byte let2 = LetterA)
         {
             _havePartialNib = false;
-            _nibndx = _dictHeader.nibPairPtr[((let0 - LetterA) * 26 + let1 - LetterA) * 26 + let2 - LetterA].nibbleOffset;
+            _nibndx = _dictHeader.nibPairPtr[((let0 - LetterA) * NumLetters + let1 - LetterA) * NumLetters + let2 - LetterA].nibbleOffset;
             _MyWordSoFar.SetWord(let0, let1);
             if ((int)(_nibndx & 1) > 0)
             {
@@ -442,20 +443,20 @@ namespace DictionaryLib
         {
             var rnum = _random.Next(_dictHeader.wordCount);
             int sum = 0, i = 0, j = 0, k = 0;
-            for (i = 0; i < 26; i++)
+            for (i = 0; i < NumLetters; i++)
             {
-                for (j = 0; j < 26; j++)
+                for (j = 0; j < NumLetters; j++)
                 {
-                    for (k =0; k<26; k++)
+                    for (k = 0; k < NumLetters; k++)
                     {
-                        var cnt = _dictHeader.nibPairPtr[(i * 26 + j) + k].cnt;
+                        var cnt = _dictHeader.nibPairPtr[(i * NumLetters + j) + k].cnt;
                         if (sum + cnt < rnum)
                         {
                             sum += cnt;
                         }
                         else
                         {
-                            SetDictPosTo2Letters((byte)(i + LetterA), (byte)(j + LetterA));
+                            SetDictPos((byte)(i + LetterA), (byte)(j + LetterA));
                             var r = GetNextWord(cntSkip: rnum - sum);
                             return r;
                         }

@@ -63,7 +63,7 @@ namespace DictionaryData
         /// AA, AB, AC... BA,BB,BC.... the first one points to e.g. "aardvark", next to "abandon", etc.
         ///   now changed to 3 letter index: 26*26*26: aaa, aab, etc.
         /// </summary>
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 26 * 26 * 26)]
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = DictionaryLib.DictionaryLib.NumLetters * DictionaryLib.DictionaryLib.NumLetters * DictionaryLib.DictionaryLib.NumLetters)]
         public DictHeaderNibbleEntry[] nibPairPtr;
 
         public byte[] GetBytes()
