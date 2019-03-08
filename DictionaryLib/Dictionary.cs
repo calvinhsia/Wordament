@@ -415,7 +415,7 @@ namespace DictionaryLib
                     //                  LogMessage($"Anag Cand {_nRecursionCnt,3} {candidate}");
                     if (IsWord(candidate))
                     {
-                        if (lenFromAnagramType > 0 && candidate.Length>= lenFromAnagramType)
+                        if (lenFromAnagramType == 0 || candidate.Length >= lenFromAnagramType)
                         {
                             FoundAnagram(candidate);
                         }
