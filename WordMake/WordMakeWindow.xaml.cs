@@ -23,11 +23,22 @@ namespace WordMake
     {
         int _seed;
         Random _Random;
-        DictionaryLib.DictionaryLib dict;
+        DictionaryLib.DictionaryLib _dictSmall;
+        DictionaryLib.DictionaryLib _dictLarge;
         public WordMakeWindow()
         {
             InitializeComponent();
-            //            this.Loaded += WordMakeWindow_Loaded;
+            var settings = Properties.Settings.Default;
+            this.Top = settings.WindowPos.Height;
+            this.Left = settings.WindowPos.Width;
+            this.Width = settings.WindowSize.Width;
+            this.Height = settings.WindowSize.Height;
+            this.Closing += (o, e) =>
+              {
+                  settings.WindowPos = new System.Drawing.Size((int)this.Left, (int)this.Top);
+                  settings.WindowSize = new System.Drawing.Size((int)this.Width, (int)this.Height);
+                  settings.Save();
+              };
             this.Loaded += (o, e) =>
               {
                   _seed = Environment.TickCount;
@@ -36,83 +47,97 @@ namespace WordMake
                       _seed = 1;
                   }
                   _Random = new Random(_seed);
-                  dict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small, _Random);
-                  ChkSubWords_Unchecked(o, e);
-                  BtnNext_Click(o, e);
+                  _dictSmall = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small, _Random);
+                  _dictLarge = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Large, _Random);
+                  this.cboAnagramType.ItemsSource = new[] { 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 };
+                  this.cboAnagramType.SelectedIndex = 2;
+                  this.cboAnagramType.SelectionChanged += (os, es) =>
+                  {
+                      DoCalculateResultsAync();
+                  };
+                  ChkAllowDuplication_UnChecked(o, e);
               };
-        }
-
-        private void WordMakeWindow_Loaded(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                var spControls = new StackPanel()
-                {
-                    Orientation = Orientation.Vertical
-                };
-                this.Content = spControls;
-                var btnNext = new Button()
-                {
-                    Content = "_Next",
-                    Width = 100
-                };
-                spControls.Children.Add(btnNext);
-                var txtWord = new TextBlock()
-                {
-
-                };
-                spControls.Children.Add(txtWord);
-                var txtSubWordCnt = new TextBlock();
-                spControls.Children.Add(txtSubWordCnt);
-
-                var lst = new ListView();
-                spControls.Children.Add(lst);
-                void BtnNext_OnClick()
-                {
-
-                }
-                btnNext.Click += (ob, eb) => BtnNext_OnClick();
-                BtnNext_OnClick();
-            }
-            catch (Exception ex)
-            {
-                this.Content = ex.ToString();
-            }
         }
 
         private void BtnNext_Click(object sender, RoutedEventArgs e)
         {
-            var isGoodWord = false;
-            string randword = string.Empty;
-            while (!isGoodWord)
+            DoCalculateResultsAync(GetNewRandomWord: true);
+        }
+
+        bool IsCalculatingResults = false;
+        async void DoCalculateResultsAync(bool GetNewRandomWord = false)
+        {
+            if (!IsCalculatingResults)
             {
-                randword = dict.RandomWord();
-                var randwordLets = randword.OrderBy(l => l).Distinct();
-                if (randwordLets.Count() > 4)
+                IsCalculatingResults = true;
+                this.btnNext.IsEnabled = false;
+                this.lstResults.ItemsSource = null;
+                string randword = string.Empty;
+                if (GetNewRandomWord || string.IsNullOrEmpty(txtRootWord.Text))
                 {
-                    isGoodWord = true;
+                    var isGoodWord = false;
+                    await Task.Run(() =>
+                    {
+                        while (!isGoodWord)
+                        {
+                            randword = _dictSmall.RandomWord();
+                            var randwordLets = randword.OrderBy(l => l).Distinct();
+                            if (randwordLets.Count() > 3)
+                            {
+                                isGoodWord = true;
+                            }
+                        }
+                    });
+                    this.txtRootWord.Text = randword;
                 }
+                else
+                {
+                    randword = txtRootWord.Text;
+                }
+                List<string> resultWords = null;
+                var anagType = (DictionaryLib.DictionaryLib.AnagramType)cboAnagramType.Items[cboAnagramType.SelectedIndex];
+                var DoSubwords = chkAllowDuplication.IsChecked.Value;
+                DictionaryLib.DictionaryLib dictTouse = _dictSmall;
+                if (chkUseLargeDict.IsChecked.Value)
+                {
+                    dictTouse = _dictLarge;
+                }
+                await Task.Run(() =>
+                {
+                    if (DoSubwords)
+                    {
+                        resultWords = dictTouse.FindSubWordsFromLetters(randword, anagType).ToList();
+                    }
+                    else
+                    {
+                        resultWords = dictTouse.FindAnagrams(randword, anagType);
+                    }
+                });
+                this.txtResultCount.Text = resultWords.Count().ToString();
+                this.lstResults.ItemsSource = resultWords;
+                this.btnNext.IsEnabled = true;
+                IsCalculatingResults = false;
             }
-            this.txtRootWord.Text = randword;
-            var subwords = dict.FindAnagrams(randword, DictionaryLib.DictionaryLib.AnagramType.SubWord5);
-            //                    var subwords = dict.FindSubWordsFromLetters(randword, DictionaryLib.DictionaryLib.AnagramType.SubWord5);
-            this.txtResultCount.Text = subwords.Count().ToString();
-            this.lstResults.ItemsSource = subwords;
-
         }
 
-        private void ChkSubWords_Checked(object sender, RoutedEventArgs e)
+        private void ChkAllowDuplication_Checked(object sender, RoutedEventArgs e)
         {
-            this.lblSubAnagramType.Content = "SubWord minimum length";
-            this.cboAnagramType.ItemsSource = new[] { 3, 4, 5, 6, 7 };
-            this.cboAnagramType.SelectedIndex = 2;
+            DoCalculateResultsAync();
         }
 
-        private void ChkSubWords_Unchecked(object sender, RoutedEventArgs e)
+        private void ChkAllowDuplication_UnChecked(object sender, RoutedEventArgs e)
         {
-            this.lblSubAnagramType.Content = "SubAnagram minimum length";
-            this.cboAnagramType.ItemsSource = new[] { 3, 4, 5, 6 };
-            this.cboAnagramType.SelectedIndex = 3;
+            DoCalculateResultsAync();
+        }
+
+        private void ChkUseLargeDict_Checked(object sender, RoutedEventArgs e)
+        {
+            DoCalculateResultsAync();
+        }
+
+        private void ChkUseLargeDict_Unchecked(object sender, RoutedEventArgs e)
+        {
+            DoCalculateResultsAync();
         }
     }
 }

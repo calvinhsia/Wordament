@@ -101,11 +101,26 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     }
 
     Public Event PropertyChanged As PropertyChangedEventHandler Implements INotifyPropertyChanged.PropertyChanged
+    Sub New()
+
+        ' This call is required by the designer.
+        InitializeComponent()
+        Me.Top = My.Settings.WindowPos.Height
+        Me.Left = My.Settings.WindowPos.Width
+        Me.Width = My.Settings.WindowSize.Width
+        Me.Height = My.Settings.WindowSize.Height
+        AddHandler Me.Closing, Sub()
+                                   My.Settings.WindowPos = New System.Drawing.Size(Me.Left, Me.Top)
+                                   My.Settings.WindowSize = New System.Drawing.Size(Me.Width, Me.Height)
+                                   My.Settings.Save()
+                               End Sub
+
+        ' Add any initialization after the InitializeComponent() call.
+
+    End Sub
 
     Private Sub Window_Loaded(ByVal sender As System.Object, ByVal e As System.Windows.RoutedEventArgs) Handles MyBase.Loaded
         Try
-            Height = 800
-            Width = 1200
             Background = Brushes.SteelBlue
             Title = "Calvin's Wordament"
             _seed = Environment.TickCount

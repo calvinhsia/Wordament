@@ -324,7 +324,17 @@ namespace DictionaryLib
             SubWord4 = 4,
             SubWord5 = 5,
             SubWord6 = 6,
-            SubWord7 = 7
+            SubWord7 = 7,
+            SubWord8 = 8,
+            SubWord9 = 9,
+            SubWord10 = 10,
+            SubWord11 = 11,
+            SubWord12 = 12,
+            SubWord13 = 13,
+            SubWord14 = 14,
+            SubWord15 = 15,
+            SubWord16 = 16,
+            SubWord17 = 17,
         }
         public int _nRecursionCnt = 0;
 
@@ -405,7 +415,10 @@ namespace DictionaryLib
                     //                  LogMessage($"Anag Cand {_nRecursionCnt,3} {candidate}");
                     if (IsWord(candidate))
                     {
-                        FoundAnagram(candidate);
+                        if (lenFromAnagramType > 0 && candidate.Length>= lenFromAnagramType)
+                        {
+                            FoundAnagram(candidate);
+                        }
                     }
                 }
                 void FoundAnagram(string candidate)

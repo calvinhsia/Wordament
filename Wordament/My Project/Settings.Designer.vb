@@ -52,6 +52,30 @@ Partial Friend NotInheritable Class MySettings
             Return defaultInstance
         End Get
     End Property
+    
+    <Global.System.Configuration.UserScopedSettingAttribute(),  _
+     Global.System.Diagnostics.DebuggerNonUserCodeAttribute(),  _
+     Global.System.Configuration.DefaultSettingValueAttribute("0, 0")>  _
+    Public Property WindowPos() As Global.System.Drawing.Size
+        Get
+            Return CType(Me("WindowPos"),Global.System.Drawing.Size)
+        End Get
+        Set
+            Me("WindowPos") = value
+        End Set
+    End Property
+    
+    <Global.System.Configuration.UserScopedSettingAttribute(),  _
+     Global.System.Diagnostics.DebuggerNonUserCodeAttribute(),  _
+     Global.System.Configuration.DefaultSettingValueAttribute("800, 1200")>  _
+    Public Property WindowSize() As Global.System.Drawing.Size
+        Get
+            Return CType(Me("WindowSize"),Global.System.Drawing.Size)
+        End Get
+        Set
+            Me("WindowSize") = value
+        End Set
+    End Property
 End Class
 
 Namespace My
