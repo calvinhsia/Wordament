@@ -1,4 +1,4 @@
-﻿<Window x:Class="WordMake.WordMakeWindow"
+﻿<Window x:Name="window" x:Class="WordMake.WordMakeWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -6,24 +6,25 @@
         xmlns:local="clr-namespace:WordMake"
         mc:Ignorable="d"
         Title="WordMake" Height="450" Width="800">
-    <Grid>
+    <Grid IsEnabled="{Binding IsUIEnabled, ElementName=window}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"></RowDefinition>
             <RowDefinition Height="*"></RowDefinition>
         </Grid.RowDefinitions>
-        <StackPanel Orientation="Horizontal" Margin="0,1,0,10">
+        <StackPanel Orientation="Horizontal" Margin="0,-2,0,13" >
             <Button x:Name="btnNext" Content="_Next Random Word" HorizontalAlignment="Left" Margin="10,10,10,10" VerticalAlignment="Top" Click="BtnNext_Click"/>
             <Label Content="RootWord" HorizontalAlignment="Left" Margin="10,10,10,10" VerticalAlignment="Top"/>
-            <TextBox x:Name="txtRootWord" HorizontalAlignment="Left" Height="23" Margin="10,10,10,10" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
+            <TextBox x:Name="txtRootWord" HorizontalAlignment="Left" Height="23" Margin="10,10,10,10" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120" LostFocus="TxtRootWord_LostFocus"/>
             <CheckBox x:Name="chkAllowDuplication" Content="Allow Duplication" HorizontalAlignment="Left" Margin="10,14,0,0" VerticalAlignment="Top" 
                   ToolTip="A subword uses any letters of the root word in any order allowing duplication. A SubAnagram must rearrange the letters of the existing word with no duplication"
                   Checked="ChkAllowDuplication_Checked" Unchecked="ChkAllowDuplication_UnChecked"/>
             <CheckBox x:Name="chkUseLargeDict" Content="Use LargeDictionary" Margin="10,13,0,10" Width="141" Checked="ChkUseLargeDict_Checked" Unchecked="ChkUseLargeDict_Unchecked" />
 
         </StackPanel>
-        <Label x:Name="lblSubAnagramType" Content="SubAnagramType" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top"/>
+        <Label x:Name="lblSubAnagramType" Content="Minimum Word Length" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top"/>
         <ComboBox x:Name="cboAnagramType" HorizontalAlignment="Left" Margin="151,44,0,0" VerticalAlignment="Top" Width="120"/>
-        <TextBox x:Name="txtResultCount" HorizontalAlignment="Left" Height="23" Margin="300,45,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120" IsReadOnly="True"/>
+        <Label Content="# Results=" HorizontalAlignment="Left" Margin="311,41,0,0" VerticalAlignment="Top"/>
+        <TextBox x:Name="txtResultCount" HorizontalAlignment="Left" Height="23" Margin="387,45,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120" IsReadOnly="True"/>
         <ListView x:Name="lstResults" Grid.Row="1" HorizontalAlignment="Left" Margin="0,10" VerticalAlignment="Stretch" Width="179">
             <ListView.View>
                 <GridView>

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -19,12 +21,22 @@ namespace WordMake
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class WordMakeWindow : Window
+    public partial class WordMakeWindow : Window, INotifyPropertyChanged
     {
         int _seed;
         Random _Random;
         DictionaryLib.DictionaryLib _dictSmall;
         DictionaryLib.DictionaryLib _dictLarge;
+        bool _IsUIEnabled = false;
+        public bool IsUIEnabled
+        {
+            get { return _IsUIEnabled; }
+            set
+            {
+                if (value != _IsUIEnabled) { _IsUIEnabled = value; OnPropertyChanged(); }
+            }
+        }
+
         public WordMakeWindow()
         {
             InitializeComponent();
@@ -57,6 +69,15 @@ namespace WordMake
                   };
                   ChkAllowDuplication_UnChecked(o, e);
               };
+            this.lstResults.SelectionChanged += (o, e) =>
+              {
+                  var y = lstResults.SelectedIndex;
+                  if (y >=0)
+                  {
+                      var word = lstResults.Items[y];
+                      System.Diagnostics.Process.Start($"https://www.merriam-webster.com/dictionary/{word}");
+                  }
+              };
         }
 
         private void BtnNext_Click(object sender, RoutedEventArgs e)
@@ -65,12 +86,20 @@ namespace WordMake
         }
 
         bool IsCalculatingResults = false;
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        public void OnPropertyChanged([CallerMemberName] string propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs( propertyName));
+        }
+
         async void DoCalculateResultsAync(bool GetNewRandomWord = false)
         {
             if (!IsCalculatingResults)
             {
                 IsCalculatingResults = true;
-                this.btnNext.IsEnabled = false;
+                IsUIEnabled = false;
                 this.lstResults.ItemsSource = null;
                 string randword = string.Empty;
                 if (GetNewRandomWord || string.IsNullOrEmpty(txtRootWord.Text))
@@ -115,7 +144,7 @@ namespace WordMake
                 });
                 this.txtResultCount.Text = resultWords.Count().ToString();
                 this.lstResults.ItemsSource = resultWords;
-                this.btnNext.IsEnabled = true;
+                IsUIEnabled = true;
                 IsCalculatingResults = false;
             }
         }
@@ -136,6 +165,11 @@ namespace WordMake
         }
 
         private void ChkUseLargeDict_Unchecked(object sender, RoutedEventArgs e)
+        {
+            DoCalculateResultsAync();
+        }
+
+        private void TxtRootWord_LostFocus(object sender, RoutedEventArgs e)
         {
             DoCalculateResultsAync();
         }
