@@ -30,14 +30,14 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     Public Function GetTimeAsString(tmpSecs As Integer)
         Dim hrs = String.Empty
         Dim mins = String.Empty
-        Dim secs = String.Empty
+        Dim secs
         If (tmpSecs >= 3600) Then
             hrs = $"{Int(tmpSecs / 3600):n0}:"
-            tmpSecs = tmpSecs - Int((tmpSecs / 3600)) * 3600
+            tmpSecs -= Int((tmpSecs / 3600)) * 3600
         End If
         If Not String.IsNullOrEmpty(hrs) OrElse tmpSecs >= 60 Then
             mins = $"{Int((tmpSecs / 60)).ToString(If(String.IsNullOrEmpty(hrs), "", "00"))}:"
-            tmpSecs = tmpSecs - Int((tmpSecs / 60)) * 60
+            tmpSecs -= Int((tmpSecs / 60)) * 60
             secs = tmpSecs.ToString("00")
         Else
             secs = tmpSecs.ToString()
@@ -76,7 +76,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     Public Property _nMinWordLen = 12
     Private _HintAvailable As Boolean
     Private _HintDelay As Integer
-    Private _lstHints As New List(Of String)
+    Private ReadOnly _lstHints As New List(Of String)
     Public Property HintAvailable
         Get
             Return _HintAvailable
@@ -96,7 +96,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     Private _randLetGenerator As RandLetterGenerator
 
     Private _arrTiles(,) As LtrTile
-    Private _pnl As StackPanel = New StackPanel With {
+    Private ReadOnly _pnl As StackPanel = New StackPanel With {
         .Orientation = Orientation.Horizontal
     }
 
@@ -589,7 +589,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         '_pnl.Children.Add(New ListView With {.ItemsSource = RandLetterGenerator._letDist})
     End Sub
 
-    Dim _lstLongWords As New List(Of String)
+    ReadOnly _lstLongWords As New List(Of String)
 
     Private Async Function FillGridWithTilesAsync(grd As UniformGrid) As Task
         Dim arr(,) As Char = Nothing
@@ -733,7 +733,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                     ltr = arr(iRow, iCol)
                 End If
                 _arrTiles(iRow, iCol) = New LtrTile(ltr, iRow, iCol, _nCols)
-                _gridUni.Children.Add(_arrTiles(iRow, iCol))
+                grd.Children.Add(_arrTiles(iRow, iCol))
             Next
         Next
     End Function
@@ -835,7 +835,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                     If (Me.Count <= 8) Then
                         pts = CInt(1.5 * pts)
                     Else
-                        pts = pts * 2
+                        pts *= 2
                     End If
                 End If
                 'If _pts = 0 Then
@@ -950,7 +950,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         Private _seedIndex As Integer
 
         Public Function GetRandLet() As String ' letter, score
-            Dim rndLet = String.Empty
+            Dim rndLet
             If _seedArray Is Nothing Then
                 Dim rndNum = g_Random.Next(_letDist.Length)
                 rndLet = _letDist.Substring(rndNum, 1)

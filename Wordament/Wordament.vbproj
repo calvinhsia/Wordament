@@ -77,6 +77,7 @@
       <DependentUpon>Application.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="GlobalSuppressions.vb" />
     <Compile Include="Wordament.xaml.vb">
       <DependentUpon>Wordament.xaml</DependentUpon>
       <SubType>Code</SubType>

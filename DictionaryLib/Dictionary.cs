@@ -132,7 +132,7 @@ namespace DictionaryLib
         {
             _havePartialNib = false;
             _nibndx = _dictHeader.nibPairPtr[((let0 - LetterA) * NumLetters + let1 - LetterA) * NumLetters + let2 - LetterA].nibbleOffset;
-            _MyWordSoFar.SetWord(let0, let1);
+            _MyWordSoFar.SetWord(let0, let1, let2);
             if ((int)(_nibndx & 1) > 0)
             {
                 GetNextNib();
@@ -328,6 +328,18 @@ namespace DictionaryLib
         }
         public int _nRecursionCnt = 0;
 
+        public List<string> FindAnagrams(string word, AnagramType anagramType)
+        {
+            var lst = new List<string>();
+            FindAnagrams(word, anagramType, (w) =>
+             {
+                 lst.Add(w);
+                 return true;
+             });
+            return lst;
+        }
+
+
         public void FindAnagrams(string word, AnagramType anagramType, Func<string, bool> act)
         {
             MyWord myWord = new MyWord(word);
@@ -446,7 +458,7 @@ namespace DictionaryLib
                 {
                     for (k = 0; k < NumLetters; k++)
                     {
-                        var cnt = _dictHeader.nibPairPtr[(i * NumLetters + j) + k].cnt;
+                        var cnt = _dictHeader.nibPairPtr[(i * NumLetters + j) * NumLetters + k].cnt;
                         if (sum + cnt < rnum)
                         {
                             sum += cnt;
@@ -510,11 +522,16 @@ namespace DictionaryLib
                 _wordBytes[ndx] = (byte)word[ndx];
             }
         }
-        public void SetWord(byte byte1, byte byte2)
+        public void SetWord(byte byte0, byte byte1, byte byte2)
         {
-            _currentLength = 2;
-            _wordBytes[0] = byte1;
-            _wordBytes[1] = byte2;
+            _currentLength = 3;
+            _wordBytes[0] = byte0;
+            _wordBytes[1] = byte1;
+            _wordBytes[2] = byte2;
+            //if (byte2== DictionaryLib.LetterA)
+            //{
+            //    _currentLength = 2;
+            //}
         }
         /// <summary>
         /// Get the length of the word. If DesiredLength is non-zero, return the min(DesiredLength, CurrentLength)
