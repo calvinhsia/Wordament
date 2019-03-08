@@ -364,16 +364,15 @@ namespace DictionaryLib
                             //                            LogMessage($"prune {nLevel}  {testWord}  {partial}");
                             return;
                         }
-                    }
-                    if (anagramType != AnagramType.WholeWord)
-                    {
-                        if (nLevel >= lenFromAnagramType)
+
+                        if (anagramType != AnagramType.WholeWord)
                         {
-                            var testWord = myWord.GetWord(DesiredLength: nLevel);
-                            var partial = SeekWord(testWord, out var compResult);
-                            if (compResult == 0)
+                            if (nLevel >= lenFromAnagramType)
                             {
-                                FoundAnagram(partial);
+                                if (compResult == 0)
+                                {
+                                    FoundAnagram(partial);
+                                }
                             }
                         }
                     }
