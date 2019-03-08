@@ -42,7 +42,7 @@ namespace WordamentTests
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
 
 
-            var x = dict.SeekWord("a", out var cres);
+            dict.SeekWord("a", out var _);
 
 
             foreach (var str in new[] { "zys", "me", "aband", "", "z", "mel", "asdf" })
@@ -305,14 +305,14 @@ namespace WordamentTests
             var nCnt = 10000;
             for (int i = 0; i < nCnt; i++)
             {
-                var r = oldDict.RandWord(0);
+                oldDict.RandWord(0);
             }
             var olddictTime = sw.Elapsed.TotalSeconds;
             LogMessage($"Olddict {sw.Elapsed.TotalSeconds}");
             sw.Restart();
             for (int i = 0; i < nCnt; i++)
             {
-                var r = newdict.RandomWord();
+                newdict.RandomWord();
             }
             var newdictTime = sw.Elapsed.TotalSeconds;
             LogMessage($"Newdict {newdictTime}");
@@ -365,7 +365,7 @@ namespace WordamentTests
             {
                 var r = newdict.RandomWord();
                 var x = newdict.SeekWord(r);
-                var xx = newdict.IsWord(x);
+                newdict.IsWord(x);
             }
             LogMessage($"Newdict {sw.Elapsed.TotalSeconds}");
         }
