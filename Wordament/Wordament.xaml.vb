@@ -266,7 +266,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                 If StrWordSoFar.Length >= 6 AndAlso StrWordSoFar.Length < 9 Then
                                     AddStatusMsg($"Not bad! {StrWordSoFar}")
                                 ElseIf StrWordSoFar.Length >= 9 AndAlso StrWordSoFar.Length < _nMinWordLen Then
-                                    AddStatusMsg($"Nearly there! {StrWordSoFar}")
+                                    AddStatusMsg($"Good Try! {StrWordSoFar}")
                                 ElseIf StrWordSoFar.Length >= _nMinWordLen Then
                                     AddStatusMsg($"Close, but no cigar {StrWordSoFar}")
                                 End If

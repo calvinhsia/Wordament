@@ -484,7 +484,7 @@ namespace WordamentAndroid
                         }
                         else if (lenW >= 9 && lenW < _nMinWordLen)
                         {
-                            Android.Widget.Toast.MakeText(this, $"Nearly There! {txtWordSoFar.Text}", Android.Widget.ToastLength.Long).Show();
+                            Android.Widget.Toast.MakeText(this, $"Good Try! {txtWordSoFar.Text}", Android.Widget.ToastLength.Long).Show();
                         }
                         else if (lenW >= _nMinWordLen)
                         {

@@ -350,11 +350,11 @@ namespace WordamentTests
         [Ignore]
         public void TestPerfForTrace()
         {
-            var oldDict = new OldDictWrapper(1);
+//            var oldDict = new OldDictWrapper(1);
             var newdict = new DictionaryLib.DictionaryLib(DictionaryType.Large, new Random(1));
             var sw = new Stopwatch();
             sw.Start();
-            var nCnt = 5000;
+            var nCnt = 5000000;
             //for (int i = 0; i < nCnt; i++)
             //{
             //    var r = oldDict.RandWord(0);
@@ -467,7 +467,7 @@ namespace WordamentTests
             {
                 hashLarge.Remove(str);
             }
-            //todo: remove "misinforman"
+            //todo: remove "misinforman","conditione"
 
             // when changing contents of dictionary, this test will fail until you update the resources, 
             // XCOPY /dy C:\Users\calvinh\Source\Repos\Wordament\WordamentTests\bin\Debug\*.bin C:\Users\calvinh\Source\Repos\Wordament\DictionaryLib\Resources
