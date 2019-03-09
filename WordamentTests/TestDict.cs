@@ -41,14 +41,15 @@ namespace WordamentTests
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
 
-
-            dict.SeekWord("a", out var _);
-
+            var testwrd = "ggg";
+            var wrd = dict.SeekWord(testwrd, out var _);
+            Console.WriteLine($"Seek {testwrd} GetNextWordCount= {dict._GetNextWordCount}");
+            Assert.AreEqual(1, dict._GetNextWordCount);
 
             foreach (var str in new[] { "zys", "me", "aband", "", "z", "mel", "asdf" })
             {
                 var res = dict.SeekWord(str);
-                LogMessage($"SeekWord {str}, {res}");
+                LogMessage($"SeekWord {str}, {res}  GetNextWordCount= {dict._GetNextWordCount}");
             }
             Assert.AreEqual(dict.SeekWord(""), "a");
             Assert.AreEqual(dict.SeekWord("me"), "me");
@@ -462,12 +463,15 @@ namespace WordamentTests
                 "miscinceptions",
                 "substantialia",
                 "nonconfin",
-                "surdity"
+                "surdity",
+                "misinforman",
+                "consessione",
+                "consessiones",
             })
             {
                 hashLarge.Remove(str);
             }
-            //todo: remove "misinforman","conditione", "concessione","concessiones"
+            //todo: remove words like ""
 
             // when changing contents of dictionary, this test will fail until you update the resources, 
             // XCOPY /dy C:\Users\calvinh\Source\Repos\Wordament\WordamentTests\bin\Debug\*.bin C:\Users\calvinh\Source\Repos\Wordament\DictionaryLib\Resources
@@ -515,11 +519,11 @@ namespace WordamentTests
                 //}
 
                 //                var newlstWord = DictionaryData.DictionaryUtil.ReadDict(dictBytes);
-                Assert.AreEqual(newlstWord.Count(), lstWords.Count(), $"dict num {dictNum} ");
                 for (int i = 0; i < lstWords.Count; i++)
                 {
                     Assert.AreEqual(lstWords[i], newlstWord[i]);
                 }
+                Assert.AreEqual(newlstWord.Count(), lstWords.Count(), $"dict num {dictNum} ");
             }
         }
 

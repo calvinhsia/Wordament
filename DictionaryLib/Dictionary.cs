@@ -37,6 +37,7 @@ namespace DictionaryLib
         byte _partialNib = 0;
         bool _havePartialNib = false;
         int _nibndx;
+        internal int _GetNextWordCount;
 
         readonly MyWord _MyWordSoFar;
         internal static Action<string> logMessageAction;
@@ -187,6 +188,7 @@ namespace DictionaryLib
             Debug.Assert((WordStop == null) || cntSkip == 0);
             byte nib;
             MyWord stopAtWord = null;
+            _GetNextWordCount = 0;
             compareResult = 0;
             if (!string.IsNullOrEmpty(WordStop))
             {
@@ -196,6 +198,7 @@ namespace DictionaryLib
             int loopCount = 0;
             while (!done)
             {
+                _GetNextWordCount++;
                 var lenSoFar = 0;
                 while ((nib = GetNextNib()) == 0xf)
                 {

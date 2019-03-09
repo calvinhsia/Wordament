@@ -110,12 +110,17 @@ namespace MakeDictionary
                     }
                     else
                     { // diff bucket
+                        var orignibPairNdx = nibpairNdx;
                         let0 = word[0];
                         let1 = word.Length > 1 ? word[1] : 'a';
                         let2 = word.Length > 2 ? word[2] : 'a';
 
                         nibpairNdx = ((let0 - 97) * 26 + let1 - 97) * 26 + let2 - 97;
-                        dictHeader.nibPairPtr[nibpairNdx].nibbleOffset = curNibNdx;
+                        // fill all missing buckets between too
+                        for (int i = orignibPairNdx + 1; i <= nibpairNdx; i++)
+                        {
+                            dictHeader.nibPairPtr[i].nibbleOffset = curNibNdx;
+                        }
                         LogMessage($"AddBucket  {let0} {let1} {let2} {word} {curNibNdx:x4}");
                     }
                     dictHeader.nibPairPtr[nibpairNdx].cnt++;
