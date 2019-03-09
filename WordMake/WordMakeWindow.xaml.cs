@@ -61,23 +61,32 @@ namespace WordMake
                   _Random = new Random(_seed);
                   _dictSmall = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small, _Random);
                   _dictLarge = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Large, _Random);
-                  this.cboAnagramType.ItemsSource = new[] { 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 };
-                  this.cboAnagramType.SelectedIndex = 2;
+                  this.cboAnagramType.ItemsSource = new[] { 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 };
+                  this.cboAnagramType.SelectedIndex = 4;
                   this.cboAnagramType.SelectionChanged += (os, es) =>
                   {
                       DoCalculateResultsAync();
                   };
                   ChkAllowDuplication_UnChecked(o, e);
               };
-            this.lstResults.SelectionChanged += (o, e) =>
+            this.lstResultsSmall.SelectionChanged += (o, e) =>
               {
-                  var y = lstResults.SelectedIndex;
-                  if (y >=0)
-                  {
-                      var word = lstResults.Items[y];
-                      System.Diagnostics.Process.Start($"https://www.merriam-webster.com/dictionary/{word}");
-                  }
+                  ShowWordInOnlineDict(lstResultsSmall);
               };
+            this.lstResultsLarge.SelectionChanged += (o, e) =>
+              {
+                  ShowWordInOnlineDict(lstResultsLarge);
+              };
+            void ShowWordInOnlineDict(ListView listView)
+            {
+                var y = listView.SelectedIndex;
+                if (y >= 0)
+                {
+                    var word = listView.Items[y];
+                    System.Diagnostics.Process.Start($"https://www.merriam-webster.com/dictionary/{word}");
+                }
+
+            }
         }
 
         private void BtnNext_Click(object sender, RoutedEventArgs e)
@@ -91,7 +100,7 @@ namespace WordMake
 
         public void OnPropertyChanged([CallerMemberName] string propertyName = "")
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs( propertyName));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         async void DoCalculateResultsAync(bool GetNewRandomWord = false)
@@ -100,9 +109,12 @@ namespace WordMake
             {
                 IsCalculatingResults = true;
                 IsUIEnabled = false;
-                this.lstResults.ItemsSource = null;
+                this.lstResultsSmall.ItemsSource = null;
+                this.lstResultsLarge.ItemsSource = null;
+                this.txtResultCountSmall.Text = string.Empty;
+                this.txtResultCountLarge.Text = string.Empty;
                 string randword = string.Empty;
-                if (GetNewRandomWord || string.IsNullOrEmpty(txtRootWord.Text))
+                if (GetNewRandomWord || string.IsNullOrEmpty(txtRootWord.Text.Trim()))
                 {
                     var isGoodWord = false;
                     await Task.Run(() =>
@@ -121,29 +133,58 @@ namespace WordMake
                 }
                 else
                 {
-                    randword = txtRootWord.Text;
+                    var strRootWord = txtRootWord.Text.Trim();
+                    if (strRootWord.Any(s => char.IsWhiteSpace(s)))
+                    {
+                        txtRootWord.Text = "invalidtext";
+                    }
+                    randword = txtRootWord.Text.Trim();
                 }
-                List<string> resultWords = null;
+                List<string> resultWordsSmall = null;
+                List<string> resultWordsLarge = null;
                 var anagType = (DictionaryLib.DictionaryLib.AnagramType)cboAnagramType.Items[cboAnagramType.SelectedIndex];
                 var DoSubwords = chkAllowDuplication.IsChecked.Value;
-                DictionaryLib.DictionaryLib dictTouse = _dictSmall;
-                if (chkUseLargeDict.IsChecked.Value)
+                var doLargeDictToo = false;
+                if (chkLargeDictToo.IsChecked.Value)
                 {
-                    dictTouse = _dictLarge;
+                    doLargeDictToo = true;
                 }
-                await Task.Run(() =>
+                resultWordsSmall = await GetResultsFromDictAsync(_dictSmall);
+                this.txtResultCountSmall.Text = resultWordsSmall.Count().ToString();
+                this.lstResultsSmall.ItemsSource = resultWordsSmall;
+
+                if (doLargeDictToo)
                 {
-                    if (DoSubwords)
+                    resultWordsLarge = await GetResultsFromDictAsync(_dictLarge);
+                    var smDict = resultWordsSmall.ToDictionary(p => p);
+                    var lstWrdsOnlyInLarge = new List<string>();
+                    foreach (var wrd in resultWordsLarge)
                     {
-                        resultWords = dictTouse.FindSubWordsFromLetters(randword, anagType).ToList();
+                        if (!smDict.ContainsKey(wrd))
+                        {
+                            lstWrdsOnlyInLarge.Add(wrd);
+                        }
                     }
-                    else
+
+                    this.lstResultsLarge.ItemsSource = lstWrdsOnlyInLarge;
+                    this.txtResultCountLarge.Text = lstWrdsOnlyInLarge.Count().ToString();
+                }
+                async Task<List<string>> GetResultsFromDictAsync(DictionaryLib.DictionaryLib dict)
+                {
+                    List<string> results = null;
+                    await Task.Run(() =>
                     {
-                        resultWords = dictTouse.FindAnagrams(randword, anagType);
-                    }
-                });
-                this.txtResultCount.Text = resultWords.Count().ToString();
-                this.lstResults.ItemsSource = resultWords;
+                        if (DoSubwords)
+                        {
+                            results = dict.FindSubWordsFromLetters(randword, anagType).ToList();
+                        }
+                        else
+                        {
+                            results = dict.FindAnagrams(randword, anagType);
+                        }
+                    });
+                    return results;
+                }
                 IsUIEnabled = true;
                 IsCalculatingResults = false;
             }
@@ -159,12 +200,12 @@ namespace WordMake
             DoCalculateResultsAync();
         }
 
-        private void ChkUseLargeDict_Checked(object sender, RoutedEventArgs e)
+        private void ChkLargeDictToo_Checked(object sender, RoutedEventArgs e)
         {
             DoCalculateResultsAync();
         }
 
-        private void ChkUseLargeDict_Unchecked(object sender, RoutedEventArgs e)
+        private void ChkLargeDictToo_Unchecked(object sender, RoutedEventArgs e)
         {
             DoCalculateResultsAync();
         }

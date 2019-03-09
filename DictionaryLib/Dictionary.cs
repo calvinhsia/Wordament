@@ -320,6 +320,7 @@ namespace DictionaryLib
             /// <summary>
             /// Resulting words have length > 3, 4, 5, etc. and are <= original word length 
             /// </summary>
+            SubWord2 = 2,
             SubWord3 = 3,
             SubWord4 = 4,
             SubWord5 = 5,

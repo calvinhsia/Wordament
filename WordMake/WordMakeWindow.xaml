@@ -9,28 +9,44 @@
     <Grid IsEnabled="{Binding IsUIEnabled, ElementName=window}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
             <RowDefinition Height="*"></RowDefinition>
         </Grid.RowDefinitions>
         <StackPanel Orientation="Horizontal" Margin="0,-2,0,13" >
             <Button x:Name="btnNext" Content="_Next Random Word" HorizontalAlignment="Left" Margin="10,10,10,10" VerticalAlignment="Top" Click="BtnNext_Click"/>
             <Label Content="RootWord" HorizontalAlignment="Left" Margin="10,10,10,10" VerticalAlignment="Top"/>
-            <TextBox x:Name="txtRootWord" HorizontalAlignment="Left" Height="23" Margin="10,10,10,10" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120" LostFocus="TxtRootWord_LostFocus"/>
+            <TextBox x:Name="txtRootWord" HorizontalAlignment="Left" Margin="10,10,10,10" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="180" LostFocus="TxtRootWord_LostFocus"/>
             <CheckBox x:Name="chkAllowDuplication" Content="Allow Duplication" HorizontalAlignment="Left" Margin="10,14,0,0" VerticalAlignment="Top" 
                   ToolTip="A subword uses any letters of the root word in any order allowing duplication. A SubAnagram must rearrange the letters of the existing word with no duplication"
                   Checked="ChkAllowDuplication_Checked" Unchecked="ChkAllowDuplication_UnChecked"/>
-            <CheckBox x:Name="chkUseLargeDict" Content="Use LargeDictionary" Margin="10,13,0,10" Width="141" Checked="ChkUseLargeDict_Checked" Unchecked="ChkUseLargeDict_Unchecked" />
+            <CheckBox x:Name="chkLargeDictToo" Content="LargeDictionary Too" Margin="10,13,0,10" Width="141" Checked="ChkLargeDictToo_Checked" Unchecked="ChkLargeDictToo_Unchecked" />
 
         </StackPanel>
-        <Label x:Name="lblSubAnagramType" Content="Minimum Word Length" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top"/>
-        <ComboBox x:Name="cboAnagramType" HorizontalAlignment="Left" Margin="151,44,0,0" VerticalAlignment="Top" Width="120"/>
-        <Label Content="# Results=" HorizontalAlignment="Left" Margin="311,41,0,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="txtResultCount" HorizontalAlignment="Left" Height="23" Margin="387,45,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120" IsReadOnly="True"/>
-        <ListView x:Name="lstResults" Grid.Row="1" HorizontalAlignment="Left" Margin="0,10" VerticalAlignment="Stretch" Width="179">
-            <ListView.View>
-                <GridView>
-                    <GridViewColumn Width="300"/>
-                </GridView>
-            </ListView.View>
-        </ListView>
+        <Label x:Name="lblSubAnagramType" Content="Minimum Word Length" HorizontalAlignment="Left" Margin="10,34,0,0" VerticalAlignment="Top"/>
+        <ComboBox x:Name="cboAnagramType" HorizontalAlignment="Left" Margin="151,34,0,0" VerticalAlignment="Top" Width="120"/>
+        <DockPanel Grid.Row="1">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="txtResultCountSmall" HorizontalAlignment="Left" Margin="2,-1,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
+                <TextBlock x:Name="txtResultCountLarge" HorizontalAlignment="Left" Margin="200,0,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
+            </StackPanel>
+        </DockPanel>
+        <DockPanel Grid.Row="2" Margin="0,2,0,-2">
+            <StackPanel Orientation="Horizontal">
+                <ListView x:Name="lstResultsSmall" Grid.Row="1" HorizontalAlignment="Left" Margin="0,0" VerticalAlignment="Stretch" Width="179">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Width="300"/>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+                <ListView x:Name="lstResultsLarge" Grid.Row="1" HorizontalAlignment="Left" Margin="0,0" VerticalAlignment="Stretch" Width="179">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Width="300"/>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </StackPanel>
+        </DockPanel>
     </Grid>
 </Window>

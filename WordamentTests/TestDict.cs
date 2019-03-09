@@ -467,7 +467,7 @@ namespace WordamentTests
             {
                 hashLarge.Remove(str);
             }
-            //todo: remove "misinforman","conditione"
+            //todo: remove "misinforman","conditione", "concessione","concessiones"
 
             // when changing contents of dictionary, this test will fail until you update the resources, 
             // XCOPY /dy C:\Users\calvinh\Source\Repos\Wordament\WordamentTests\bin\Debug\*.bin C:\Users\calvinh\Source\Repos\Wordament\DictionaryLib\Resources
