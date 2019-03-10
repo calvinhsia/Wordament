@@ -41,9 +41,9 @@ namespace WordamentTests
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
 
-            var testwrd = "ggg";
+            var testwrd = "qqq";
             var wrd = dict.SeekWord(testwrd, out var _);
-            Console.WriteLine($"Seek {testwrd} GetNextWordCount= {dict._GetNextWordCount}");
+            Console.WriteLine($"Seek {testwrd} {wrd} GetNextWordCount= {dict._GetNextWordCount}");
             Assert.AreEqual(1, dict._GetNextWordCount);
 
             foreach (var str in new[] { "zys", "me", "aband", "", "z", "mel", "asdf" })
