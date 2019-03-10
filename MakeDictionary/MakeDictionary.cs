@@ -278,8 +278,6 @@ namespace MakeDictionary
         {
             //            var dictCppDllName = @"C:\Users\calvinh\source\repos\Wordament\MakeDictionary\Dictionary.dll";
             var dictCppDllName = @"Dictionary.dll";
-            //var dictCppdll = LoadLibraryW(dictCppDllName);
-            //var dd = GetProcAddress(dictCppdll, "DllGetClassObject");
             //var g1 = typeof(DictionaryCPP.CDict).GUID; //0CED18E4-8870-4F62-B1CB-E50C3BCA8FB3
             //var g2 = typeof(DictionaryCPP.IDict).GUID; //0CED18E4-8870-4F62-B1CB-E50C3BCA8FB3
             //            var g3 = typeof(DictionaryCPP.CDictClass).GUID; //3ED98B67-96FC-42A1-A361-2141CC07D1C4
