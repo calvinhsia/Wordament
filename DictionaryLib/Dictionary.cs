@@ -217,25 +217,24 @@ namespace DictionaryLib
                 while ((nib = GetNextNib()) != 0)
                 {
                     char newchar;
-                    if (nib == DictHeader.escapeChar)
+                    if (nib != DictHeader.EOFChar)
                     {
-                        nib = GetNextNib();
-                        newchar = _dictHeader.tab2[nib];
+                        if (nib != DictHeader.escapeChar)
+                        {
+                            newchar = _dictHeader.tab1[nib];
+                        }
+                        else
+                        {
+                            nib = GetNextNib();
+                            newchar = _dictHeader.tab2[nib];
+                        }
                     }
                     else
                     {
-                        if (nib == DictHeader.EOFChar)
-                        {
-                            //                        LogMessage($"GOT EODCHAR {_nibndx:x2}");
-                            break;
-                        }
-                        newchar = _dictHeader.tab1[nib];
+                        //                        LogMessage($"GOT EODCHAR {_nibndx:x2}");
+                        return string.Empty;
                     }
                     _MyWordSoFar.AddByte((byte)newchar);
-                }
-                if (nib == DictHeader.EOFChar)
-                {
-                    return string.Empty;
                 }
                 if (stopAtWord != null)
                 {

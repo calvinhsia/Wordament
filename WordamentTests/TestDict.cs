@@ -56,6 +56,7 @@ namespace WordamentTests
             Assert.AreEqual(dict.SeekWord("mel"), "melancholia");
             Assert.AreEqual(dict.SeekWord("aband"), "abandon");
             Assert.AreEqual(dict.SeekWord("asdf"), "asdic");
+            Assert.AreEqual(dict.SeekWord("it"), "it");
 
             var partial = dict.SeekWord("test", out var compResult);
             Assert.AreEqual(0, compResult);
@@ -340,7 +341,43 @@ namespace WordamentTests
             for (int i = 0; i < nCnt; i++)
             {
                 var r = newdict.IsWord(word);
+                if (i == 0)
+                {
+                    LogMessage($"{word}  _GetNextWordCount {newdict._GetNextWordCount}");
+                }
                 Assert.IsTrue(r);
+                Assert.AreEqual(809, newdict._GetNextWordCount);
+            }
+            var newdictTime = sw.Elapsed.TotalSeconds;
+            LogMessage($"Newdict {newdictTime}");
+            Assert.Fail($"This test is supposed to fail to show perf results: OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  Ratio {newdictTime / olddictTime:n1}");
+        }
+        [TestMethod]
+        public void TestPerfIsNotWord()
+        {
+            var oldDict = new OldDictWrapper(1);
+            var newdict = new DictionaryLib.DictionaryLib(DictionaryType.Large, new Random(1));
+            var sw = new Stopwatch();
+            sw.Start();
+            var nCnt = 10000;
+            var word = "qqq";
+            for (int i = 0; i < nCnt; i++)
+            {
+                var r = oldDict.IsWord(word);
+                Assert.IsFalse(r);
+            }
+            var olddictTime = sw.Elapsed.TotalSeconds;
+            LogMessage($"Olddict {sw.Elapsed.TotalSeconds}");
+            sw.Restart();
+            for (int i = 0; i < nCnt; i++)
+            {
+                var r = newdict.IsWord(word);
+                if (i == 0)
+                {
+                    LogMessage($"{word}  _GetNextWordCount {newdict._GetNextWordCount}");
+                }
+                Assert.IsFalse(r);
+                Assert.AreEqual(1, newdict._GetNextWordCount);
             }
             var newdictTime = sw.Elapsed.TotalSeconds;
             LogMessage($"Newdict {newdictTime}");
@@ -351,7 +388,7 @@ namespace WordamentTests
         [Ignore]
         public void TestPerfForTrace()
         {
-//            var oldDict = new OldDictWrapper(1);
+            //            var oldDict = new OldDictWrapper(1);
             var newdict = new DictionaryLib.DictionaryLib(DictionaryType.Large, new Random(1));
             var sw = new Stopwatch();
             sw.Start();
