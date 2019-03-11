@@ -34,7 +34,7 @@
   <ItemGroup>
     <Reference Include="DictionaryCPP.Interop">
       <HintPath>.\DictionaryCPP.Interop.dll</HintPath>
-      <EmbedInteropTypes>True</EmbedInteropTypes>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

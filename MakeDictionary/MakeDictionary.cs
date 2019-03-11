@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -204,7 +205,20 @@ namespace MakeDictionary
 
     public class OldDictWrapper : IDisposable
     {
-        internal delegate int DllGetClassObject(Guid ClassId, Guid riid, out IntPtr ppvObject);
+        const string dictCppDllName = @"Dictionary.dll"; // copy to output=true
+        internal delegate int DllGetClassObject(
+            [In, MarshalAs(UnmanagedType.LPStruct)] Guid ClassId,
+            [In, MarshalAs(UnmanagedType.LPStruct)] Guid riid,
+            out IntPtr ppvObject);
+
+        delegate int CanUnloadNowRoutine();
+        CanUnloadNowRoutine _deldllCanUnloadNow;
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+        static private extern int FreeLibrary(IntPtr hModule);
+
+        [DllImport("kernel32.dll", EntryPoint = "GetModuleHandle", CharSet = CharSet.Auto, SetLastError = true)]
+        internal static extern IntPtr GetModuleHandle([MarshalAs(UnmanagedType.LPWStr)] string lpModuleName);
 
         const string IUnknownGuid = "00000001-0000-0000-C000-000000000046";
 
@@ -221,7 +235,7 @@ namespace MakeDictionary
             int CreateInstance(IntPtr pUnkOuter, ref Guid riid, out IntPtr ppvObject);
             int LockServer(int fLock);
         }
-
+        IntPtr _hModule = IntPtr.Zero;
         public DictionaryCPP.CDict _dict;
 
         /// <summary>Creates com object with the given clsid in the specified file</summary>
@@ -230,46 +244,51 @@ namespace MakeDictionary
         /// <param name="riid">The IID of the interface requested</param>
         /// <param name="pvObject">The interface pointer. Upon failure pvObject is IntPtr.Zero</param>
         /// <returns>An HRESULT</returns>
-        internal static int CoCreateFromFile(string fnameComClass, Guid clsidOfComObj, Guid riid, out IntPtr pvObject)
+        [HandleProcessCorruptedStateExceptions]
+        internal int CoCreateFromFile(string fnameComClass, Guid clsidOfComObj, Guid riid, out IntPtr pvObject)
         {
             pvObject = IntPtr.Zero;
             int hr = HResult.E_FAIL;
-            IntPtr hmod = LoadLibrary(fnameComClass);
-            if (hmod != IntPtr.Zero)
+            try
             {
-                IntPtr optr = GetProcAddress(hmod, "DllGetClassObject");
-                if (optr != IntPtr.Zero)
+                _hModule = LoadLibrary(fnameComClass);
+                if (_hModule != IntPtr.Zero)
                 {
-                    var delDllGetClassObject = Marshal.GetDelegateForFunctionPointer<DllGetClassObject>(optr);
-                    IntPtr pClassFactory = IntPtr.Zero;
-                    try
+                    IntPtr optrDllGetClassObject = GetProcAddress(_hModule, "DllGetClassObject");
+                    if (optrDllGetClassObject != IntPtr.Zero)
                     {
+                        var delDllGetClassObject = Marshal.GetDelegateForFunctionPointer<DllGetClassObject>(optrDllGetClassObject);
+                        var optrDllCanUnloadNow = GetProcAddress(_hModule, "DllCanUnloadNow");
+                        _deldllCanUnloadNow = Marshal.GetDelegateForFunctionPointer<CanUnloadNowRoutine>(optrDllCanUnloadNow);
+
+                        IntPtr pClassFactory = IntPtr.Zero;
                         Guid iidIUnknown = new Guid(IUnknownGuid);
                         hr = delDllGetClassObject(clsidOfComObj, iidIUnknown, out pClassFactory);
                         if (hr == HResult.S_OK)
                         {
                             var classFactory = (IClassFactory)Marshal.GetTypedObjectForIUnknown(pClassFactory, typeof(IClassFactory));
                             hr = classFactory.CreateInstance(IntPtr.Zero, ref riid, out pvObject);
-                        }
-                    }
-                    finally
-                    {
-                        if (pClassFactory != IntPtr.Zero)
-                        {
+                            Marshal.ReleaseComObject(classFactory);
                             Marshal.Release(pClassFactory);
                         }
+                    }
+                    else
+                    {
+                        hr = Marshal.GetHRForLastWin32Error();
+                        Debug.Assert(false, $"Unable to find DllGetClassObject: {hr}");
                     }
                 }
                 else
                 {
                     hr = Marshal.GetHRForLastWin32Error();
-                    Debug.Assert(false, $"Unable to find DllGetClassObject: {hr}");
+                    Debug.Assert(false, $"Unable to load {fnameComClass}: {hr}");
                 }
             }
-            else
+            catch (Exception ex)
             {
-                hr = Marshal.GetHRForLastWin32Error();
-                Debug.Assert(false, $"Unable to load {fnameComClass}: {hr}");
+                var x = ex.ToString();
+                throw new InvalidOperationException(x);
+
             }
             return hr;
         }
@@ -282,13 +301,13 @@ namespace MakeDictionary
             //    DictNum = dictNum
             //};
 
-            // better way: use DllGetClassObject, IClassFactory directly. No registration needed.
+            // new way: use DllGetClassObject, IClassFactory directly. No registration needed.
+            // tlbimp Dictionary.dll /namespace:DictionaryCPP /out:DictionaryCPP.Interop.dll /verbose
             //            var dictCppDllName = @"C:\Users\calvinh\source\repos\Wordament\MakeDictionary\Dictionary.dll";
-            var dictCppDllName = @"Dictionary.dll";
             //var g1 = typeof(DictionaryCPP.CDict).GUID; //0CED18E4-8870-4F62-B1CB-E50C3BCA8FB3
             //var g2 = typeof(DictionaryCPP.IDict).GUID; //0CED18E4-8870-4F62-B1CB-E50C3BCA8FB3
-            //var g3 = typeof(DictionaryCPP.CDictClass).GUID; //3ED98B67-96FC-42A1-A361-2141CC07D1C4
-            var g3 = new Guid("3ED98B67-96FC-42A1-A361-2141CC07D1C4");
+            var g3 = typeof(DictionaryCPP.CDictClass).GUID; //3ED98B67-96FC-42A1-A361-2141CC07D1C4
+            //var g3 = new Guid("3ED98B67-96FC-42A1-A361-2141CC07D1C4");
 
             var hr = CoCreateFromFile(dictCppDllName, g3, typeof(DictionaryCPP.IDict).GUID, out var pObject);
             if (hr != HResult.S_OK)
@@ -296,6 +315,7 @@ namespace MakeDictionary
                 throw new InvalidOperationException($"Could not find old dict {dictCppDllName}");
             }
             _dict = (DictionaryCPP.CDict)Marshal.GetObjectForIUnknown(pObject);
+            Marshal.Release(pObject);
             _dict.DictNum = dictNum;
         }
 
@@ -332,7 +352,19 @@ namespace MakeDictionary
 
         public void Dispose()
         {
+            Marshal.ReleaseComObject(_dict);
             _dict = null;
+
+            if (_deldllCanUnloadNow() == 0)
+            {
+                FreeLibrary(_hModule);
+            }
+            else
+            {
+                throw new InvalidOperationException($"Couldn't unload {dictCppDllName}");
+//                Debug.Assert(GetModuleHandle(dictCppDllName) == IntPtr.Zero);
+
+            }
         }
     }
 }

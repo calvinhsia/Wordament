@@ -37,6 +37,15 @@ namespace WordamentTests
     {
 
         [TestMethod]
+        public void TestOldDictWrapper()
+        {
+            //            var lstWords = new List<string>();
+            using (var dictWrapper = new OldDictWrapper(2))
+            {
+                //                lstWords.AddRange(dictWrapper.GetWords("*"));
+            }
+        }
+        [TestMethod]
         public void TestSeekWord()
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
@@ -107,19 +116,23 @@ namespace WordamentTests
         }
 
         [TestMethod]
+        [Ignore]
+        [ExpectedException(typeof(InvalidOperationException), AllowDerivedTypes = false)]
         public void TestDoAnagramOld()
         {
-            var dict = new MakeDictionary.OldDictWrapper(1);
-            var lstAnagrams = new List<string>();
+            using (var dict = new MakeDictionary.OldDictWrapper(1))
+            {
+                var lstAnagrams = new List<string>();
 
-            var x = dict.FindAnagrams("discounter");
-            foreach (var w in x)
-            {
-                LogMessage($"xxxx  {w}");
-            }
-            foreach (var anagram in lstAnagrams)
-            {
-                LogMessage(anagram);
+                var x = dict.FindAnagrams("discounter");
+                foreach (var w in x)
+                {
+                    LogMessage($"xxxx  {w}");
+                }
+                foreach (var anagram in lstAnagrams)
+                {
+                    LogMessage(anagram);
+                }
             }
         }
 
@@ -300,88 +313,95 @@ namespace WordamentTests
         [TestMethod]
         public void TestPerfRandWord()
         {
-            var oldDict = new OldDictWrapper(1);
-            var newdict = new DictionaryLib.DictionaryLib(DictionaryType.Large, new Random(1));
-            var sw = new Stopwatch();
-            sw.Start();
-            var nCnt = 10000;
-            for (int i = 0; i < nCnt; i++)
+            using (var oldDict = new OldDictWrapper(1))
             {
-                oldDict.RandWord(0);
+                var newdict = new DictionaryLib.DictionaryLib(DictionaryType.Large, new Random(1));
+                var sw = new Stopwatch();
+                sw.Start();
+                var nCnt = 10000;
+                for (int i = 0; i < nCnt; i++)
+                {
+                    oldDict.RandWord(0);
+                }
+                var olddictTime = sw.Elapsed.TotalSeconds;
+                LogMessage($"Olddict {sw.Elapsed.TotalSeconds}");
+                sw.Restart();
+                for (int i = 0; i < nCnt; i++)
+                {
+                    newdict.RandomWord();
+                }
+                var newdictTime = sw.Elapsed.TotalSeconds;
+                LogMessage($"Newdict {newdictTime}");
+                Assert.Fail($"This test is supposed to fail to show perf results: OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  Ratio {newdictTime / olddictTime:n1}");
             }
-            var olddictTime = sw.Elapsed.TotalSeconds;
-            LogMessage($"Olddict {sw.Elapsed.TotalSeconds}");
-            sw.Restart();
-            for (int i = 0; i < nCnt; i++)
-            {
-                newdict.RandomWord();
-            }
-            var newdictTime = sw.Elapsed.TotalSeconds;
-            LogMessage($"Newdict {newdictTime}");
-            Assert.Fail($"This test is supposed to fail to show perf results: OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  Ratio {newdictTime / olddictTime:n1}");
         }
 
         [TestMethod]
         public void TestPerfIsWord()
         {
-            var oldDict = new OldDictWrapper(1);
-            var newdict = new DictionaryLib.DictionaryLib(DictionaryType.Large, new Random(1));
-            var sw = new Stopwatch();
-            sw.Start();
-            var nCnt = 10000;
-            var word = "computer";
-            for (int i = 0; i < nCnt; i++)
+            using (var oldDict = new OldDictWrapper(1))
             {
-                var r = oldDict.IsWord(word);
-                Assert.IsTrue(r);
-            }
-            var olddictTime = sw.Elapsed.TotalSeconds;
-            LogMessage($"Olddict {sw.Elapsed.TotalSeconds}");
-            sw.Restart();
-            for (int i = 0; i < nCnt; i++)
-            {
-                var r = newdict.IsWord(word);
-                if (i == 0)
+                var newdict = new DictionaryLib.DictionaryLib(DictionaryType.Large, new Random(1));
+                var sw = new Stopwatch();
+                sw.Start();
+                var nCnt = 10000;
+                var word = "computer";
+                for (int i = 0; i < nCnt; i++)
                 {
-                    LogMessage($"{word}  _GetNextWordCount {newdict._GetNextWordCount}");
+                    var r = oldDict.IsWord(word);
+                    Assert.IsTrue(r);
                 }
-                Assert.IsTrue(r);
-                Assert.AreEqual(809, newdict._GetNextWordCount);
+                var olddictTime = sw.Elapsed.TotalSeconds;
+                LogMessage($"Olddict {sw.Elapsed.TotalSeconds}");
+                sw.Restart();
+                for (int i = 0; i < nCnt; i++)
+                {
+                    var r = newdict.IsWord(word);
+                    if (i == 0)
+                    {
+                        LogMessage($"{word}  _GetNextWordCount {newdict._GetNextWordCount}");
+                    }
+                    Assert.IsTrue(r);
+                    Assert.AreEqual(809, newdict._GetNextWordCount);
+                }
+                var newdictTime = sw.Elapsed.TotalSeconds;
+                LogMessage($"Newdict {newdictTime}");
+                Assert.Fail($"This test is supposed to fail to show perf results: OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  Ratio {newdictTime / olddictTime:n1}");
             }
-            var newdictTime = sw.Elapsed.TotalSeconds;
-            LogMessage($"Newdict {newdictTime}");
-            Assert.Fail($"This test is supposed to fail to show perf results: OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  Ratio {newdictTime / olddictTime:n1}");
         }
+
         [TestMethod]
         public void TestPerfIsNotWord()
         {
-            var oldDict = new OldDictWrapper(1);
-            var newdict = new DictionaryLib.DictionaryLib(DictionaryType.Large, new Random(1));
-            var sw = new Stopwatch();
-            sw.Start();
-            var nCnt = 10000;
-            var word = "qqq";
-            for (int i = 0; i < nCnt; i++)
+            using (var oldDict = new OldDictWrapper(1))
             {
-                var r = oldDict.IsWord(word);
-                Assert.IsFalse(r);
-            }
-            var olddictTime = sw.Elapsed.TotalSeconds;
-            LogMessage($"Olddict {sw.Elapsed.TotalSeconds}");
-            sw.Restart();
-            for (int i = 0; i < nCnt; i++)
-            {
-                var r = newdict.IsWord(word);
-                if (i == 0)
+                var newdict = new DictionaryLib.DictionaryLib(DictionaryType.Large, new Random(1));
+                var sw = new Stopwatch();
+                sw.Start();
+                var nCnt = 10000;
+                var word = "qqq";
+                for (int i = 0; i < nCnt; i++)
                 {
-                    LogMessage($"{word}  _GetNextWordCount {newdict._GetNextWordCount}");
+                    var r = oldDict.IsWord(word);
+                    Assert.IsFalse(r);
                 }
-                Assert.IsFalse(r);
-                Assert.AreEqual(1, newdict._GetNextWordCount);
+                var olddictTime = sw.Elapsed.TotalSeconds;
+                LogMessage($"Olddict {sw.Elapsed.TotalSeconds}");
+                sw.Restart();
+                for (int i = 0; i < nCnt; i++)
+                {
+                    var r = newdict.IsWord(word);
+                    if (i == 0)
+                    {
+                        LogMessage($"{word}  _GetNextWordCount {newdict._GetNextWordCount}");
+                    }
+                    Assert.IsFalse(r);
+                    Assert.AreEqual(1, newdict._GetNextWordCount);
+                }
+                var newdictTime = sw.Elapsed.TotalSeconds;
+                LogMessage($"Newdict {newdictTime}");
+                Assert.Fail($"This test is supposed to fail to show perf results: OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  Ratio {newdictTime / olddictTime:n1}");
             }
-            var newdictTime = sw.Elapsed.TotalSeconds;
-            LogMessage($"Newdict {newdictTime}");
-            Assert.Fail($"This test is supposed to fail to show perf results: OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  Ratio {newdictTime / olddictTime:n1}");
         }
 
         [TestMethod]
