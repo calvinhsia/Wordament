@@ -276,11 +276,18 @@ namespace MakeDictionary
 
         public OldDictWrapper(uint dictNum)
         {
+            // old way: requires Regsvr32
+            //_dict = new Dictionary.CDict()
+            //{
+            //    DictNum = dictNum
+            //};
+
+            // better way: use DllGetClassObject, IClassFactory directly. No registration needed.
             //            var dictCppDllName = @"C:\Users\calvinh\source\repos\Wordament\MakeDictionary\Dictionary.dll";
             var dictCppDllName = @"Dictionary.dll";
             //var g1 = typeof(DictionaryCPP.CDict).GUID; //0CED18E4-8870-4F62-B1CB-E50C3BCA8FB3
             //var g2 = typeof(DictionaryCPP.IDict).GUID; //0CED18E4-8870-4F62-B1CB-E50C3BCA8FB3
-            //            var g3 = typeof(DictionaryCPP.CDictClass).GUID; //3ED98B67-96FC-42A1-A361-2141CC07D1C4
+            //var g3 = typeof(DictionaryCPP.CDictClass).GUID; //3ED98B67-96FC-42A1-A361-2141CC07D1C4
             var g3 = new Guid("3ED98B67-96FC-42A1-A361-2141CC07D1C4");
 
             var hr = CoCreateFromFile(dictCppDllName, g3, typeof(DictionaryCPP.IDict).GUID, out var pObject);
@@ -290,7 +297,6 @@ namespace MakeDictionary
             }
             _dict = (DictionaryCPP.CDict)Marshal.GetObjectForIUnknown(pObject);
             _dict.DictNum = dictNum;
-
         }
 
         public IEnumerable<string> FindAnagrams(string word)

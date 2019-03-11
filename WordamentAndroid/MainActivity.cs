@@ -46,7 +46,7 @@ namespace WordamentAndroid
         public static int _nCols = 4;
         public static int _nRows = 4;
         public static int _HintDelay = 100;
-        List<string> _lstHints = new List<string>();
+        readonly List<string> _lstHints = new List<string>();
         public int _nMinWordLen = 12;
         public bool _IsLongWord = true;
         public int idTitleText;
@@ -469,7 +469,7 @@ namespace WordamentAndroid
             {
                 if (txtWordSoFar != null &&
                     !fdidGetLongWord &&
-                    txtWordSoFar.Left >= _nMinWordLen &&
+                    txtWordSoFar.Text.Length >= _nMinWordLen &&
                     !string.IsNullOrEmpty(txtWordSoFar.Text) &&
                     taskGetResultsAsync != null &&
                     taskGetResultsAsync.IsCompleted)
@@ -690,7 +690,7 @@ namespace WordamentAndroid
             return Task.FromResult<int>(0);
         }
 
-        List<string> _lstLongWords = new List<string>();
+        readonly List<string> _lstLongWords = new List<string>();
         private async Task FillGridWithTilesAsync(GridLayout grd)
         {
             _arrTiles = new LtrTile[_nRows, _nCols];
@@ -932,16 +932,16 @@ namespace WordamentAndroid
         {
             var hrs = string.Empty;
             var mins = string.Empty;
-            var secs = string.Empty;
+            string secs;
             if (tmpSecs > 3600)
             {
                 hrs = $"{tmpSecs / 3600:n0}:";
-                tmpSecs = tmpSecs - (tmpSecs / 3600) * 3600;
+                tmpSecs -= (tmpSecs / 3600) * 3600;
             }
             if (!string.IsNullOrEmpty(hrs) || tmpSecs > 60)
             {
                 mins = $"{(tmpSecs / 60).ToString(String.IsNullOrEmpty(hrs) ? "" : "00")}:";
-                tmpSecs = tmpSecs - (tmpSecs / 60) * 60;
+                tmpSecs -= (tmpSecs / 60) * 60;
                 secs = tmpSecs.ToString("00");
             }
             else
@@ -1066,7 +1066,7 @@ namespace WordamentAndroid
                     var pts = 0;
                     foreach (var letr in this)
                     {
-                        pts += letr._pts;
+                        pts += letr.Pts;
                     }
                     if (this.Count >= 5)
                     {
@@ -1113,7 +1113,7 @@ namespace WordamentAndroid
             public string _letter;
             public int _row;
             public int _col;
-            public int _pts
+            public int Pts
             {
                 get
                 {
@@ -1140,7 +1140,7 @@ namespace WordamentAndroid
             public int Row { get; set; }
             public int Col { get; set; }
             public string Letter { get { return Text; } }
-            public int Points { get { return _letter._pts; } }
+            public int Points { get { return _letter.Pts; } }
             public SimpleLetter _letter;
             public LtrTile(Context context, string letter, int row, int col) : base(context)
             {
