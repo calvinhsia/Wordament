@@ -117,7 +117,7 @@ namespace WordamentTests
 
         [TestMethod]
         [Ignore]
-//        [ExpectedException(typeof(InvalidOperationException), AllowDerivedTypes = false)]
+        //        [ExpectedException(typeof(InvalidOperationException), AllowDerivedTypes = false)]
         public void TestDoAnagramOld()
         {
             using (var dict = new MakeDictionary.OldDictWrapper(1))
@@ -640,6 +640,15 @@ namespace WordamentTests
                 }
             }
             return sb.ToString();
+        }
+
+        [TestMethod]
+        public void TestCryptogram()
+        {
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
+            var str = "JGLQIN XR QYL DBYXLPLULTQ GE QYL RNTQYLRXR GE YNDBXTQYR DTA CXRBHXQR.  BDIF RDTACHIZ";
+            var result = dict.CryptoGram(str);
+            Assert.IsTrue(result == string.Empty);
         }
     }
 }

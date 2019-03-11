@@ -286,7 +286,7 @@ namespace MakeDictionary
             }
             catch (Exception ex)
             {
-                var x = ex.ToString();
+                var x = ex.ToString(); // HandleProcessCorruptedStateExceptions
                 throw new InvalidOperationException(x);
 
             }

@@ -503,6 +503,13 @@ namespace DictionaryLib
                 }
             }
         }
+
+        //JGLQIN XR QYL DBYXLPLULTQ GE QYL RNTQYLRXR GE YNDBXTQYR DTA CXRBHXQR.  BDIF RDTACHIZ
+        public string CryptoGram(string strCryptogram)
+        {
+            var result = string.Empty;
+            return result;
+        }
     }
 
 
