@@ -38,6 +38,8 @@ namespace MakeDictionary
                 tab1 = " acdegilmnorstu", // A 0 in the nib stream indicates end of word, so the 0th entry isn't used: 15 is escape to next table
                 tab2 = " bfhjkpqvwxzy", // 0th entry isn't used
             };
+            LogMessage($"Lookup Table 1: '{dictHeader.tab1}'");
+            LogMessage($"Lookup Table 2: '{dictHeader.tab2}'");
             dictHeader.nibPairPtr = new DictHeaderNibbleEntry[26 * 26 * 26];
             var nibpairNdx = 0;
             var let0 = 'a';
@@ -182,8 +184,6 @@ namespace MakeDictionary
             var dictBytes = File.ReadAllBytes(fileName);
             var dictHeader = DictHeader.MakeHeaderFromBytes(dictBytes);
             LogMessage($"{fileName} dump HdrSize= {Marshal.SizeOf(dictHeader)}  (0x{Marshal.SizeOf(dictHeader):x8}) MaxWordLen = {dictHeader.maxWordLen}");
-            LogMessage($"Lookup Table 1: '{dictHeader.tab1}'");
-            LogMessage($"Lookup Table 2: '{dictHeader.tab2}'");
             LogMessage($"Entire dump len= {dictBytes.Length}");
 
             var cntwrds = 0;
@@ -324,8 +324,11 @@ namespace MakeDictionary
             _dict.FindAnagram(word, nSubWords: 0);
             foreach (var wrd in _dict.Words)
             {
-                yield return wrd as string;
+                var res = wrd as string;
+                Marshal.ReleaseComObject(wrd);
+                yield return res;
             }
+            Marshal.ReleaseComObject(_dict.Words);
         }
         public IEnumerable<string> GetWords(string start)
         {
@@ -358,6 +361,11 @@ namespace MakeDictionary
             if (_deldllCanUnloadNow() == 0)
             {
                 FreeLibrary(_hModule);
+                var res = GetModuleHandle(dictCppDllName);
+                if (res != IntPtr.Zero)
+                {
+                    throw new InvalidOperationException($"Didn't unload {dictCppDllName}");
+                }
             }
             else
             {

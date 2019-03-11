@@ -138,34 +138,29 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     >
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="300"/>
                         <ColumnDefinition Width="500"/>
                         <ColumnDefinition/>
                     </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0">
-                        <Button Name="btnNew" Height="60">_New</Button>
-                        <StackPanel Orientation="Horizontal" Width="300">
-                            <Label>Rows</Label><TextBox Name="tbxRows" Text="{Binding Path=_nRows}" HorizontalAlignment="Right" Width="50"></TextBox>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <Label>Cols</Label><TextBox Name="tbxCols" Text="{Binding Path=_nCols}" HorizontalAlignment="Right" Width="50"></TextBox>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal">
+                    <StackPanel Grid.Column="0" Orientation="Vertical">
+                        <DockPanel Width="500" HorizontalAlignment="Left">
+                            <Button Name="btnNew" Width="80">_New</Button>
+                            <Label>Rows</Label><TextBox Name="tbxRows" Text="{Binding Path=_nRows}" Width="50"></TextBox>
+                            <Label>Cols</Label><TextBox Name="tbxCols" Text="{Binding Path=_nCols}" Width="50"></TextBox>
                             <CheckBox Name="chkLongWord" IsChecked="{Binding Path=_IsLongWrd}">LongWord</CheckBox>
                             <TextBox Text="{Binding Path=_nMinWordLen}" ToolTip="When doing long words, must be at least this length"></TextBox>
-                        </StackPanel>
-                        <TextBox Name="tbxStatus" Width="300" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Left"></TextBox>
-                        <Button Name="btnHint" Height="40" Width="100" IsEnabled="{Binding Path=HintAvailable}" ToolTip="new hint available after 30 seconds">Hint</Button>
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Vertical">
-                        <StackPanel Orientation="Horizontal">
+                            <Button Name="btnHint"
+                                IsEnabled="{Binding Path=HintAvailable}"
+                                HorizontalAlignment="Right"
+                                ToolTip="new hint available after 30 seconds">Hint</Button>
+                        </DockPanel>
+                        <DockPanel>
                             <TextBox Name="txtWordSoFar" Width="300" FontSize="24" IsReadOnly="True" Text="{Binding Path=StrWordSoFar}"/>
-                            <TextBox Width="90" FontSize="24" IsReadOnly="True" Text="{Binding Path=CountDownTimeStr}"/>
-                        </StackPanel>
+                            <TextBox Width="90" FontSize="24" HorizontalAlignment="Right" IsReadOnly="True" Text="{Binding Path=CountDownTimeStr}"/>
+                        </DockPanel>
                         <UniformGrid Name="grdUniform" Height="500" Width="500" Background="#FF000000" HorizontalAlignment="Left"></UniformGrid>
+                        <TextBox Name="tbxStatus" Width="300" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Left"></TextBox>
                     </StackPanel>
-                    <StackPanel Grid.Column="2" Name="spResults" Orientation="Horizontal">
-                        <Label>asdfaf</Label>
+                    <StackPanel Grid.Column="1" Name="spResults" Orientation="Horizontal">
                     </StackPanel>
                 </Grid>.CreateReader
             ), Grid)

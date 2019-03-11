@@ -138,7 +138,7 @@ namespace WordMake
                     {
                         txtRootWord.Text = "invalidtext";
                     }
-                    randword = txtRootWord.Text.Trim();
+                    randword = txtRootWord.Text.Trim().ToLower();
                 }
                 List<string> resultWordsSmall = null;
                 List<string> resultWordsLarge = null;

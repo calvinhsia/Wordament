@@ -117,14 +117,14 @@ namespace WordamentTests
 
         [TestMethod]
         [Ignore]
-        [ExpectedException(typeof(InvalidOperationException), AllowDerivedTypes = false)]
+//        [ExpectedException(typeof(InvalidOperationException), AllowDerivedTypes = false)]
         public void TestDoAnagramOld()
         {
             using (var dict = new MakeDictionary.OldDictWrapper(1))
             {
                 var lstAnagrams = new List<string>();
 
-                var x = dict.FindAnagrams("discounter");
+                var x = dict.FindAnagrams("discounterzz");
                 foreach (var w in x)
                 {
                     LogMessage($"xxxx  {w}");
