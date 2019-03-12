@@ -110,9 +110,12 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         Me.Width = My.Settings.WindowSize.Width
         Me.Height = My.Settings.WindowSize.Height
         AddHandler Me.Closing, Sub()
-                                   My.Settings.WindowPos = New System.Drawing.Size(Me.Left, Me.Top)
-                                   My.Settings.WindowSize = New System.Drawing.Size(Me.Width, Me.Height)
-                                   My.Settings.Save()
+                                   Try
+                                       My.Settings.WindowPos = New System.Drawing.Size(Me.Left, Me.Top)
+                                       My.Settings.WindowSize = New System.Drawing.Size(Me.Width, Me.Height)
+                                       My.Settings.Save()
+                                   Catch ex As Exception
+                                   End Try
                                End Sub
 
         ' Add any initialization after the InitializeComponent() call.
@@ -136,6 +139,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                 <Grid
                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    Margin="10,0,0,0"
                     >
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="500"/>
@@ -154,7 +158,9 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                 ToolTip="new hint available after 30 seconds">Hint</Button>
                         </DockPanel>
                         <DockPanel>
-                            <TextBox Name="txtWordSoFar" Width="300" FontSize="24" IsReadOnly="True" Text="{Binding Path=StrWordSoFar}"/>
+                            <TextBox Name="txtWordSoFar" Width="300" FontSize="24"
+                                Margin="0,10,10,0"
+                                IsReadOnly="True" Text="{Binding Path=StrWordSoFar}"/>
                             <TextBox Width="90" FontSize="24" HorizontalAlignment="Right" IsReadOnly="True" Text="{Binding Path=CountDownTimeStr}"/>
                         </DockPanel>
                         <UniformGrid Name="grdUniform" Height="500" Width="500" Background="#FF000000" HorizontalAlignment="Left"></UniformGrid>

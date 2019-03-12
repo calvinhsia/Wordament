@@ -29,6 +29,8 @@ namespace DictionaryLib
     {
         public const byte LetterA = 97; // 'a'
         public const int NumLetters = 26; // # letters in alphabet
+        public const char qmarkChar = '_';// + 1 - LetterA;
+
         internal DictHeader _dictHeader;
         internal int _dictHeaderSize;
         internal DictionaryType _dictionaryType;
@@ -126,20 +128,46 @@ namespace DictionaryLib
                 let2 = (byte)(word[2]);
             }
             SetDictPos(let0, let1, let2);
-            var result = GetNextWord(out compResult, WordStop: word);
-            return result;
+            var result = GetNextWord(out compResult, WordStop: new MyWord(word));
+            return result.GetWord();
         }
 
         void SetDictPos(byte let0, byte let1 = LetterA, byte let2 = LetterA)
         {
             _havePartialNib = false;
             _nibndx = _dictHeader.nibPairPtr[((let0 - LetterA) * NumLetters + let1 - LetterA) * NumLetters + let2 - LetterA].nibbleOffset;
+            _GetNextWordCount = 0;
             _MyWordSoFar.SetWord(let0, let1, let2);
             if ((int)(_nibndx & 1) > 0)
             {
                 GetNextNib();
             }
         }
+
+        void SetDictPos(MyWord mword)
+        {
+            byte let0;
+            byte let1 = LetterA;
+            byte let2 = LetterA;
+            switch (mword.WordLength)
+            {
+                case 0:
+                    throw new InvalidOperationException("word length 0?");
+                default:
+                    let0 = mword._wordBytes[0];
+                    if (mword.WordLength > 1)
+                    {
+                        let1 = mword._wordBytes[1];
+                    }
+                    if (mword.WordLength > 2)
+                    {
+                        let2 = mword._wordBytes[2];
+                    }
+                    break;
+            }
+            SetDictPos(let0, let1, let2);
+        }
+
         byte GetNextNib()
         {
             byte result;
@@ -168,10 +196,10 @@ namespace DictionaryLib
         }
         public string GetNextWord()
         {
-            return GetNextWord(out int _, WordStop: null, cntSkip: 0);
+            return GetNextWord(out int _, WordStop: null, cntSkip: 0)?.GetWord();
         }
 
-        internal string GetNextWord(string WordStop = null, int cntSkip = 0)
+        internal MyWord GetNextWord(MyWord WordStop = null, int cntSkip = 0)
         {
             return GetNextWord(out int _, WordStop, cntSkip);
         }
@@ -184,16 +212,15 @@ namespace DictionaryLib
         /// 0 means return next word. 1 means skip one word. For perf: don't have to convert to string over and over</param>
         /// <param name="compareResult">if provided, </param>
         /// <returns></returns>
-        internal string GetNextWord(out int compareResult, string WordStop = null, int cntSkip = 0)
+        internal MyWord GetNextWord(out int compareResult, MyWord WordStop = null, int cntSkip = 0)
         {
             Debug.Assert((WordStop == null) || cntSkip == 0);
             byte nib;
             MyWord stopAtWord = null;
-            _GetNextWordCount = 0;
             compareResult = 0;
-            if (!string.IsNullOrEmpty(WordStop))
+            if (WordStop != null)
             {
-                stopAtWord = new MyWord(WordStop);
+                stopAtWord = WordStop;
             }
             var done = false;
             int loopCount = 0;
@@ -208,7 +235,7 @@ namespace DictionaryLib
                 if (nib == DictHeader.EOFChar)
                 {
                     //              LogMessage($"Got EOD {_nibndx}");
-                    return string.Empty;
+                    return MyWord.Empty;
                 }
                 lenSoFar += nib;
                 if (lenSoFar < _MyWordSoFar.WordLength)
@@ -233,7 +260,7 @@ namespace DictionaryLib
                     else
                     {
                         //                        LogMessage($"GOT EODCHAR {_nibndx:x2}");
-                        return string.Empty;
+                        return MyWord.Empty;
                     }
                     _MyWordSoFar.AddByte((byte)newchar);
                 }
@@ -261,7 +288,7 @@ namespace DictionaryLib
                     }
                 }
             }
-            return _MyWordSoFar.GetWord();
+            return _MyWordSoFar;
         }
 
         /// <summary>
@@ -483,7 +510,7 @@ namespace DictionaryLib
                         else
                         {
                             SetDictPos((byte)(i + LetterA), (byte)(j + LetterA), (byte)(k + LetterA));
-                            var r = GetNextWord(cntSkip: rnum - sum);
+                            var r = GetNextWord(cntSkip: rnum - sum).GetWord();
                             return r;
                         }
                     }
@@ -514,7 +541,6 @@ namespace DictionaryLib
             var lstEncryptedWords = new List<MyWord>();
             var encryptedByteDist = new Dictionary<int, int>(); // ltr=0-25, cnt
             var maxWordLen = 0;
-            var qmarkChar = 'z' + 1 - LetterA;
             foreach (var wrd in encryptedWords)
             {
                 var cleanWrd = new string(wrd.Where(c => char.IsLetter(c)).ToArray());
@@ -559,17 +585,131 @@ namespace DictionaryLib
                     m.AddByte(chr);
                 }
             }
+            return result;
+        }
 
+        /// <summary>
+        /// Given a word with embedded QMarks, find a match
+        /// </summary>
+        /// <param name="mword"></param>
+        /// <returns></returns>
+        internal void FindQMarkMatches(MyWord mword, Func<MyWord, bool> act = null)
+        {
+            //            var res = string.Empty;
+            var ndxFirstrQmark = mword.IndexOf((byte)qmarkChar);
+            var wordStop = CalculateStopAtWord(mword, ndxFirstrQmark);
+            switch (ndxFirstrQmark)
+            {
+                case -1: // no qmark
+                    SetDictPos(mword);
+                    break;
+                case 0:
+                    SetDictPos(LetterA); // 1st is qmark, so search entire dict
+                    break;
+                case 1:
+                    SetDictPos(mword._wordBytes[0], mword._wordBytes[1]);
+                    break;
+                case 2:
+                    SetDictPos(mword._wordBytes[0], mword._wordBytes[1]);
+                    break;
+                default:
+                    SetDictPos(mword._wordBytes[0], mword._wordBytes[1], mword._wordBytes[2]);
+                    break;
+            }
+            var done = false;
+            while (!done)
+            {
+                var tryWord = GetNextWord(WordStop: wordStop);
+                if (tryWord == null)
+                {
+                    break;
+                }
+                if (tryWord.WordLength == mword.WordLength)
+                {
+                    var isMatch = true;
+                    for (int i = 0; i < tryWord.WordLength; i++)
+                    {
+                        if (mword._wordBytes[i] != qmarkChar)
+                        {
+                            if (mword._wordBytes[i] != tryWord._wordBytes[i])
+                            {
+                                isMatch = false;
+                                break;
+                            }
+                        }
+                    }
+                    if (isMatch)
+                    {
+                        if (act != null)
+                        {
+                            if (!act(tryWord))
+                            {
+                                done = true;
+                            }
+                        }
+                    }
+                }
+                switch (ndxFirstrQmark)
+                {
+                    case -1: // noqmark
+                        break;
+                    case 0:
+                        break;
+                    default:
+                        var cmpResult = mword.GetWord(DesiredLength: ndxFirstrQmark).CompareTo(tryWord.GetWord());
+                        if (cmpResult < 0)
+                        {
+                            done = true;
+                        }
+                        break;
+                }
+            }
+        }
+        MyWord CalculateStopAtWord(MyWord mword, int LenToUse)
+        {
+            MyWord result = null;
+            switch (LenToUse)
+            {
+                case 0:
+                    break;
+                case 1:
+                    if (mword._wordBytes[0] != 'z')
+                    {
+                        result = new MyWord(1);
+                        result._wordBytes[0] = (byte)(mword._wordBytes[0] + 1);
+                    }
+                    break;
+                default:
+                    result = new MyWord(2);
+                    if (mword._wordBytes[1] == 'z')
+                    {
+                        if (mword._wordBytes[0] != 'z')
+                        {
+                            result._wordBytes[0] = (byte)(mword._wordBytes[1] + 1);
+                            result._wordBytes[1] = LetterA;
+                        }
+                    }
+                    else
+                    {
+                        result._wordBytes[0] = mword._wordBytes[0];
+                        result._wordBytes[1] = (byte)(mword._wordBytes[1] + 1);
+                    }
+                    break;
+
+            }
             return result;
         }
     }
 
 
+
     /// <summary>
     /// represent a word as a byte array, reducing need to convert to char/string for perf. Not null terminated
     /// </summary>
+    [DebuggerDisplay("{GetWord()}")]
     internal class MyWord : IComparable
     {
+        public static MyWord Empty;
         readonly int maxWordLen = 30;
         internal byte[] _wordBytes;
         int _currentLength;
@@ -631,6 +771,19 @@ namespace DictionaryLib
         {
             _currentLength = Length;
         }
+        public int IndexOf(byte b)
+        {
+            var res = -1;
+            for (int i = 0; i < WordLength; i++)
+            {
+                if (_wordBytes[i] == b)
+                {
+                    res = i;
+                    break;
+                }
+            }
+            return res;
+        }
 
         public int CompareTo(object obj)
         {
@@ -659,6 +812,7 @@ namespace DictionaryLib
             }
             return retval;
         }
+
         public override string ToString()
         {
             return GetWord();

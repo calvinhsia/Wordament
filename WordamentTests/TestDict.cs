@@ -650,5 +650,29 @@ namespace WordamentTests
             var result = dict.CryptoGram(str);
             Assert.IsTrue(result == string.Empty);
         }
+
+        [TestMethod]
+        public void TestCryptFindQMarkMatch()
+        {
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
+            foreach (var strQMark in new[] {
+                "con_____",
+                "condi_ion",
+            })
+            {
+                var mwordQMark = new MyWord(strQMark);
+                var lstResults = new List<string>();
+                dict.FindQMarkMatches(mwordQMark, (m) =>
+                 {
+                     lstResults.Add(m.GetWord());
+                     return true;
+                 });
+                LogMessage($"FindQMarkMatch {mwordQMark}  _GetNextWordCount= {dict._GetNextWordCount} #Res={lstResults.Count}");
+                foreach (var res in lstResults)
+                {
+                    LogMessage($" {res}");
+                }
+            }
+        }
     }
 }
