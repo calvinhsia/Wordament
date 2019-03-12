@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 [assembly: InternalsVisibleTo("WordamentTests")]
@@ -497,7 +498,7 @@ namespace DictionaryLib
             SeekWord("a");
             while (!string.IsNullOrEmpty(wrd = GetNextWord()))
             {
-                if (System.Text.RegularExpressions.Regex.IsMatch(wrd, strPattern))
+                if (Regex.IsMatch(wrd, strPattern))
                 {
                     yield return wrd;
                 }
@@ -508,6 +509,57 @@ namespace DictionaryLib
         public string CryptoGram(string strCryptogram)
         {
             var result = string.Empty;
+            LogMessage($"Doing crypt {strCryptogram}");
+            var encryptedWords = strCryptogram.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            var lstEncryptedWords = new List<MyWord>();
+            var encryptedByteDist = new Dictionary<int, int>(); // ltr=0-25, cnt
+            var maxWordLen = 0;
+            var qmarkChar = 'z' + 1 - LetterA;
+            foreach (var wrd in encryptedWords)
+            {
+                var cleanWrd = new string(wrd.Where(c => char.IsLetter(c)).ToArray());
+                if (!string.IsNullOrEmpty(cleanWrd))
+                {
+                    var mword = new MyWord(cleanWrd.ToLower());
+                    lstEncryptedWords.Add(mword);
+                    if (mword.WordLength > maxWordLen)
+                    {
+                        maxWordLen = mword.WordLength;
+                    }
+                    for (int i = 0; i < mword.WordLength; i++)
+                    {
+                        var ndx = mword._wordBytes[i] - LetterA;
+                        if (encryptedByteDist.ContainsKey(ndx))
+                        {
+                            encryptedByteDist[ndx]++;
+                        }
+                        else
+                        {
+                            encryptedByteDist[ndx] = 1;
+                        }
+                    }
+                }
+            }
+            lstEncryptedWords = lstEncryptedWords.OrderByDescending(w => w.WordLength).Distinct().ToList();
+            lstEncryptedWords.ForEach(s => LogMessage($"Got {s}"));
+            foreach (var kvp in encryptedByteDist.OrderByDescending(p => p.Value))
+            {
+                LogMessage($"ByteDist {kvp.Key,2} {Convert.ToChar(kvp.Key + LetterA)} {kvp.Value}");
+            }
+            byte[] cryptKey = new byte[26];
+            // don't want to use regex: too general and too many conversions from byte to string
+            // so we'll use MyWord, and replace unknown letters with a marker Qmark.
+            var lstQMarkWords = new List<MyWord>();
+            foreach (var encryptedWrd in lstEncryptedWords.Where(m => m.WordLength > 3))
+            {
+                var m = new MyWord(encryptedWrd.WordLength);
+                for (int i = 0; i < encryptedWrd.WordLength; i++)
+                {
+                    var chr = encryptedWrd._wordBytes[i];
+                    m.AddByte(chr);
+                }
+            }
+
             return result;
         }
     }
