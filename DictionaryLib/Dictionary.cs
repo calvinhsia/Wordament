@@ -539,7 +539,7 @@ namespace DictionaryLib
         {
             var result = string.Empty;
             LogMessage($"Doing crypt {strCryptogram}");
-            var encryptedWords = strCryptogram.Split(new[] { ' ','\'' }, StringSplitOptions.RemoveEmptyEntries);
+            var encryptedWords = strCryptogram.Split(new[] { ' ', '\'' }, StringSplitOptions.RemoveEmptyEntries);
             var lstEncryptedWords = new List<MyWord>();
             var encryptedByteDist = new Dictionary<byte, int>(); // ltr=0-25, cnt
             var maxWordLen = 0;
@@ -574,23 +574,72 @@ namespace DictionaryLib
             {
                 LogMessage($"ByteDist {kvp.Key,2} {Convert.ToChar(kvp.Key + LetterA)} {kvp.Value}");
             }
+            var lstEncLets = encryptedByteDist
+                .OrderByDescending(p => p.Value)
+                .Select(p => (char)(p.Key + LetterA))
+                .ToArray();
+
+            var strEncLets = new string(lstEncLets); //encrypt "rlqxydtbgineachjpufz" order of freq
             //" acdegilmnorstu",
             //" bfhjkpqvwxzy", 
-            var ltrfreg = "etaonscdgilmrubfhjkpqvwxzy"; // guesstimate
-            byte[] cipher = new byte[26]; // cipher[0] = 'r' means 'r' in the cryptogram is an 'a', cipher[1] = 'z' means 'z' in the crypt is a 'b', ...
-            for (int i = 0; i < cipher.Length; i++)
-            {
-                cipher[i] = (byte)qmarkChar;
-            }
+            var strLtrfreq = "etaonscdgilmrubfhjkpqvwxzy"; // guesstimate
+            byte[] cipher = new byte[26]; // cipher[22] = 'a' means 'r' in the cryptogram is an 'a', cipher[25] = 'b' means 'z' in the crypt is a 'b', ...
+
             var done = false;
             while (!done)
             {
-                foreach (var kvp in encryptedByteDist.OrderByDescending(p => p.Value))
+                // we now know that e.g. "R" is the most common letter in cryptogram, and "e" is a common english letter, so we 
+                // want to try substituing "R" with "e" and see if there are a high number of hits.
+                for (int i = 0; i < cipher.Length; i++)
                 {
-                    LogMessage($"ByteDist {kvp.Key,2} {Convert.ToChar(kvp.Key + LetterA)} {kvp.Value}");
-                    cipher[0] = (byte)(kvp.Key + LetterA);
+                    cipher[i] = (byte)qmarkChar;
                 }
-
+                // for each encrypted letter by most freq to least freq
+                var tryWord = new MyWord();
+                for (int indxLtrFreq = 0; indxLtrFreq < strEncLets.Length; indxLtrFreq++) // 26 ltrs in alphabet, but only some are in cipher
+                {
+                    // each time thru loop we guess an additional char in cipher
+                    cipher[strEncLets[indxLtrFreq] - LetterA] = (byte)strLtrfreq[indxLtrFreq];
+//                    cipher[strLtrfreq[indxLtrFreq] - LetterA] = (byte)strEncLets[indxLtrFreq];
+                    // now let's try the cipher and see how many successes
+                    int numWordsWithMatches = 0;
+                    foreach (var encWrd in lstEncryptedWords)
+                    {
+                        tryWord.SetLength(encWrd.WordLength);
+                        int nQMarks = 0;
+                        for (int i = 0; i < encWrd.WordLength; i++)
+                        {
+                            var plaintextLtr = cipher[encWrd._wordBytes[i] - LetterA];
+                            if (plaintextLtr == qmarkChar)
+                            {
+                                nQMarks++;
+                            }
+                            tryWord._wordBytes[i] = plaintextLtr;
+                        }
+                        if (nQMarks != encWrd.WordLength) // if it's not all qmarks
+                        {
+                            FindQMarkMatches(tryWord, (mw) =>
+                             {
+                                 numWordsWithMatches++;
+                                 LogMessage($"GotQM {encWrd}  {tryWord} {mw}");
+                                 return false; // we only want the 1st match: then abort looking
+                             });
+                        }
+                        else
+                        {
+                            numWordsWithMatches++;// if it's all qmarks (e.g. 5 qmarks), then there is a match (there is at least 1 5 letter word in the dict)
+                        }
+                    }
+                    if (numWordsWithMatches == lstEncryptedWords.Count)
+                    {
+                        // every word had a success
+                    }
+                    else
+                    {
+                        // 
+                    }
+                }
+                done = true;
             }
             // don't want to use regex: too general and too many conversions from byte to string
             // so we'll use MyWord, and replace unknown letters with a marker Qmark.
@@ -626,7 +675,7 @@ namespace DictionaryLib
                     SetDictPos(LetterA); // 1st is qmark, so search entire dict
                     break;
                 case 1:
-                    SetDictPos(mword._wordBytes[0], mword._wordBytes[1]);
+                    SetDictPos(mword._wordBytes[0]);
                     break;
                 case 2:
                     SetDictPos(mword._wordBytes[0], mword._wordBytes[1]);
