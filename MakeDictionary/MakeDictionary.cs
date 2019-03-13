@@ -173,6 +173,10 @@ namespace MakeDictionary
                     AddNib(0); // write out last nibble
                 }
                 dictHeader.maxWordLen = maxWordLen;
+                if (maxWordLen>30)
+                {
+                    throw new InvalidOperationException("Word length > 30");
+                }
                 var bytesHeader = dictHeader.GetBytes();
                 fs.Seek(0, SeekOrigin.Begin);
                 fs.Write(dictHeader.GetBytes(), 0, bytesHeader.Length);

@@ -655,24 +655,54 @@ namespace WordamentTests
         public void TestCryptFindQMarkMatch()
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
-            foreach (var strQMark in new[] {
-                "con_____",
-                "condi_ion",
-            })
+            var dictTestData = new Dictionary<string, Tuple<int, int>>() // word to cntNumSearches, cntresults, 
             {
-                var mwordQMark = new MyWord(strQMark);
+                ["__"] = new Tuple<int, int>(53870, 241),
+                ["____i_i__"] = new Tuple<int, int>(53870, 266),
+                ["c_n___ion"] = new Tuple<int, int>(5153, 3), //confusion, contagion
+                ["_ondition"] = new Tuple<int, int>(53870, 1),
+                ["c_ndition"] = new Tuple<int, int>(5153, 1),
+                ["conditio_"] = new Tuple<int, int>(905, 1),
+                ["con______"] = new Tuple<int, int>(905, 140),
+                ["condition"] = new Tuple<int, int>(905, 1),
+            };
+            foreach (var kvp in dictTestData)
+            {
+                var mwordQMark = new MyWord(kvp.Key);
                 var lstResults = new List<string>();
                 dict.FindQMarkMatches(mwordQMark, (m) =>
-                 {
-                     lstResults.Add(m.GetWord());
-                     return true;
-                 });
-                LogMessage($"FindQMarkMatch {mwordQMark}  _GetNextWordCount= {dict._GetNextWordCount} #Res={lstResults.Count}");
+                {
+                    lstResults.Add(m.GetWord());
+                    return true;
+                });
+                LogMessage($"FindQMarkMatch '{mwordQMark}'  _GetNextWordCount= {dict._GetNextWordCount} #Res={lstResults.Count}");
                 foreach (var res in lstResults)
                 {
                     LogMessage($" {res}");
                 }
+                Assert.AreEqual(kvp.Value.Item1, dict._GetNextWordCount, kvp.Key);
+
+                Assert.AreEqual(kvp.Value.Item2, lstResults.Count, kvp.Key);
             }
+            //foreach (var strQMark in new[] {
+            //    "c_ndition",
+            //    "con_____",
+            //    "condi_ion",
+            //})
+            //{
+            //    var mwordQMark = new MyWord(strQMark);
+            //    var lstResults = new List<string>();
+            //    dict.FindQMarkMatches(mwordQMark, (m) =>
+            //     {
+            //         lstResults.Add(m.GetWord());
+            //         return true;
+            //     });
+            //    LogMessage($"FindQMarkMatch {mwordQMark}  _GetNextWordCount= {dict._GetNextWordCount} #Res={lstResults.Count}");
+            //    foreach (var res in lstResults)
+            //    {
+            //        LogMessage($" {res}");
+            //    }
+            //}
         }
     }
 }

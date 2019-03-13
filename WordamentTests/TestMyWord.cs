@@ -16,7 +16,7 @@ namespace WordamentTests
         [TestMethod]
         public void TestMyWordWorks()
         {
-            var w1 = new MyWord(30);
+            var w1 = new MyWord();
             w1.SetWord("test");
             var w2 = new MyWord("test");
             Assert.IsTrue(w1.CompareTo(w2) == 0);

@@ -28,7 +28,9 @@ namespace DictionaryLib
     public class DictionaryLib
     {
         public const byte LetterA = 97; // 'a'
+        public const byte LetterZ = 97 + 26 - 1; // 'a'
         public const int NumLetters = 26; // # letters in alphabet
+        public const int MaxWordLen = 30; // longest word in any dictionaryy
         public const char qmarkChar = '_';// + 1 - LetterA;
 
         internal DictHeader _dictHeader;
@@ -86,7 +88,7 @@ namespace DictionaryLib
             }
             _dictHeader = DictionaryData.DictHeader.MakeHeaderFromBytes(_dictBytes);
             _dictHeaderSize = Marshal.SizeOf<DictHeader>();
-            _MyWordSoFar = new MyWord(_dictHeader.maxWordLen);
+            _MyWordSoFar = new MyWord();
         }
 
         public string SeekWord(string word)
@@ -537,13 +539,13 @@ namespace DictionaryLib
         {
             var result = string.Empty;
             LogMessage($"Doing crypt {strCryptogram}");
-            var encryptedWords = strCryptogram.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            var encryptedWords = strCryptogram.Split(new[] { ' ','\'' }, StringSplitOptions.RemoveEmptyEntries);
             var lstEncryptedWords = new List<MyWord>();
-            var encryptedByteDist = new Dictionary<int, int>(); // ltr=0-25, cnt
+            var encryptedByteDist = new Dictionary<byte, int>(); // ltr=0-25, cnt
             var maxWordLen = 0;
             foreach (var wrd in encryptedWords)
             {
-                var cleanWrd = new string(wrd.Where(c => char.IsLetter(c)).ToArray());
+                var cleanWrd = new string(wrd.Where(c => char.IsLetter(c)).ToArray()); // remove punctuation
                 if (!string.IsNullOrEmpty(cleanWrd))
                 {
                     var mword = new MyWord(cleanWrd.ToLower());
@@ -552,9 +554,9 @@ namespace DictionaryLib
                     {
                         maxWordLen = mword.WordLength;
                     }
-                    for (int i = 0; i < mword.WordLength; i++)
+                    for (byte i = 0; i < mword.WordLength; i++)
                     {
-                        var ndx = mword._wordBytes[i] - LetterA;
+                        var ndx = (byte)(mword._wordBytes[i] - LetterA);
                         if (encryptedByteDist.ContainsKey(ndx))
                         {
                             encryptedByteDist[ndx]++;
@@ -572,13 +574,30 @@ namespace DictionaryLib
             {
                 LogMessage($"ByteDist {kvp.Key,2} {Convert.ToChar(kvp.Key + LetterA)} {kvp.Value}");
             }
-            byte[] cryptKey = new byte[26];
+            //" acdegilmnorstu",
+            //" bfhjkpqvwxzy", 
+            var ltrfreg = "etaonscdgilmrubfhjkpqvwxzy"; // guesstimate
+            byte[] cipher = new byte[26]; // cipher[0] = 'r' means 'r' in the cryptogram is an 'a', cipher[1] = 'z' means 'z' in the crypt is a 'b', ...
+            for (int i = 0; i < cipher.Length; i++)
+            {
+                cipher[i] = (byte)qmarkChar;
+            }
+            var done = false;
+            while (!done)
+            {
+                foreach (var kvp in encryptedByteDist.OrderByDescending(p => p.Value))
+                {
+                    LogMessage($"ByteDist {kvp.Key,2} {Convert.ToChar(kvp.Key + LetterA)} {kvp.Value}");
+                    cipher[0] = (byte)(kvp.Key + LetterA);
+                }
+
+            }
             // don't want to use regex: too general and too many conversions from byte to string
             // so we'll use MyWord, and replace unknown letters with a marker Qmark.
             var lstQMarkWords = new List<MyWord>();
-            foreach (var encryptedWrd in lstEncryptedWords.Where(m => m.WordLength > 3))
+            foreach (var encryptedWrd in lstEncryptedWords)
             {
-                var m = new MyWord(encryptedWrd.WordLength);
+                var m = new MyWord();
                 for (int i = 0; i < encryptedWrd.WordLength; i++)
                 {
                     var chr = encryptedWrd._wordBytes[i];
@@ -619,10 +638,17 @@ namespace DictionaryLib
             var done = false;
             while (!done)
             {
-                var tryWord = GetNextWord(WordStop: wordStop);
+                var tryWord = GetNextWord(WordStop: null);
                 if (tryWord == null)
                 {
                     break;
+                }
+                if (wordStop != null)
+                {
+                    if (tryWord.CompareTo(wordStop) > 0)
+                    {
+                        break;
+                    }
                 }
                 if (tryWord.WordLength == mword.WordLength)
                 {
@@ -649,20 +675,6 @@ namespace DictionaryLib
                         }
                     }
                 }
-                switch (ndxFirstrQmark)
-                {
-                    case -1: // noqmark
-                        break;
-                    case 0:
-                        break;
-                    default:
-                        var cmpResult = mword.GetWord(DesiredLength: ndxFirstrQmark).CompareTo(tryWord.GetWord());
-                        if (cmpResult < 0)
-                        {
-                            done = true;
-                        }
-                        break;
-                }
             }
         }
         MyWord CalculateStopAtWord(MyWord mword, int LenToUse)
@@ -673,17 +685,22 @@ namespace DictionaryLib
                 case 0:
                     break;
                 case 1:
-                    if (mword._wordBytes[0] != 'z')
+                    if (mword._wordBytes[0] != LetterZ)
                     {
-                        result = new MyWord(1);
+                        result = new MyWord();
                         result._wordBytes[0] = (byte)(mword._wordBytes[0] + 1);
+                        result.SetLength(1);
                     }
                     break;
-                default:
-                    result = new MyWord(2);
-                    if (mword._wordBytes[1] == 'z')
+                case 2:
+                    result = new MyWord();
+                    if (mword._wordBytes[1] == LetterZ)
                     {
-                        if (mword._wordBytes[0] != 'z')
+                        if (mword._wordBytes[0] == LetterZ)
+                        {
+                            result = null; // both 'z', go to end of dict
+                        }
+                        else
                         {
                             result._wordBytes[0] = (byte)(mword._wordBytes[1] + 1);
                             result._wordBytes[1] = LetterA;
@@ -694,6 +711,31 @@ namespace DictionaryLib
                         result._wordBytes[0] = mword._wordBytes[0];
                         result._wordBytes[1] = (byte)(mword._wordBytes[1] + 1);
                     }
+                    result._wordBytes[2] = LetterA;
+                    result.SetLength(3);
+                    break;
+                default:
+                    result = new MyWord();
+                    if (mword._wordBytes[2] == LetterZ)
+                    {
+                        if (mword._wordBytes[1] == LetterZ)
+                        {
+                            result = null; // at least 2 'z', go to end of dict
+                        }
+                        else
+                        {
+                            result._wordBytes[0] = (byte)(mword._wordBytes[1] + 1);
+                            result._wordBytes[1] = LetterA;
+                            result._wordBytes[2] = LetterA;
+                        }
+                    }
+                    else
+                    {
+                        result._wordBytes[0] = mword._wordBytes[0];
+                        result._wordBytes[1] = mword._wordBytes[1];
+                        result._wordBytes[2] = (byte)(mword._wordBytes[2] + 1);
+                    }
+                    result.SetLength(3);
                     break;
 
             }
@@ -710,20 +752,12 @@ namespace DictionaryLib
     internal class MyWord : IComparable
     {
         public static MyWord Empty;
-        readonly int maxWordLen = 30;
-        internal byte[] _wordBytes;
+        internal byte[] _wordBytes = new byte[DictionaryLib.MaxWordLen];
         int _currentLength;
-
-        MyWord()
+        public MyWord()
         {
-            this._wordBytes = new byte[maxWordLen];
-            _currentLength = 0;
-        }
-        public MyWord(int maxWordLen) : this()
-        {
-            this.maxWordLen = maxWordLen;
-        }
 
+        }
         public MyWord(string word) : this()
         {
             SetWord(word);
