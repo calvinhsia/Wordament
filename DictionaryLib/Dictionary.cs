@@ -31,7 +31,7 @@ namespace DictionaryLib
         public const byte LetterZ = 97 + 26 - 1; // 'a'
         public const int NumLetters = 26; // # letters in alphabet
         public const int MaxWordLen = 30; // longest word in any dictionaryy
-        public const char qmarkChar = '_';// + 1 - LetterA;
+        public const byte qmarkChar = (byte)'_';// + 1 - LetterA;
 
         internal DictHeader _dictHeader;
         internal int _dictHeaderSize;
@@ -580,65 +580,85 @@ namespace DictionaryLib
                 .ToArray();
 
             var strEncLets = new string(lstEncLets); //encrypt "rlqxydtbgineachjpufz" order of freq
-            //" acdegilmnorstu",
-            //" bfhjkpqvwxzy", 
-            var strLtrfreq = "etaonscdgilmrubfhjkpqvwxzy"; // guesstimate
-            byte[] cipher = new byte[26]; // cipher[22] = 'a' means 'r' in the cryptogram is an 'a', cipher[25] = 'b' means 'z' in the crypt is a 'b', ...
-
+            var strLtrfreq = "etaonscdgilmrubfhjkpqvwxzy"; // guesstimate " acdegilmnorstu"," bfhjkpqvwxzy", 
+            var cipher = new byte[26]; // cipher[22] = 'a' means 'r' in the cryptogram is an 'a', cipher[25] = 'b' means 'z' in the crypt is a 'b', ...
+            // alternative: look at e.g. 2 letter words, try "to","in", etc.
             var done = false;
             while (!done)
             {
-                // we now know that e.g. "R" is the most common letter in cryptogram, and "e" is a common english letter, so we 
-                // want to try substituing "R" with "e" and see if there are a high number of hits.
+                // we now know that e.g. "r" is the most common letter in cryptogram, and "e" is a common english letter, so we 
+                // want to try substituing "r" with "e" and see if there are a high number of hits.
                 for (int i = 0; i < cipher.Length; i++)
                 {
-                    cipher[i] = (byte)qmarkChar;
+                    cipher[i] = qmarkChar;
                 }
                 // for each encrypted letter by most freq to least freq
                 var tryWord = new MyWord();
-                for (int indxLtrFreq = 0; indxLtrFreq < strEncLets.Length; indxLtrFreq++) // 26 ltrs in alphabet, but only some are in cipher
+                for (int indxLtrFreq = 0; indxLtrFreq < strEncLets.Length; indxLtrFreq++) // 26 ltrs in alphabet, but <=26 are in cipher
                 {
                     // each time thru loop we guess an additional char in cipher
-                    cipher[strEncLets[indxLtrFreq] - LetterA] = (byte)strLtrfreq[indxLtrFreq];
-//                    cipher[strLtrfreq[indxLtrFreq] - LetterA] = (byte)strEncLets[indxLtrFreq];
-                    // now let's try the cipher and see how many successes
-                    int numWordsWithMatches = 0;
-                    foreach (var encWrd in lstEncryptedWords)
+                    var ndxCipher = strEncLets[indxLtrFreq] - LetterA;
+                    var singleLetterGood = false;
+                    var sind = 0;
+                    while (!singleLetterGood && indxLtrFreq+sind<strLtrfreq.Length)
                     {
-                        tryWord.SetLength(encWrd.WordLength);
-                        int nQMarks = 0;
-                        for (int i = 0; i < encWrd.WordLength; i++)
+                        cipher[ndxCipher] = (byte)strLtrfreq[indxLtrFreq + sind++];
+                        if (TryCipher())
                         {
-                            var plaintextLtr = cipher[encWrd._wordBytes[i] - LetterA];
-                            if (plaintextLtr == qmarkChar)
+                            singleLetterGood = true;
+                            if (indxLtrFreq == strEncLets.Length - 1)
                             {
-                                nQMarks++;
+                                LogMessage($"Done ");
                             }
-                            tryWord._wordBytes[i] = plaintextLtr;
-                        }
-                        if (nQMarks != encWrd.WordLength) // if it's not all qmarks
-                        {
-                            FindQMarkMatches(tryWord, (mw) =>
-                             {
-                                 numWordsWithMatches++;
-                                 LogMessage($"GotQM {encWrd}  {tryWord} {mw}");
-                                 return false; // we only want the 1st match: then abort looking
-                             });
                         }
                         else
                         {
-                            numWordsWithMatches++;// if it's all qmarks (e.g. 5 qmarks), then there is a match (there is at least 1 5 letter word in the dict)
+                            cipher[ndxCipher] = qmarkChar; // revert the try 
+                            if (indxLtrFreq == strEncLets.Length - 1)
+                            {
+                                break;
+                            }
                         }
                     }
-                    if (numWordsWithMatches >.8* lstEncryptedWords.Count) // >80% match rate
+                    bool TryCipher()
                     {
-
-                        
-                    }
-                    else
-                    { // no luck with this letter, try a different one
-                        // we 
-                        // 
+                        int numWordsWithMatches = 0;
+                        // now let's try the cipher and see how many successes
+                        foreach (var encWrd in lstEncryptedWords)
+                        {
+                            tryWord.SetLength(encWrd.WordLength);
+                            int nQMarks = 0;
+                            for (int i = 0; i < encWrd.WordLength; i++)
+                            {
+                                var plaintextLtr = cipher[encWrd._wordBytes[i] - LetterA];
+                                if (plaintextLtr == qmarkChar)
+                                {
+                                    nQMarks++;
+                                }
+                                tryWord._wordBytes[i] = plaintextLtr;
+                            }
+                            if (nQMarks != encWrd.WordLength) // if it's not all qmarks
+                            {
+                                FindQMarkMatches(tryWord, (mw) =>
+                                {
+                                    numWordsWithMatches++;
+                                    LogMessage($"GotQM {encWrd}  {tryWord} {mw}");
+                                    return false; // we only want the 1st match: then abort looking
+                                });
+                            }
+                            else
+                            {
+                                numWordsWithMatches++;// if it's all qmarks (e.g. 5 qmarks), then there is a match (there is at least 1 5 letter word in the dict)
+                            }
+                        }
+                        if (numWordsWithMatches > .8 * lstEncryptedWords.Count) // >80% match rate
+                        {
+                            return true;
+                        }
+                        else
+                        { // no luck with this letter, try a different one
+                            return false;
+                        }
                     }
                 }
                 done = true;

@@ -652,6 +652,35 @@ namespace WordamentTests
         }
 
         [TestMethod]
+        public void TestPermutation()
+        {
+            var myWord = new MyWord("abcd");
+            void DoPermutation(int nLevel)
+            {
+                if (nLevel < myWord.WordLength)
+                {
+                    for (int i = nLevel; i < myWord.WordLength; i++)
+                    {
+                        byte tmp = myWord._wordBytes[i]; // swap nlevel and i. These will be equal 1st time through for identity permutation
+                        var swapNdx = myWord.WordLength - 1 - nLevel;
+                        myWord._wordBytes[i] = myWord._wordBytes[swapNdx];
+                        myWord._wordBytes[swapNdx] = tmp;
+                        DoPermutation(nLevel + 1);
+                        // restore swap
+                        myWord._wordBytes[swapNdx] = myWord._wordBytes[i];
+                        myWord._wordBytes[i] = tmp;
+                    }
+                }
+                else
+                {
+                    LogMessage($"Got Perm {myWord}");
+                }
+
+            }
+            DoPermutation(0);
+        }
+
+        [TestMethod]
         public void TestCryptFindQMarkMatch()
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
