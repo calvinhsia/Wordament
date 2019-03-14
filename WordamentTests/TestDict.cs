@@ -659,9 +659,9 @@ namespace WordamentTests
             {
                 ["__"] = new Tuple<int, int>(53870, 241),
                 ["____i_i__"] = new Tuple<int, int>(53870, 266),
-                ["c_n___ion"] = new Tuple<int, int>(5153, 3), //confusion, contagion
+                ["c_n___ion"] = new Tuple<int, int>(5115, 3), //confusion, contagion
                 ["_ondition"] = new Tuple<int, int>(53870, 1),
-                ["c_ndition"] = new Tuple<int, int>(5153, 1),
+                ["c_ndition"] = new Tuple<int, int>(5115, 1),
                 ["conditio_"] = new Tuple<int, int>(905, 1),
                 ["con______"] = new Tuple<int, int>(905, 140),
                 ["condition"] = new Tuple<int, int>(905, 1),

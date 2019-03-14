@@ -321,9 +321,9 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                 End Sub
             AddHandler _gridUni.MouseMove,
                     Sub(o, ev)
-                        'If System.Windows.Input.Mouse.LeftButton = MouseButtonState.Pressed Then
-
-                        'End If
+                        If Not System.Windows.Input.Mouse.LeftButton = MouseButtonState.Pressed Then
+                            IsMouseDown = False
+                        End If
                         '                                                      AddStatusMsg($"mm {IsMouseDown} {fdidFinish}")
                         If IsMouseDown AndAlso Not fdidFinish Then
                             Dim ltrTile = funcGetTileUnderMouse(ev)

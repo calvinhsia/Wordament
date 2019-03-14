@@ -630,12 +630,14 @@ namespace DictionaryLib
                             numWordsWithMatches++;// if it's all qmarks (e.g. 5 qmarks), then there is a match (there is at least 1 5 letter word in the dict)
                         }
                     }
-                    if (numWordsWithMatches == lstEncryptedWords.Count)
+                    if (numWordsWithMatches >.8* lstEncryptedWords.Count) // >80% match rate
                     {
-                        // every word had a success
+
+                        
                     }
                     else
-                    {
+                    { // no luck with this letter, try a different one
+                        // we 
                         // 
                     }
                 }
