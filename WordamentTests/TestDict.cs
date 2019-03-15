@@ -16,6 +16,10 @@ namespace WordamentTests
         public TestContext TestContext { get; set; }
         public void LogMessage(string msg)
         {
+            if (Debugger.IsAttached)
+            {
+                System.Diagnostics.Debug.WriteLine(msg);
+            }
             TestContext.WriteLine(msg);
         }
 
@@ -643,6 +647,22 @@ namespace WordamentTests
         }
 
         [TestMethod]
+        public void TestStr()
+        {
+var strInput=
+@"  fc0000   fc1000     1000 MEM_IMAGE   MEM_COMMIT  PAGE_READONLY                      Image      [devenv; ""C:\Program Files(x86)\Microsoft Visual Studio\2019\Professional\Common7\IDE\devenv.exe""]
+    fc1000  1026000    65000 MEM_IMAGE MEM_COMMIT  PAGE_EXECUTE_READ Image[devenv; ""C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\Common7\IDE\devenv.exe""]
+";
+
+            var lineParts = strInput.Split(" \t".ToArray(), StringSplitOptions.RemoveEmptyEntries);
+            foreach (var lin in lineParts)
+            {
+                LogMessage($"got {lin.Trim()}");
+            }
+        }
+
+
+    [TestMethod]
         public void TestCryptogram()
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
@@ -654,30 +674,24 @@ namespace WordamentTests
         [TestMethod]
         public void TestPermutation()
         {
-            var myWord = new MyWord("abcd");
-            void DoPermutation(int nLevel)
+            var txtToUse = "abcdefghijklmnop";
+            txtToUse = "abcdefghi";
+            int nTimes = 0;
+            bool ActGotResult(string res)
             {
-                if (nLevel < myWord.WordLength)
+                LogMessage($" {res}");
+                if (++nTimes > 362880) // n! = permute 1st n letters of a long string. 40320 = 8!, 362880=9!= < .3 secs
                 {
-                    for (int i = nLevel; i < myWord.WordLength; i++)
-                    {
-                        byte tmp = myWord._wordBytes[i]; // swap nlevel and i. These will be equal 1st time through for identity permutation
-                        var swapNdx = myWord.WordLength - 1 - nLevel;
-                        myWord._wordBytes[i] = myWord._wordBytes[swapNdx];
-                        myWord._wordBytes[swapNdx] = tmp;
-                        DoPermutation(nLevel + 1);
-                        // restore swap
-                        myWord._wordBytes[swapNdx] = myWord._wordBytes[i];
-                        myWord._wordBytes[i] = tmp;
-                    }
+                    return false;
                 }
-                else
-                {
-                    LogMessage($"Got Perm {myWord}");
-                }
-
+                return true;
             }
-            DoPermutation(0);
+            nTimes = 0;
+            LogMessage($"RightToLeft:");
+            DictionaryLib.DictionaryLib.PermuteString(txtToUse, LeftToRight: false, act: ActGotResult);
+            nTimes = 0;
+            LogMessage($"LeftToRight:");
+            DictionaryLib.DictionaryLib.PermuteString(txtToUse, LeftToRight: true, act: ActGotResult);
         }
 
         [TestMethod]

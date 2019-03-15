@@ -535,6 +535,11 @@ namespace DictionaryLib
         }
 
         //JGLQIN XR QYL DBYXLPLULTQ GE QYL RNTQYLRXR GE YNDBXTQYR DTA CXRBHXQR.  BDIF RDTACHIZ
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="strCryptogram">Upper Case</param>
+        /// <returns></returns>
         public string CryptoGram(string strCryptogram)
         {
             var result = string.Empty;
@@ -543,7 +548,7 @@ namespace DictionaryLib
             var lstEncryptedWords = new List<MyWord>();
             var encryptedByteDist = new Dictionary<byte, int>(); // ltr=0-25, cnt
             var maxWordLen = 0;
-            foreach (var wrd in encryptedWords)
+            foreach (var wrd in encryptedWords) //include dupe crypt words for freq distribution calc
             {
                 var cleanWrd = new string(wrd.Where(c => char.IsLetter(c)).ToArray()); // remove punctuation
                 if (!string.IsNullOrEmpty(cleanWrd))
@@ -568,8 +573,9 @@ namespace DictionaryLib
                     }
                 }
             }
-            lstEncryptedWords = lstEncryptedWords.OrderByDescending(w => w.WordLength).Distinct().ToList();
-            lstEncryptedWords.ForEach(s => LogMessage($"Got {s}"));
+            lstEncryptedWords = lstEncryptedWords.OrderByDescending(w => w.WordLength).Distinct().ToList(); // exclude crypt words to reduce work
+
+            lstEncryptedWords.ForEach(s => LogMessage($"Got CryptWord {s}"));
             foreach (var kvp in encryptedByteDist.OrderByDescending(p => p.Value))
             {
                 LogMessage($"ByteDist {kvp.Key,2} {Convert.ToChar(kvp.Key + LetterA)} {kvp.Value}");
@@ -583,100 +589,180 @@ namespace DictionaryLib
             var strLtrfreq = "etaonscdgilmrubfhjkpqvwxzy"; // guesstimate " acdegilmnorstu"," bfhjkpqvwxzy", 
             var cipher = new byte[26]; // cipher[22] = 'a' means 'r' in the cryptogram is an 'a', cipher[25] = 'b' means 'z' in the crypt is a 'b', ...
             // alternative: look at e.g. 2 letter words, try "to","in", etc.
-            var done = false;
-            while (!done)
-            {
-                // we now know that e.g. "r" is the most common letter in cryptogram, and "e" is a common english letter, so we 
-                // want to try substituing "r" with "e" and see if there are a high number of hits.
-                for (int i = 0; i < cipher.Length; i++)
-                {
-                    cipher[i] = qmarkChar;
-                }
-                // for each encrypted letter by most freq to least freq
-                var tryWord = new MyWord();
-                for (int indxLtrFreq = 0; indxLtrFreq < strEncLets.Length; indxLtrFreq++) // 26 ltrs in alphabet, but <=26 are in cipher
-                {
-                    // each time thru loop we guess an additional char in cipher
-                    var ndxCipher = strEncLets[indxLtrFreq] - LetterA;
-                    var singleLetterGood = false;
-                    var sind = 0;
-                    while (!singleLetterGood && indxLtrFreq+sind<strLtrfreq.Length)
-                    {
-                        cipher[ndxCipher] = (byte)strLtrfreq[indxLtrFreq + sind++];
-                        if (TryCipher())
-                        {
-                            singleLetterGood = true;
-                            if (indxLtrFreq == strEncLets.Length - 1)
-                            {
-                                LogMessage($"Done ");
-                            }
-                        }
-                        else
-                        {
-                            cipher[ndxCipher] = qmarkChar; // revert the try 
-                            if (indxLtrFreq == strEncLets.Length - 1)
-                            {
-                                break;
-                            }
-                        }
-                    }
-                    bool TryCipher()
-                    {
-                        int numWordsWithMatches = 0;
-                        // now let's try the cipher and see how many successes
-                        foreach (var encWrd in lstEncryptedWords)
-                        {
-                            tryWord.SetLength(encWrd.WordLength);
-                            int nQMarks = 0;
-                            for (int i = 0; i < encWrd.WordLength; i++)
-                            {
-                                var plaintextLtr = cipher[encWrd._wordBytes[i] - LetterA];
-                                if (plaintextLtr == qmarkChar)
-                                {
-                                    nQMarks++;
-                                }
-                                tryWord._wordBytes[i] = plaintextLtr;
-                            }
-                            if (nQMarks != encWrd.WordLength) // if it's not all qmarks
-                            {
-                                FindQMarkMatches(tryWord, (mw) =>
-                                {
-                                    numWordsWithMatches++;
-                                    LogMessage($"GotQM {encWrd}  {tryWord} {mw}");
-                                    return false; // we only want the 1st match: then abort looking
-                                });
-                            }
-                            else
-                            {
-                                numWordsWithMatches++;// if it's all qmarks (e.g. 5 qmarks), then there is a match (there is at least 1 5 letter word in the dict)
-                            }
-                        }
-                        if (numWordsWithMatches > .8 * lstEncryptedWords.Count) // >80% match rate
-                        {
-                            return true;
-                        }
-                        else
-                        { // no luck with this letter, try a different one
-                            return false;
-                        }
-                    }
-                }
-                done = true;
-            }
-            // don't want to use regex: too general and too many conversions from byte to string
-            // so we'll use MyWord, and replace unknown letters with a marker Qmark.
-            var lstQMarkWords = new List<MyWord>();
-            foreach (var encryptedWrd in lstEncryptedWords)
-            {
-                var m = new MyWord();
-                for (int i = 0; i < encryptedWrd.WordLength; i++)
-                {
-                    var chr = encryptedWrd._wordBytes[i];
-                    m.AddByte(chr);
-                }
-            }
+            int nTimes = 0;
+            var GotAnswer = false;
+            // we'll permute the string of freq letters (etaons, teaons, etc) from LeftToRight
+            PermuteString(strLtrfreq, LeftToRight: true, act: (strLtrFreqPerm) =>
+               {
+                   LogMessage($"Trying Perm #{nTimes,4} {strLtrFreqPerm}");
+                   var doneThisPermutation = false;
+                   while (!doneThisPermutation)
+                   {
+                       // we now know that e.g. "r" is the most common letter in cryptogram, and "e" is a common english letter, so we 
+                       // want to try substituing "r" with "e" and see if there are a high number of hits.
+                       for (int i = 0; i < cipher.Length; i++)
+                       {
+                           cipher[i] = qmarkChar;
+                       }
+                       // for each encrypted letter by most freq to least freq
+                       var tryWord = new MyWord();
+                       for (int indxLtrFreq = 0; indxLtrFreq < strEncLets.Length; indxLtrFreq++) // 26 ltrs in alphabet, but <=26 are in cipher
+                       {
+                           // each time thru loop we guess an additional char in cipher
+                           var ndxCipher = strEncLets[indxLtrFreq] - LetterA;
+                           var singleLetterGood = false;
+                           var sind = 0;
+                           while (!singleLetterGood && indxLtrFreq + sind < strLtrfreq.Length)
+                           {
+                               cipher[ndxCipher] = (byte)strLtrFreqPerm[indxLtrFreq + sind++];
+                               if (TryCipher())
+                               {
+                                   singleLetterGood = true;
+                                   if (indxLtrFreq == strEncLets.Length - 1)
+                                   {
+                                       LogMessage($"GotAnswer ");
+                                       GotAnswer = true;
+                                       var str = string.Empty;
+                                       foreach (var chr in strCryptogram.ToLower())
+                                       {
+                                           var theChar = chr;
+                                           var ndx = strLtrFreqPerm.IndexOf(chr);
+                                           if (ndx>=0)
+                                           {
+                                               theChar = (char)cipher[ndx];
+                                           }
+                                           str += theChar;
+                                       }
+                                       doneThisPermutation = true;
+                                   }
+                               }
+                               else
+                               {
+                                   cipher[ndxCipher] = qmarkChar; // revert the try 
+                                   if (indxLtrFreq == strEncLets.Length - 1)
+                                   {
+                                       LogMessage($"Rejecting perm # {nTimes} {indxLtrFreq}");
+                                       doneThisPermutation = true;
+                                       break;
+                                   }
+                               }
+                           }
+                           bool TryCipher()
+                           {
+                               int numWordsWithMatches = 0;
+                               // now let's try the cipher and see how many successes
+                               foreach (var encWrd in lstEncryptedWords)
+                               {
+                                   tryWord.SetLength(encWrd.WordLength);
+                                   int nQMarks = 0;
+                                   for (int i = 0; i < encWrd.WordLength; i++)
+                                   {
+                                       var plaintextLtr = cipher[encWrd._wordBytes[i] - LetterA];
+                                       if (plaintextLtr == qmarkChar)
+                                       {
+                                           nQMarks++;
+                                       }
+                                       tryWord._wordBytes[i] = plaintextLtr;
+                                   }
+                                   if (nQMarks != encWrd.WordLength) // if it's not all qmarks
+                                   {
+                                       FindQMarkMatches(tryWord, (mw) =>
+                                       {
+                                           numWordsWithMatches++;
+                                           //                                           LogMessage($"GotQM {encWrd}  {tryWord} {mw}");
+                                           return false; // we only want the 1st match: then abort looking
+                                       });
+                                   }
+                                   else
+                                   {
+                                       numWordsWithMatches++;// if it's all qmarks (e.g. 5 qmarks), then there is a match (there is at least 1 5 letter word in the dict)
+                                   }
+                               }
+                               if (numWordsWithMatches > .8 * lstEncryptedWords.Count) // >80% match rate
+                               {
+                                   return true;
+                               }
+                               else
+                               { // no luck with this letter, try a different one
+                                   return false;
+                               }
+                           }
+                       }
+                   }
+
+                   return GotAnswer ? false : (++nTimes <= 40320); // abort after too many (7! = 5040, 8!= 40320, 9! = 362880
+               });
+
+            //// don't want to use regex: too general and too many conversions from byte to string
+            //// so we'll use MyWord, and replace unknown letters with a marker Qmark.
+            //var lstQMarkWords = new List<MyWord>();
+            //foreach (var encryptedWrd in lstEncryptedWords)
+            //{
+            //    var m = new MyWord();
+            //    for (int i = 0; i < encryptedWrd.WordLength; i++)
+            //    {
+            //        var chr = encryptedWrd._wordBytes[i];
+            //        m.AddByte(chr);
+            //    }
+            //}
             return result;
         }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="inputString"></param>
+        /// <param name="LeftToRight">the left part of the string changes the fastest</param>
+        /// <param name="act">the action to execute on each permutation. Return false to abort</param>
+        public static void PermuteString(string inputString, bool LeftToRight, Func<string, bool> act)
+        {
+            var myWord = new MyWord(inputString);
+            bool fAbort = false;
+            DoPermutation(0);
+            void DoPermutation(int nLevel)
+            {
+                if (fAbort)
+                {
+                    return;
+                }
+                if (nLevel < myWord.WordLength)
+                {
+                    if (!LeftToRight)
+                    {
+                        for (int i = nLevel; i < myWord.WordLength && !fAbort; i++)
+                        {
+                            byte tmp = myWord._wordBytes[i]; // swap nlevel and i. These will be equal 1st time through for identity permutation
+                            var swapNdx = nLevel;
+                            myWord._wordBytes[i] = myWord._wordBytes[swapNdx];
+                            myWord._wordBytes[swapNdx] = tmp;
+                            DoPermutation(nLevel + 1);
+                            // restore swap
+                            myWord._wordBytes[swapNdx] = myWord._wordBytes[i];
+                            myWord._wordBytes[i] = tmp;
+                        }
+                    }
+                    else
+                    {
+                        //                        for (int i = nLevel; i < myWord.WordLength; i++)
+                        for (int i = myWord.WordLength - 1 - nLevel; i >= 0 && !fAbort; i--)
+                        {
+                            byte tmp = myWord._wordBytes[i];
+                            var swapNdx = myWord.WordLength - 1 - nLevel;
+                            myWord._wordBytes[i] = myWord._wordBytes[swapNdx];
+                            myWord._wordBytes[swapNdx] = tmp;
+                            DoPermutation(nLevel + 1);
+                            // restore swap
+                            myWord._wordBytes[swapNdx] = myWord._wordBytes[i];
+                            myWord._wordBytes[i] = tmp;
+                        }
+                    }
+                }
+                else
+                {
+                    fAbort = !act(myWord.GetWord());
+                }
+            }
+        }
+
 
         /// <summary>
         /// Given a word with embedded QMarks, find a match
@@ -916,6 +1002,18 @@ namespace DictionaryLib
                 throw new InvalidOperationException();
             }
             return retval;
+        }
+        public override int GetHashCode()
+        {
+            return ToString().GetHashCode();
+        }
+        public override bool Equals(object obj)
+        {
+            if (obj is MyWord myWord)
+            {
+                return this.CompareTo(myWord) == 0;
+            }
+            throw new NotImplementedException();
         }
 
         public override string ToString()
