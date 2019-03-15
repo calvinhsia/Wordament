@@ -587,7 +587,7 @@ namespace DictionaryLib
 
             var strEncLets = new string(lstEncLets); //encrypt "rlqxydtbgineachjpufz" order of freq
             var strLtrfreq = "etaonscdgilmrubfhjkpqvwxzy"; // guesstimate " acdegilmnorstu"," bfhjkpqvwxzy", 
-            var cipher = new byte[26]; // cipher[22] = 'a' means 'r' in the cryptogram is an 'a', cipher[25] = 'b' means 'z' in the crypt is a 'b', ...
+            var cipher = new Cipher(); 
             // alternative: look at e.g. 2 letter words, try "to","in", etc.
             int nTimes = 0;
             var GotAnswer = false;
@@ -600,11 +600,8 @@ namespace DictionaryLib
                    {
                        // we now know that e.g. "r" is the most common letter in cryptogram, and "e" is a common english letter, so we 
                        // want to try substituing "r" with "e" and see if there are a high number of hits.
-                       for (int i = 0; i < cipher.Length; i++)
-                       {
-                           cipher[i] = qmarkChar;
-                       }
                        // for each encrypted letter by most freq to least freq
+                       cipher.Init();
                        var tryWord = new MyWord();
                        for (int indxLtrFreq = 0; indxLtrFreq < strEncLets.Length; indxLtrFreq++) // 26 ltrs in alphabet, but <=26 are in cipher
                        {
@@ -620,19 +617,19 @@ namespace DictionaryLib
                                    singleLetterGood = true;
                                    if (indxLtrFreq == strEncLets.Length - 1)
                                    {
-                                       LogMessage($"GotAnswer ");
                                        GotAnswer = true;
                                        var str = string.Empty;
                                        foreach (var chr in strCryptogram.ToLower())
                                        {
                                            var theChar = chr;
                                            var ndx = strLtrFreqPerm.IndexOf(chr);
-                                           if (ndx>=0)
+                                           if (ndx >= 0)
                                            {
                                                theChar = (char)cipher[ndx];
                                            }
                                            str += theChar;
                                        }
+                                       LogMessage($"GotAnswer {str}");
                                        doneThisPermutation = true;
                                    }
                                }
@@ -707,6 +704,29 @@ namespace DictionaryLib
             //}
             return result;
         }
+
+        internal class Cipher
+        {// cipher[22] = 'a' means 'r' in the cryptogram is an 'a', cipher[25] = 'b' means 'z' in the crypt is a 'b', ...
+            public byte[] _bytes = new byte[26];
+            public void Init()
+            {
+                for (int i = 0; i < _bytes.Length; i++)
+                {
+                    _bytes[i] = qmarkChar;
+                }
+            }
+            public byte this[int key] { get { return this._bytes[key]; } set { this._bytes[key] = value; } }
+            public override string ToString()
+            {
+                var str = string.Empty;
+                for (int i = 0; i < _bytes.Length; i++)
+                {
+                    str += (char)_bytes[i];
+                }
+                return str;
+            }
+        }
+
         /// <summary>
         /// 
         /// </summary>
