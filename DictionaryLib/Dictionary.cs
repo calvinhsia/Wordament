@@ -156,14 +156,14 @@ namespace DictionaryLib
                 case 0:
                     throw new InvalidOperationException("word length 0?");
                 default:
-                    let0 = mword._wordBytes[0];
+                    let0 = mword[0];
                     if (mword.WordLength > 1)
                     {
-                        let1 = mword._wordBytes[1];
+                        let1 = mword[1];
                     }
                     if (mword.WordLength > 2)
                     {
-                        let2 = mword._wordBytes[2];
+                        let2 = mword[2];
                     }
                     break;
             }
@@ -386,17 +386,16 @@ namespace DictionaryLib
         public void FindAnagrams(string word, AnagramType anagramType, Func<string, bool> act)
         {
             MyWord myWord = new MyWord(word);
-            // sort bytes, with null at the end
-            myWord._wordBytes = myWord._wordBytes.OrderBy(b => b == '\0' ? 127 : b).ToArray();
+            myWord.SortBytes();
             //for (int i = 0; i < myWord.WordLength; i++)
             //{
             //    for (int j = 0; j < i; j++)
             //    {
-            //        if (myWord._wordBytes[i] < myWord._wordBytes[j])
+            //        if (myWord[i] < myWord[j])
             //        {
-            //            var tmp = myWord._wordBytes[i];
-            //            myWord._wordBytes[i] = myWord._wordBytes[j];
-            //            myWord._wordBytes[j] = tmp;
+            //            var tmp = myWord[i];
+            //            myWord[i] = myWord[j];
+            //            myWord[j] = tmp;
             //        }
             //    }
             //}
@@ -433,13 +432,13 @@ namespace DictionaryLib
                     }
                     for (int i = nLevel; i < myWord.WordLength && !isAborting; i++)
                     {
-                        byte tmp = myWord._wordBytes[i]; // swap nlevel and i. These will be equal 1st time through for identity permutation
-                        myWord._wordBytes[i] = myWord._wordBytes[nLevel];
-                        myWord._wordBytes[nLevel] = tmp;
+                        byte tmp = myWord[i]; // swap nlevel and i. These will be equal 1st time through for identity permutation
+                        myWord[i] = myWord[nLevel];
+                        myWord[nLevel] = tmp;
                         RecurFindAnagram(nLevel + 1);
                         // restore swap
-                        myWord._wordBytes[nLevel] = myWord._wordBytes[i];
-                        myWord._wordBytes[i] = tmp;
+                        myWord[nLevel] = myWord[i];
+                        myWord[i] = tmp;
                     }
                 }
                 else
@@ -561,7 +560,7 @@ namespace DictionaryLib
                     }
                     for (byte i = 0; i < mword.WordLength; i++)
                     {
-                        var ndx = (byte)(mword._wordBytes[i] - LetterA);
+                        var ndx = (byte)(mword[i] - LetterA);
                         if (encryptedByteDist.ContainsKey(ndx))
                         {
                             encryptedByteDist[ndx]++;
@@ -587,107 +586,86 @@ namespace DictionaryLib
 
             var strEncLets = new string(lstEncLets); //encrypt "rlqxydtbgineachjpufz" order of freq
             var strLtrfreq = "etaonscdgilmrubfhjkpqvwxzy"; // guesstimate " acdegilmnorstu"," bfhjkpqvwxzy", 
-            var cipher = new Cipher(); 
+            var cipher = new MyWord(); //init with 26 bytes
+            cipher.SetLength(26);
             // alternative: look at e.g. 2 letter words, try "to","in", etc.
             int nTimes = 0;
             var GotAnswer = false;
+            var tryWord = new MyWord();
             // we'll permute the string of freq letters (etaons, teaons, etc) from LeftToRight
             PermuteString(strLtrfreq, LeftToRight: true, act: (strLtrFreqPerm) =>
                {
-                   LogMessage($"Trying Perm #{nTimes,4} {strLtrFreqPerm}");
-                   var doneThisPermutation = false;
-                   while (!doneThisPermutation)
+//                   LogMessage($"Trying Perm #{nTimes,4} {strLtrFreqPerm}");
+//                   cipher.SetAllBytes(qmarkChar);
+                   for (int i = 0; i < strEncLets.Length; i++)
                    {
-                       // we now know that e.g. "r" is the most common letter in cryptogram, and "e" is a common english letter, so we 
-                       // want to try substituing "r" with "e" and see if there are a high number of hits.
-                       // for each encrypted letter by most freq to least freq
-                       cipher.Init();
-                       var tryWord = new MyWord();
-                       for (int indxLtrFreq = 0; indxLtrFreq < strEncLets.Length; indxLtrFreq++) // 26 ltrs in alphabet, but <=26 are in cipher
-                       {
-                           // each time thru loop we guess an additional char in cipher
-                           var ndxCipher = strEncLets[indxLtrFreq] - LetterA;
-                           var singleLetterGood = false;
-                           var sind = 0;
-                           while (!singleLetterGood && indxLtrFreq + sind < strLtrfreq.Length)
-                           {
-                               cipher[ndxCipher] = (byte)strLtrFreqPerm[indxLtrFreq + sind++];
-                               if (TryCipher())
-                               {
-                                   singleLetterGood = true;
-                                   if (indxLtrFreq == strEncLets.Length - 1)
-                                   {
-                                       GotAnswer = true;
-                                       var str = string.Empty;
-                                       foreach (var chr in strCryptogram.ToLower())
-                                       {
-                                           var theChar = chr;
-                                           var ndx = strLtrFreqPerm.IndexOf(chr);
-                                           if (ndx >= 0)
-                                           {
-                                               theChar = (char)cipher[ndx];
-                                           }
-                                           str += theChar;
-                                       }
-                                       LogMessage($"GotAnswer {str}");
-                                       doneThisPermutation = true;
-                                   }
-                               }
-                               else
-                               {
-                                   cipher[ndxCipher] = qmarkChar; // revert the try 
-                                   if (indxLtrFreq == strEncLets.Length - 1)
-                                   {
-                                       LogMessage($"Rejecting perm # {nTimes} {indxLtrFreq}");
-                                       doneThisPermutation = true;
-                                       break;
-                                   }
-                               }
-                           }
-                           bool TryCipher()
-                           {
-                               int numWordsWithMatches = 0;
-                               // now let's try the cipher and see how many successes
-                               foreach (var encWrd in lstEncryptedWords)
-                               {
-                                   tryWord.SetLength(encWrd.WordLength);
-                                   int nQMarks = 0;
-                                   for (int i = 0; i < encWrd.WordLength; i++)
-                                   {
-                                       var plaintextLtr = cipher[encWrd._wordBytes[i] - LetterA];
-                                       if (plaintextLtr == qmarkChar)
-                                       {
-                                           nQMarks++;
-                                       }
-                                       tryWord._wordBytes[i] = plaintextLtr;
-                                   }
-                                   if (nQMarks != encWrd.WordLength) // if it's not all qmarks
-                                   {
-                                       FindQMarkMatches(tryWord, (mw) =>
-                                       {
-                                           numWordsWithMatches++;
-                                           //                                           LogMessage($"GotQM {encWrd}  {tryWord} {mw}");
-                                           return false; // we only want the 1st match: then abort looking
-                                       });
-                                   }
-                                   else
-                                   {
-                                       numWordsWithMatches++;// if it's all qmarks (e.g. 5 qmarks), then there is a match (there is at least 1 5 letter word in the dict)
-                                   }
-                               }
-                               if (numWordsWithMatches > .8 * lstEncryptedWords.Count) // >80% match rate
-                               {
-                                   return true;
-                               }
-                               else
-                               { // no luck with this letter, try a different one
-                                   return false;
-                               }
-                           }
-                       }
+                       var ndxCipher = strEncLets[i] - LetterA;
+                       cipher[ndxCipher] = (byte)strLtrFreqPerm[i];
+                   }
+                   int numWordsWithMatches = TryCipher();
+                   if (numWordsWithMatches > .8 * lstEncryptedWords.Count) // >80% match rate. Todo adjust score with cryptwordlen
+                   {
+                       LogMessage($"GotAnswer {ApplyCipherToCryptogram()}");
+                       GotAnswer = true;
+                   }
+                   else
+                   {
+//                       LogMessage($"Reject cipher {ApplyCipherToCryptogram()}");
                    }
 
-                   return GotAnswer ? false : (++nTimes <= 40320); // abort after too many (7! = 5040, 8!= 40320, 9! = 362880
+
+                   //var doneThisPermutation = false;
+                   //var numCipherCharsSuccessful = 0;
+                   //while (!doneThisPermutation)
+                   //{
+                   //    // we now know that e.g. "r" is the most common letter in cryptogram, and "e" is a common english letter, so we 
+                   //    // want to try substituing "r" with "e" and see if there are a high number of hits.
+                   //    // for each encrypted letter by most freq to least freq
+                   //    cipher.SetAllBytes(qmarkChar);
+                   //    for (int indxLtrFreq = 0; indxLtrFreq < strEncLets.Length; indxLtrFreq++) // 26 ltrs in alphabet, but <=26 are in cipher
+                   //    {
+                   //        // each time thru loop we guess an additional char in cipher
+                   //        var ndxCipher = strEncLets[indxLtrFreq] - LetterA;
+                   //        var singleLetterGood = false;
+                   //        while (!singleLetterGood && indxLtrFreq < strLtrfreq.Length)
+                   //        {
+                   //            cipher[ndxCipher] = (byte)strLtrFreqPerm[indxLtrFreq];
+                   //            if (TryCipher())
+                   //            {
+                   //                singleLetterGood = true;
+                   //                numCipherCharsSuccessful++;
+                   //                if (indxLtrFreq == strEncLets.Length - 1)
+                   //                {
+                   //                    GotAnswer = true;
+                   //                    var str = string.Empty;
+                   //                    foreach (var chr in strCryptogram.ToLower())
+                   //                    {
+                   //                        var theChar = chr;
+                   //                        var ndx = strLtrFreqPerm.IndexOf(chr);
+                   //                        if (ndx >= 0)
+                   //                        {
+                   //                            theChar = (char)cipher[ndx];
+                   //                        }
+                   //                        str += theChar;
+                   //                    }
+                   //                    LogMessage($"GotAnswer {str}");
+                   //                    doneThisPermutation = true;
+                   //                }
+                   //            }
+                   //            else
+                   //            {
+                   //                LogMessage($"Rejecting perm # {nTimes} {indxLtrFreq}");
+                   //                doneThisPermutation = true;
+                   //                break;
+                   //                //cipher[ndxCipher] = qmarkChar; // revert the try 
+                   //                //if (indxLtrFreq == strEncLets.Length - 1)
+                   //                //{
+                   //                //}
+                   //            }
+                   //        }
+                   //    }
+                   //}
+                   return GotAnswer ? false : (++nTimes <= 114000320); // abort after too many (7! = 5040, 8!= 40320, 9! = 362880
                });
 
             //// don't want to use regex: too general and too many conversions from byte to string
@@ -698,32 +676,68 @@ namespace DictionaryLib
             //    var m = new MyWord();
             //    for (int i = 0; i < encryptedWrd.WordLength; i++)
             //    {
-            //        var chr = encryptedWrd._wordBytes[i];
+            //        var chr = encryptedWrd[i];
             //        m.AddByte(chr);
             //    }
             //}
             return result;
-        }
-
-        internal class Cipher
-        {// cipher[22] = 'a' means 'r' in the cryptogram is an 'a', cipher[25] = 'b' means 'z' in the crypt is a 'b', ...
-            public byte[] _bytes = new byte[26];
-            public void Init()
-            {
-                for (int i = 0; i < _bytes.Length; i++)
-                {
-                    _bytes[i] = qmarkChar;
-                }
-            }
-            public byte this[int key] { get { return this._bytes[key]; } set { this._bytes[key] = value; } }
-            public override string ToString()
+            string ApplyCipherToCryptogram()
             {
                 var str = string.Empty;
-                for (int i = 0; i < _bytes.Length; i++)
+                foreach (var chr in strCryptogram.ToLower())
                 {
-                    str += (char)_bytes[i];
+                    var theEncChar = chr;
+                    if (char.IsLetter(theEncChar))
+                    {
+                        var plaintextChar = cipher[theEncChar - LetterA];
+                        str += (char)plaintextChar;
+                    }
+                    else
+                    {
+                        str += theEncChar;
+                    }
+                    //var ndx = strLtrFreqPerm.IndexOf(chr);
+                    //if (ndx >= 0)
+                    //{
+                    //    theEncChar = (char)cipher[ndx];
+                    //}
+                    //str += theEncChar;
                 }
                 return str;
+            }
+
+            int TryCipher()
+            {
+                int numWordsWithMatches = 0;
+                // now let's try the cipher and see how many successes
+                foreach (var encWrd in lstEncryptedWords)
+                {
+                    tryWord.SetLength(encWrd.WordLength);
+                    int nQMarks = 0;
+                    for (int i = 0; i < encWrd.WordLength; i++)
+                    {
+                        var plaintextLtr = cipher[encWrd[i] - LetterA];
+                        if (plaintextLtr == qmarkChar)
+                        {
+                            nQMarks++;
+                        }
+                        tryWord[i] = plaintextLtr;
+                    }
+                    if (nQMarks != encWrd.WordLength) // if it's not all qmarks
+                    {
+                        FindQMarkMatches(tryWord, (mw) =>
+                        {
+                            numWordsWithMatches++;
+                            //                                           LogMessage($"GotQM {encWrd}  {tryWord} {mw}");
+                            return false; // we only want the 1st match: then abort looking
+                        });
+                    }
+                    else
+                    {
+                        numWordsWithMatches++;// if it's all qmarks (e.g. 5 qmarks), then there is a match (there is at least 1 5 letter word in the dict)
+                    }
+                }
+                return numWordsWithMatches;
             }
         }
 
@@ -750,14 +764,14 @@ namespace DictionaryLib
                     {
                         for (int i = nLevel; i < myWord.WordLength && !fAbort; i++)
                         {
-                            byte tmp = myWord._wordBytes[i]; // swap nlevel and i. These will be equal 1st time through for identity permutation
+                            byte tmp = myWord[i]; // swap nlevel and i. These will be equal 1st time through for identity permutation
                             var swapNdx = nLevel;
-                            myWord._wordBytes[i] = myWord._wordBytes[swapNdx];
-                            myWord._wordBytes[swapNdx] = tmp;
+                            myWord[i] = myWord[swapNdx];
+                            myWord[swapNdx] = tmp;
                             DoPermutation(nLevel + 1);
                             // restore swap
-                            myWord._wordBytes[swapNdx] = myWord._wordBytes[i];
-                            myWord._wordBytes[i] = tmp;
+                            myWord[swapNdx] = myWord[i];
+                            myWord[i] = tmp;
                         }
                     }
                     else
@@ -765,14 +779,14 @@ namespace DictionaryLib
                         //                        for (int i = nLevel; i < myWord.WordLength; i++)
                         for (int i = myWord.WordLength - 1 - nLevel; i >= 0 && !fAbort; i--)
                         {
-                            byte tmp = myWord._wordBytes[i];
+                            byte tmp = myWord[i];
                             var swapNdx = myWord.WordLength - 1 - nLevel;
-                            myWord._wordBytes[i] = myWord._wordBytes[swapNdx];
-                            myWord._wordBytes[swapNdx] = tmp;
+                            myWord[i] = myWord[swapNdx];
+                            myWord[swapNdx] = tmp;
                             DoPermutation(nLevel + 1);
                             // restore swap
-                            myWord._wordBytes[swapNdx] = myWord._wordBytes[i];
-                            myWord._wordBytes[i] = tmp;
+                            myWord[swapNdx] = myWord[i];
+                            myWord[i] = tmp;
                         }
                     }
                 }
@@ -803,13 +817,13 @@ namespace DictionaryLib
                     SetDictPos(LetterA); // 1st is qmark, so search entire dict
                     break;
                 case 1:
-                    SetDictPos(mword._wordBytes[0]);
+                    SetDictPos(mword[0]);
                     break;
                 case 2:
-                    SetDictPos(mword._wordBytes[0], mword._wordBytes[1]);
+                    SetDictPos(mword[0], mword[1]);
                     break;
                 default:
-                    SetDictPos(mword._wordBytes[0], mword._wordBytes[1], mword._wordBytes[2]);
+                    SetDictPos(mword[0], mword[1], mword[2]);
                     break;
             }
             var done = false;
@@ -832,9 +846,9 @@ namespace DictionaryLib
                     var isMatch = true;
                     for (int i = 0; i < tryWord.WordLength; i++)
                     {
-                        if (mword._wordBytes[i] != qmarkChar)
+                        if (mword[i] != qmarkChar)
                         {
-                            if (mword._wordBytes[i] != tryWord._wordBytes[i])
+                            if (mword[i] != tryWord[i])
                             {
                                 isMatch = false;
                                 break;
@@ -862,55 +876,55 @@ namespace DictionaryLib
                 case 0:
                     break;
                 case 1:
-                    if (mword._wordBytes[0] != LetterZ)
+                    if (mword[0] != LetterZ)
                     {
                         result = new MyWord();
-                        result._wordBytes[0] = (byte)(mword._wordBytes[0] + 1);
+                        result[0] = (byte)(mword[0] + 1);
                         result.SetLength(1);
                     }
                     break;
                 case 2:
                     result = new MyWord();
-                    if (mword._wordBytes[1] == LetterZ)
+                    if (mword[1] == LetterZ)
                     {
-                        if (mword._wordBytes[0] == LetterZ)
+                        if (mword[0] == LetterZ)
                         {
                             result = null; // both 'z', go to end of dict
                         }
                         else
                         {
-                            result._wordBytes[0] = (byte)(mword._wordBytes[1] + 1);
-                            result._wordBytes[1] = LetterA;
+                            result[0] = (byte)(mword[1] + 1);
+                            result[1] = LetterA;
                         }
                     }
                     else
                     {
-                        result._wordBytes[0] = mword._wordBytes[0];
-                        result._wordBytes[1] = (byte)(mword._wordBytes[1] + 1);
+                        result[0] = mword[0];
+                        result[1] = (byte)(mword[1] + 1);
                     }
-                    result._wordBytes[2] = LetterA;
+                    result[2] = LetterA;
                     result.SetLength(3);
                     break;
                 default:
                     result = new MyWord();
-                    if (mword._wordBytes[2] == LetterZ)
+                    if (mword[2] == LetterZ)
                     {
-                        if (mword._wordBytes[1] == LetterZ)
+                        if (mword[1] == LetterZ)
                         {
                             result = null; // at least 2 'z', go to end of dict
                         }
                         else
                         {
-                            result._wordBytes[0] = (byte)(mword._wordBytes[1] + 1);
-                            result._wordBytes[1] = LetterA;
-                            result._wordBytes[2] = LetterA;
+                            result[0] = (byte)(mword[1] + 1);
+                            result[1] = LetterA;
+                            result[2] = LetterA;
                         }
                     }
                     else
                     {
-                        result._wordBytes[0] = mword._wordBytes[0];
-                        result._wordBytes[1] = mword._wordBytes[1];
-                        result._wordBytes[2] = (byte)(mword._wordBytes[2] + 1);
+                        result[0] = mword[0];
+                        result[1] = mword[1];
+                        result[2] = (byte)(mword[2] + 1);
                     }
                     result.SetLength(3);
                     break;
@@ -921,125 +935,5 @@ namespace DictionaryLib
     }
 
 
-
-    /// <summary>
-    /// represent a word as a byte array, reducing need to convert to char/string for perf. Not null terminated
-    /// </summary>
-    [DebuggerDisplay("{GetWord()}")]
-    internal class MyWord : IComparable
-    {
-        public static MyWord Empty;
-        internal byte[] _wordBytes = new byte[DictionaryLib.MaxWordLen];
-        int _currentLength;
-        public MyWord()
-        {
-
-        }
-        public MyWord(string word) : this()
-        {
-            SetWord(word);
-        }
-
-        public void SetWord(string word)
-        {
-            _currentLength = word.Length;
-            for (int ndx = 0; ndx < word.Length; ndx++)
-            {
-                _wordBytes[ndx] = (byte)word[ndx];
-            }
-        }
-        public void SetWord(byte byte0, byte byte1, byte byte2)
-        {
-            _currentLength = 3;
-            _wordBytes[0] = byte0;
-            _wordBytes[1] = byte1;
-            _wordBytes[2] = byte2;
-            //if (byte2== DictionaryLib.LetterA)
-            //{
-            //    _currentLength = 2;
-            //}
-        }
-        /// <summary>
-        /// Get the length of the word. If DesiredLength is non-zero, return the min(DesiredLength, CurrentLength)
-        /// </summary>
-        /// <param name="DesiredLength"></param>
-        /// <returns></returns>
-        public string GetWord(int DesiredLength = 0)
-        {
-            var len = _currentLength;
-            if (DesiredLength != 0)
-            {
-                len = Math.Min(DesiredLength, len);
-            }
-            return Encoding.ASCII.GetString(_wordBytes, 0, len);
-        }
-        public void AddByte(byte b)
-        {
-            _wordBytes[_currentLength++] = b;
-        }
-        public int WordLength => _currentLength;
-        public void SetLength(int Length)
-        {
-            _currentLength = Length;
-        }
-        public int IndexOf(byte b)
-        {
-            var res = -1;
-            for (int i = 0; i < WordLength; i++)
-            {
-                if (_wordBytes[i] == b)
-                {
-                    res = i;
-                    break;
-                }
-            }
-            return res;
-        }
-
-        public int CompareTo(object obj)
-        {
-            int retval = 0;
-            if (obj is MyWord other)
-            {
-                for (int i = 0; i < Math.Min(this._currentLength, other._currentLength); i++)
-                {
-                    if (this._wordBytes[i] != other._wordBytes[i])
-                    {
-                        retval = this._wordBytes[i].CompareTo(other._wordBytes[i]);
-                        if (retval != 0)
-                        {
-                            break;
-                        }
-                    }
-                }
-                if (retval == 0)
-                {
-                    retval = this._currentLength.CompareTo(other._currentLength);
-                }
-            }
-            else
-            {
-                throw new InvalidOperationException();
-            }
-            return retval;
-        }
-        public override int GetHashCode()
-        {
-            return ToString().GetHashCode();
-        }
-        public override bool Equals(object obj)
-        {
-            if (obj is MyWord myWord)
-            {
-                return this.CompareTo(myWord) == 0;
-            }
-            throw new NotImplementedException();
-        }
-
-        public override string ToString()
-        {
-            return GetWord();
-        }
-    }
 
 }
