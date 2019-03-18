@@ -147,14 +147,15 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" Orientation="Vertical">
                         <DockPanel Width="500" HorizontalAlignment="Left">
-                            <Button Name="btnNew" Width="80">_New</Button>
-                            <Label>Rows</Label><TextBox Name="tbxRows" Text="{Binding Path=_nRows}" Width="50"></TextBox>
-                            <Label>Cols</Label><TextBox Name="tbxCols" Text="{Binding Path=_nCols}" Width="50"></TextBox>
-                            <CheckBox Name="chkLongWord" IsChecked="{Binding Path=_IsLongWrd}">LongWord</CheckBox>
-                            <TextBox Text="{Binding Path=_nMinWordLen}" ToolTip="When doing long words, must be at least this length"></TextBox>
+                            <Button Name="btnNew" Width="80" Height="40">_New</Button>
+                            <Label Margin="0,6,10,0">Rows</Label><TextBox Name="tbxRows" Text="{Binding Path=_nRows}" Width="50" Height="20"></TextBox>
+                            <Label Margin="0,6,10,0">Cols</Label><TextBox Name="tbxCols" Text="{Binding Path=_nCols}" Width="50" Height="20"></TextBox>
+                            <CheckBox Name="chkLongWord" Margin="0,9,10,0" IsChecked="{Binding Path=_IsLongWrd}">LongWord</CheckBox>
+                            <TextBox Text="{Binding Path=_nMinWordLen}" Height="20" ToolTip="When doing long words, must be at least this length"></TextBox>
                             <Button Name="btnHint"
                                 IsEnabled="{Binding Path=HintAvailable}"
                                 HorizontalAlignment="Right"
+                                Width="100"
                                 ToolTip="new hint available after 30 seconds">Hint</Button>
                         </DockPanel>
                         <DockPanel>
@@ -404,7 +405,11 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         timerEnabled = True
                         HintAvailable = False
                         taskGetResultsAsync = GetResultsAsync()
+                        Dim taskWait2secs = Task.Run(Async Function()
+                                                         Await Task.Delay(TimeSpan.FromSeconds(2))
+                                                     End Function)
                         Await taskGetResultsAsync
+                        Await taskWait2secs ' debounce, prevent hitting the button twice too fast
                         btnNew.IsEnabled = True
                         Await CalculateHintsAsync()
                         Await Task.Delay(TimeSpan.FromMilliseconds(_HintDelay))
