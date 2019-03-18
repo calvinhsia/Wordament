@@ -234,8 +234,8 @@ namespace WordamentAndroid
                 Id = idLstResults2
             };
             mainLayout.AddView(lstResults2);
-            AddStatusMsg($"{_ptScreenSize.X} {_ptScreenSize.Y}");
-            AddStatusMsg($"ff{WindowManager.DefaultDisplay.Flags}  nam={WindowManager.DefaultDisplay.Name} ");
+            //AddStatusMsg($"{_ptScreenSize.X} {_ptScreenSize.Y}");
+            //AddStatusMsg($"ff{WindowManager.DefaultDisplay.Flags}  nam={WindowManager.DefaultDisplay.Name} ");
 
             SetLayoutForOrientation(Android.Content.Res.Orientation.Portrait);
         }
@@ -469,7 +469,6 @@ namespace WordamentAndroid
             {
                 if (txtWordSoFar != null &&
                     !fdidGetLongWord &&
-                    txtWordSoFar.Text.Length >= _nMinWordLen &&
                     !string.IsNullOrEmpty(txtWordSoFar.Text) &&
                     taskGetResultsAsync != null &&
                     taskGetResultsAsync.IsCompleted)

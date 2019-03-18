@@ -572,7 +572,7 @@ namespace DictionaryLib
                     }
                 }
             }
-            lstEncryptedWords = lstEncryptedWords.OrderByDescending(w => w.WordLength).Distinct().ToList(); // exclude crypt words to reduce work
+            lstEncryptedWords = lstEncryptedWords.OrderByDescending(w => w.WordLength).Distinct().ToList(); // exclude dupe crypt words to reduce work
 
             lstEncryptedWords.ForEach(s => LogMessage($"Got CryptWord {s}"));
             foreach (var kvp in encryptedByteDist.OrderByDescending(p => p.Value))
@@ -595,76 +595,68 @@ namespace DictionaryLib
             // we'll permute the string of freq letters (etaons, teaons, etc) from LeftToRight
             PermuteString(strLtrfreq, LeftToRight: true, act: (strLtrFreqPerm) =>
                {
-//                   LogMessage($"Trying Perm #{nTimes,4} {strLtrFreqPerm}");
-//                   cipher.SetAllBytes(qmarkChar);
-                   for (int i = 0; i < strEncLets.Length; i++)
-                   {
-                       var ndxCipher = strEncLets[i] - LetterA;
-                       cipher[ndxCipher] = (byte)strLtrFreqPerm[i];
-                   }
-                   int numWordsWithMatches = TryCipher();
-                   if (numWordsWithMatches > .8 * lstEncryptedWords.Count) // >80% match rate. Todo adjust score with cryptwordlen
-                   {
-                       LogMessage($"GotAnswer {ApplyCipherToCryptogram()}");
-                       GotAnswer = true;
-                   }
-                   else
-                   {
-//                       LogMessage($"Reject cipher {ApplyCipherToCryptogram()}");
-                   }
+                   //                   LogMessage($"Trying Perm #{nTimes,4} {strLtrFreqPerm}");
+
+                   //                   for (int i = 0; i < strEncLets.Length; i++)
+                   //                   {
+                   //                       var ndxCipher = strEncLets[i] - LetterA;
+                   //                       cipher[ndxCipher] = (byte)strLtrFreqPerm[i];
+                   //                   }
+                   //                   int numWordsWithMatches = TryCipher();
+                   //                   if (numWordsWithMatches > .8 * lstEncryptedWords.Count) // >80% match rate. Todo adjust score with cryptwordlen
+                   //                   {
+                   //                       LogMessage($"GotAnswer {ApplyCipherToCryptogram()}");
+                   //                       GotAnswer = true;
+                   //                   }
+                   //                   else
+                   //                   {
+                   ////                       LogMessage($"Reject cipher {ApplyCipherToCryptogram()}");
+                   //                   }
 
 
-                   //var doneThisPermutation = false;
-                   //var numCipherCharsSuccessful = 0;
-                   //while (!doneThisPermutation)
-                   //{
-                   //    // we now know that e.g. "r" is the most common letter in cryptogram, and "e" is a common english letter, so we 
-                   //    // want to try substituing "r" with "e" and see if there are a high number of hits.
-                   //    // for each encrypted letter by most freq to least freq
-                   //    cipher.SetAllBytes(qmarkChar);
-                   //    for (int indxLtrFreq = 0; indxLtrFreq < strEncLets.Length; indxLtrFreq++) // 26 ltrs in alphabet, but <=26 are in cipher
-                   //    {
-                   //        // each time thru loop we guess an additional char in cipher
-                   //        var ndxCipher = strEncLets[indxLtrFreq] - LetterA;
-                   //        var singleLetterGood = false;
-                   //        while (!singleLetterGood && indxLtrFreq < strLtrfreq.Length)
-                   //        {
-                   //            cipher[ndxCipher] = (byte)strLtrFreqPerm[indxLtrFreq];
-                   //            if (TryCipher())
-                   //            {
-                   //                singleLetterGood = true;
-                   //                numCipherCharsSuccessful++;
-                   //                if (indxLtrFreq == strEncLets.Length - 1)
-                   //                {
-                   //                    GotAnswer = true;
-                   //                    var str = string.Empty;
-                   //                    foreach (var chr in strCryptogram.ToLower())
-                   //                    {
-                   //                        var theChar = chr;
-                   //                        var ndx = strLtrFreqPerm.IndexOf(chr);
-                   //                        if (ndx >= 0)
-                   //                        {
-                   //                            theChar = (char)cipher[ndx];
-                   //                        }
-                   //                        str += theChar;
-                   //                    }
-                   //                    LogMessage($"GotAnswer {str}");
-                   //                    doneThisPermutation = true;
-                   //                }
-                   //            }
-                   //            else
-                   //            {
-                   //                LogMessage($"Rejecting perm # {nTimes} {indxLtrFreq}");
-                   //                doneThisPermutation = true;
-                   //                break;
-                   //                //cipher[ndxCipher] = qmarkChar; // revert the try 
-                   //                //if (indxLtrFreq == strEncLets.Length - 1)
-                   //                //{
-                   //                //}
-                   //            }
-                   //        }
-                   //    }
-                   //}
+                   var doneThisPermutation = false;
+                   var numCipherCharsSuccessful = 0;
+                   while (!doneThisPermutation)
+                   {
+                       // we now know that e.g. "r" is the most common letter in cryptogram, and "e" is a common english letter, so we 
+                       // want to try substituing "r" with "e" and see if there are a high number of hits.
+                       // for each encrypted letter by most freq to least freq
+                       cipher.SetAllBytes(qmarkChar);
+                       for (int indxLtrFreq = 0; indxLtrFreq < strEncLets.Length; indxLtrFreq++) // 26 ltrs in alphabet, but <=26 are in cipher
+                       {
+                           // each time thru loop we guess an additional char in cipher
+                           var ndxCipher = strEncLets[indxLtrFreq] - LetterA;
+                           var singleLetterGood = false;
+                           while (!singleLetterGood && indxLtrFreq < strLtrfreq.Length)
+                           {
+                               cipher[ndxCipher] = (byte)strLtrFreqPerm[indxLtrFreq];
+                               int numWordsWithMatches = TryCipher();
+                               if (numWordsWithMatches > .8 * lstEncryptedWords.Count) // >80% match rate. Todo adjust score with cryptwordlen
+                               {
+                                   singleLetterGood = true;
+                                   numCipherCharsSuccessful++;
+                                   if (indxLtrFreq == strEncLets.Length - 1)
+                                   {
+                                       GotAnswer = true;
+                                       var str = ApplyCipherToCryptogram();
+                                       LogMessage($"GotAnswer {str}");
+                                       doneThisPermutation = true;
+                                   }
+                               }
+                               else
+                               {
+                                   LogMessage($"Rejecting perm # {nTimes} {indxLtrFreq} {ApplyCipherToCryptogram()}");
+//                                   LogMessage($"Reject cipher {ApplyCipherToCryptogram()}");
+                                   doneThisPermutation = true;
+                                   break;
+                                   //cipher[ndxCipher] = qmarkChar; // revert the try 
+                                   //if (indxLtrFreq == strEncLets.Length - 1)
+                                   //{
+                                   //}
+                               }
+                           }
+                       }
+                   }
                    return GotAnswer ? false : (++nTimes <= 114000320); // abort after too many (7! = 5040, 8!= 40320, 9! = 362880
                });
 

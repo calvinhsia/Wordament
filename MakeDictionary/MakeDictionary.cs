@@ -227,7 +227,7 @@ namespace MakeDictionary
         const string IUnknownGuid = "00000001-0000-0000-C000-000000000046";
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        private static extern IntPtr LoadLibrary([In, MarshalAs(UnmanagedType.LPWStr)]string dllToLoad);
+        private static extern IntPtr LoadLibrary(string dllToLoad);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern IntPtr GetProcAddress(IntPtr hModule, string procname);
