@@ -27,20 +27,20 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         End Set
     End Property
 
-    Public Function GetTimeAsString(tmpSecs As Integer)
+    Public Shared Function GetTimeAsString(nSecs As Integer)
         Dim hrs = String.Empty
         Dim mins = String.Empty
         Dim secs
-        If (tmpSecs >= 3600) Then
-            hrs = $"{Int(tmpSecs / 3600):n0}:"
-            tmpSecs -= Int((tmpSecs / 3600)) * 3600
+        If (nSecs >= 3600) Then
+            hrs = $"{Int(nSecs / 3600):n0}:"
+            nSecs -= Int((nSecs / 3600)) * 3600
         End If
-        If Not String.IsNullOrEmpty(hrs) OrElse tmpSecs >= 60 Then
-            mins = $"{Int((tmpSecs / 60)).ToString(If(String.IsNullOrEmpty(hrs), "", "00"))}:"
-            tmpSecs -= Int((tmpSecs / 60)) * 60
-            secs = tmpSecs.ToString("00")
+        If Not String.IsNullOrEmpty(hrs) OrElse nSecs >= 60 Then
+            mins = $"{Int((nSecs / 60)).ToString(If(String.IsNullOrEmpty(hrs), "", "00"))}:"
+            nSecs -= Int((nSecs / 60)) * 60
+            secs = nSecs.ToString("00")
         Else
-            secs = tmpSecs.ToString()
+            secs = nSecs.ToString()
         End If
         Return $"{hrs}{mins}{secs}"
 
@@ -73,7 +73,20 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     ''' </summary>
     ''' <returns></returns>
     Public Property _IsLongWrd = True
-    Public Property _nMinWordLen = 12
+    Dim _nMinWordLen = 12
+    Public Property MinWordLen
+        Get
+            Return _nMinWordLen
+        End Get
+        Set(value)
+            If (value <= _nCols * _nRows) Then
+                _nMinWordLen = value
+            Else
+                _txtMinWordLen.Text = _nMinWordLen.ToString()
+                Me.OnMyPropertyChanged()
+            End If
+        End Set
+    End Property
     Private _HintAvailable As Boolean
     Private _HintDelay As Integer
     Private ReadOnly _lstHints As New List(Of String)
@@ -94,7 +107,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     Private _spResults As StackPanel
     Private _seed As Integer
     Private _randLetGenerator As RandLetterGenerator
-
+    Private _txtMinWordLen As TextBox
     Private _arrTiles(,) As LtrTile
     Private ReadOnly _pnl As StackPanel = New StackPanel With {
         .Orientation = Orientation.Horizontal
@@ -151,7 +164,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                             <Label Margin="0,6,10,0">Rows</Label><TextBox Name="tbxRows" Text="{Binding Path=_nRows}" Width="50" Height="20"></TextBox>
                             <Label Margin="0,6,10,0">Cols</Label><TextBox Name="tbxCols" Text="{Binding Path=_nCols}" Width="50" Height="20"></TextBox>
                             <CheckBox Name="chkLongWord" Margin="0,9,10,0" IsChecked="{Binding Path=_IsLongWrd}">LongWord</CheckBox>
-                            <TextBox Text="{Binding Path=_nMinWordLen}" Height="20" ToolTip="When doing long words, must be at least this length"></TextBox>
+                            <TextBox Name="txtMinWordLen" Text="{Binding Path=MinWordLen}" Height="20" Width="18" ToolTip="When doing long words, must be at least this length."></TextBox>
                             <Button Name="btnHint"
                                 IsEnabled="{Binding Path=HintAvailable}"
                                 HorizontalAlignment="Right"
@@ -179,6 +192,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             Dim btnHint = CType(mainGrid.FindName("btnHint"), Button)
             _gridUni = CType(mainGrid.FindName("grdUniform"), UniformGrid)
             _spResults = CType(mainGrid.FindName("spResults"), StackPanel)
+            _txtMinWordLen = CType(mainGrid.FindName("txtMinWordLen"), TextBox)
             Dim txtWordSoFar = CType(mainGrid.FindName("txtWordSoFar"), TextBox)
             Dim timerEnabled = False
             Dim timer = New DispatcherTimer(
@@ -196,7 +210,9 @@ Class WordamentWindow : Implements INotifyPropertyChanged
             Dim taskGetResultsAsync As Task(Of List(Of Dictionary(Of String, LetterList))) = Nothing
             Dim dtLastHint As DateTime = DateTime.Now
             Dim nLastHintNum = 0
-
+            AddHandler _txtMinWordLen.TextChanged, Sub()
+                                                       _lstLongWords.Clear()
+                                                   End Sub
             AddHandler btnHint.Click,
                 Async Sub()
                     If taskGetResultsAsync?.IsCompleted Then
@@ -234,7 +250,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                             str += til.ToString()
                         Next
                         StrWordSoFar = $"{str}"
-                        If _IsLongWrd AndAlso taskGetResultsAsync IsNot Nothing AndAlso str.Length >= _nMinWordLen Then
+                        If _IsLongWrd AndAlso taskGetResultsAsync IsNot Nothing AndAlso str.Length >= MinWordLen Then
                             If _WrdHighestPointsFound.Length = str.Length Then
                                 If _WrdHighestPointsFound = str Then
                                     fdidFinish = True
@@ -282,9 +298,9 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                             If lstBigDictResult.ContainsKey(StrWordSoFar) Then
                                 If StrWordSoFar.Length >= 6 AndAlso StrWordSoFar.Length < 9 Then
                                     AddStatusMsg($"Not bad! {StrWordSoFar}")
-                                ElseIf StrWordSoFar.Length >= 9 AndAlso StrWordSoFar.Length < _nMinWordLen Then
+                                ElseIf StrWordSoFar.Length >= 9 AndAlso StrWordSoFar.Length < MinWordLen Then
                                     AddStatusMsg($"Good Try! {StrWordSoFar}")
-                                ElseIf StrWordSoFar.Length >= _nMinWordLen Then
+                                ElseIf StrWordSoFar.Length >= MinWordLen Then
                                     AddStatusMsg($"Close, but no cigar {StrWordSoFar}")
                                 End If
                             End If
@@ -611,21 +627,19 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     End Sub
 
     ReadOnly _lstLongWords As New List(Of String)
-
+    Private ReadOnly directions(7) As Integer
     Private Async Function FillGridWithTilesAsync(grd As UniformGrid) As Task
         Dim arr(,) As Char = Nothing
         _arrTiles = Array.CreateInstance(GetType(LtrTile), _nRows, _nCols)
         ' fill an array on background thread
-
+        For i = 0 To 7
+            directions(i) = i
+        Next
         If (_IsLongWrd) Then
             Await Task.Run(
                 Sub()
                     Dim spellDict = New DictionaryLib.DictionaryLib(DictionaryType.Small, g_Random)
                     ' create a list of random directions (N,S, SE, etc) which can be tried in sequence til success
-                    Dim directions(7) As Integer ' 8 directions
-                    For i = 0 To 7
-                        directions(i) = i
-                    Next
 
                     If _lstLongWords.Count = 0 Then
                         spellDict.SeekWord("a")
@@ -634,12 +648,11 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                             If String.IsNullOrEmpty(wrd) Then
                                 Exit While
                             End If
-                            If wrd.Length >= _nMinWordLen AndAlso wrd.Length <= _nCols * _nRows Then
+                            If wrd.Length >= MinWordLen AndAlso wrd.Length <= _nCols * _nRows Then
                                 _lstLongWords.Add(wrd.ToUpper)
                             End If
                         End While
                     End If
-
                     Dim isGood = False
                     Do While Not isGood
                         Dim randnum = g_Random.Next(_lstLongWords.Count)
@@ -769,7 +782,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                res.Add(oneresult)
                                If (CType(dictnum, DictionaryLib.DictionaryType) = DictionaryType.Large) Then
                                    Dim max = oneresult.
-                                        Where(Function(kvp) kvp.Key.Length >= _nMinWordLen).
+                                        Where(Function(kvp) kvp.Key.Length >= MinWordLen).
                                         OrderByDescending(Function(kvp) kvp.Key.Length).
                                         ThenByDescending(Function(kvp) kvp.Value.Points).
                                         FirstOrDefault

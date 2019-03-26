@@ -8,6 +8,7 @@ using System.Text;
 using MakeDictionary;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using DictionaryLib;
+using Wordament;
 
 namespace WordamentTests
 {
@@ -532,7 +533,7 @@ namespace WordamentTests
             {
                 hashLarge.Remove(str);
             }
-            //todo: remove words like ""
+            //todo: remove words like "jurisdictione"
 
             // when changing contents of dictionary, this test will fail until you update the resources, 
             // XCOPY /dy C:\Users\calvinh\Source\Repos\Wordament\WordamentTests\bin\Debug\*.bin C:\Users\calvinh\Source\Repos\Wordament\DictionaryLib\Resources
@@ -649,8 +650,8 @@ namespace WordamentTests
         [TestMethod]
         public void TestStr()
         {
-var strInput=
-@"  fc0000   fc1000     1000 MEM_IMAGE   MEM_COMMIT  PAGE_READONLY                      Image      [devenv; ""C:\Program Files(x86)\Microsoft Visual Studio\2019\Professional\Common7\IDE\devenv.exe""]
+            var strInput =
+            @"  fc0000   fc1000     1000 MEM_IMAGE   MEM_COMMIT  PAGE_READONLY                      Image      [devenv; ""C:\Program Files(x86)\Microsoft Visual Studio\2019\Professional\Common7\IDE\devenv.exe""]
     fc1000  1026000    65000 MEM_IMAGE MEM_COMMIT  PAGE_EXECUTE_READ Image[devenv; ""C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\Common7\IDE\devenv.exe""]
 ";
 
@@ -661,8 +662,18 @@ var strInput=
             }
         }
 
+        [TestMethod]
+        public void TestGetTimeAsString()
+        {
+            foreach (var time in new[] { 0, 59, 60, 61, 119, 120, 121})
+            {
+                var str = WordamentWindow.GetTimeAsString(nSecs: time);
+                Console.WriteLine($"for time {time} str={str}");
 
-    [TestMethod]
+            }
+        }
+
+        [TestMethod]
         public void TestCryptogram()
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);

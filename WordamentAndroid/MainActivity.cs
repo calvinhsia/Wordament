@@ -469,6 +469,7 @@ namespace WordamentAndroid
             {
                 if (txtWordSoFar != null &&
                     !fdidGetLongWord &&
+                    txtWordSoFar.Text.Length >= 6 &&
                     !string.IsNullOrEmpty(txtWordSoFar.Text) &&
                     taskGetResultsAsync != null &&
                     taskGetResultsAsync.IsCompleted)
@@ -694,10 +695,10 @@ namespace WordamentAndroid
         {
             _arrTiles = new LtrTile[_nRows, _nCols];
             char[,] arr = new char[_nRows, _nCols];
-            // get array filled on background  thread
 
             if (_IsLongWord)
             {
+                // get array filled on background  thread
                 await Task.Run(() =>
                    {
                        var spellDict = new DictionaryLib.DictionaryLib(
@@ -731,7 +732,6 @@ namespace WordamentAndroid
                            var randnum = _random.Next(_lstLongWords.Count);
                            var randLongWrd = _lstLongWords[randnum];
                            // attempt to place in array
-                           // shuffle directions
                            bool recurLam(int r, int c, int ndx)
                            {
                                nRecurCalls++;
@@ -742,6 +742,7 @@ namespace WordamentAndroid
                                    isGood = true;
                                    return true;
                                }
+                               // shuffle directions
                                for (int i = 0; i < 8; i++)
                                {
                                    var rnd = _random.Next(8);
@@ -932,12 +933,12 @@ namespace WordamentAndroid
             var hrs = string.Empty;
             var mins = string.Empty;
             string secs;
-            if (tmpSecs > 3600)
+            if (tmpSecs >= 3600)
             {
                 hrs = $"{tmpSecs / 3600:n0}:";
                 tmpSecs -= (tmpSecs / 3600) * 3600;
             }
-            if (!string.IsNullOrEmpty(hrs) || tmpSecs > 60)
+            if (!string.IsNullOrEmpty(hrs) || tmpSecs >= 60)
             {
                 mins = $"{(tmpSecs / 60).ToString(String.IsNullOrEmpty(hrs) ? "" : "00")}:";
                 tmpSecs -= (tmpSecs / 60) * 60;
