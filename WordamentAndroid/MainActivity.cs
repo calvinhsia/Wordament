@@ -378,6 +378,7 @@ namespace WordamentAndroid
             async Task BtnNewClick(object o, EventArgs e)
             {
                 IsShowingResult = !IsShowingResult;
+                var nSecondsElapsed = 0;
                 if (!IsShowingResult)
                 {
                     fdidGetLongWord = false;
@@ -396,7 +397,6 @@ namespace WordamentAndroid
                     txtWordSoFar.Text = string.Empty;
                     await FillGridWithTilesAsync(grd);
                     gridCanRespondToTouch = true;
-                    var nSecondsElapsed = 0;
                     cts = new CancellationTokenSource();
                     var tskTimer = Task.Run(async () =>
                     {
@@ -428,7 +428,14 @@ namespace WordamentAndroid
                 }
                 else
                 {
-                    Showresults();
+                    if (nSecondsElapsed > 2)  // debounce
+                    {
+                        Showresults();
+                    }
+                    else
+                    {
+                        IsShowingResult = !IsShowingResult;
+                    }
                 }
             }
             btnNew.Click += (ob, eb) =>
@@ -858,7 +865,7 @@ namespace WordamentAndroid
                 {
                     var oneresult = CalcWordList(dictnum);
                     res.Add(oneresult);
-                    if (dictnum == DictionaryLib.DictionaryType.Large)
+                    if (dictnum == DictionaryLib.DictionaryType.Small)
                     {
                         _WrdHighestPointsFound = oneresult
                             .Where(kvp => kvp.Key.Length >= _nMinWordLen)

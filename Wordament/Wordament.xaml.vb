@@ -431,7 +431,11 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         Await Task.Delay(TimeSpan.FromMilliseconds(_HintDelay))
                         HintAvailable = True
                     Else
-                        Await lamShowResults()
+                        If CountDownTime > 2 Then ' debounce
+                            Await lamShowResults()
+                        Else
+                            isShowingResult = False
+                        End If
                     End If
                     'Width = 800
                     'Height = 800
@@ -628,15 +632,37 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
     ReadOnly _lstLongWords As New List(Of String)
     Private ReadOnly directions(7) As Integer
-    Private Async Function FillGridWithTilesAsync(grd As UniformGrid) As Task
+    Private Async Function FillGridWithTilesAsync(grd As UniformGrid, Optional isTesting As Boolean = False) As Task
         Dim arr(,) As Char = Nothing
-        _arrTiles = Array.CreateInstance(GetType(LtrTile), _nRows, _nCols)
-        ' fill an array on background thread
-        For i = 0 To 7
-            directions(i) = i
-        Next
-        If (_IsLongWrd) Then
-            Await Task.Run(
+        isTesting = True
+        If isTesting Then
+            arr = Array.CreateInstance(GetType(Char), _nRows, _nCols)
+            _arrTiles = Array.CreateInstance(GetType(LtrTile), _nRows, _nCols)
+            ' OERT INIE SSCM GOMB 'commissioner, recommission
+            arr(0, 0) = "S"
+            arr(0, 1) = "N"
+            arr(0, 2) = "T"
+            arr(0, 3) = "A"
+            arr(1, 0) = "O"
+            arr(1, 1) = "I"
+            arr(1, 2) = "I"
+            arr(1, 3) = "P"
+            arr(2, 0) = "N"
+            arr(2, 1) = "A"
+            arr(2, 2) = "C"
+            arr(2, 3) = "I"
+            arr(3, 0) = "P"
+            arr(3, 1) = "A"
+            arr(3, 2) = "R"
+            arr(3, 3) = "T"
+        Else
+            _arrTiles = Array.CreateInstance(GetType(LtrTile), _nRows, _nCols)
+            ' fill an array on background thread
+            For i = 0 To 7
+                directions(i) = i
+            Next
+            If (_IsLongWrd) Then
+                Await Task.Run(
                 Sub()
                     Dim spellDict = New DictionaryLib.DictionaryLib(DictionaryType.Small, g_Random)
                     ' create a list of random directions (N,S, SE, etc) which can be tried in sequence til success
@@ -744,23 +770,24 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         ' we recurred down and couldn't find a path
                     Loop
                 End Sub)
-        Else
-            arr = Array.CreateInstance(GetType(Char), _nRows, _nCols)
-            For iRow = 0 To _nRows - 1
-                For iCol = 0 To _nCols - 1
-                    Dim rndLet = _randLetGenerator.GetRandLet
-                    'If rndLet = "Q" Then
-                    '    rndLet = "QU"
-                    '    rndLetPts += RandLetterGenerator._LetterValues(Asc("U") - 65)
-                    'End If
-                    arr(iRow, iCol) = rndLet
+            Else
+                arr = Array.CreateInstance(GetType(Char), _nRows, _nCols)
+                For iRow = 0 To _nRows - 1
+                    For iCol = 0 To _nCols - 1
+                        Dim rndLet = _randLetGenerator.GetRandLet
+                        'If rndLet = "Q" Then
+                        '    rndLet = "QU"
+                        '    rndLetPts += RandLetterGenerator._LetterValues(Asc("U") - 65)
+                        'End If
+                        arr(iRow, iCol) = rndLet
+                    Next
                 Next
-            Next
+            End If
         End If
         ' now update ui on main thread
         For iRow = 0 To _nRows - 1
             For iCol = 0 To _nCols - 1
-                Dim ltr = "a"
+                Dim ltr = "A"
                 If arr(iRow, iCol) = Chr(0) Then
                     ltr = _randLetGenerator.GetRandLet
                 Else
@@ -780,7 +807,15 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                '                               AddStatusMsg($"getres {dictnum}")
                                Dim oneresult = CalcWordList(dictnum)
                                res.Add(oneresult)
-                               If (CType(dictnum, DictionaryLib.DictionaryType) = DictionaryType.Large) Then
+                               ' we want the highest small dictionary score 
+                               ' Commisioner' is in small dict, 'recommission' is in large dict, same score
+                               ' 'misrepresent' is in small dict, 'presentients' is in large dict, same score wrnt rers peim sent
+                               ' 'intermittent' 44, 'intromittent' 46 tntg diet meni orte
+                               ' manslaughter, slaughterman alna usmr ghej rmtu
+                               ' aforethought 64, afterthought 64 oath rfgg tetu wrho
+                               ' nonparticipat in large dict snta oiip naci part
+                               ' both undescribable and 'indescribable' are same score oesc undr eiai nlbb
+                               If (CType(dictnum, DictionaryLib.DictionaryType) = DictionaryType.Small) Then
                                    Dim max = oneresult.
                                         Where(Function(kvp) kvp.Key.Length >= MinWordLen).
                                         OrderByDescending(Function(kvp) kvp.Key.Length).
@@ -975,7 +1010,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                 'nThisLet = 1
                 _letDistArr(i) = nThisLet
                 For j = 1 To nThisLet
-                    _letDist += Chr(i + 65)
+                    _letDist += Chr(i + 65) ' upper case
                 Next
             Next
         End Sub

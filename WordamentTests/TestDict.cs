@@ -529,14 +529,18 @@ namespace WordamentTests
                 "misinforman",
                 "consessione",
                 "consessiones",
+                "nonparticipat",
+                "seventeenthes",
+                "qtly", // QTLY 44, Mendaciously 43  ysoc luia tqsd lmen
             })
             {
                 hashLarge.Remove(str);
             }
-            //todo: remove words like "jurisdictione"
+            //todo: remove words like "jurisdictione","nonparticipat"
 
             // when changing contents of dictionary, this test will fail until you update the resources, 
             // XCOPY /dy C:\Users\calvinh\Source\Repos\Wordament\WordamentTests\bin\Debug\*.bin C:\Users\calvinh\Source\Repos\Wordament\DictionaryLib\Resources
+            // Then rebuild all
 
             for (uint dictNum = 1; dictNum <= 2; dictNum++)
             {
