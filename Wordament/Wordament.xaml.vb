@@ -255,6 +255,17 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                 If _WrdHighestPointsFound = str Then
                                     fdidFinish = True
                                     AddStatusMsg($"Got answer in {GetTimeAsString(CountDownTime)} {str}")
+                                    Dim saveback = lstTilesSelected(0).Background
+                                    For i = 1 To 5
+                                        For Each til In lstTilesSelected
+                                            til.Background = Brushes.Purple
+                                        Next
+                                        Await Task.Delay(100)
+                                        For Each til In lstTilesSelected
+                                            til.Background = saveback
+                                        Next
+                                        Await Task.Delay(100)
+                                    Next
                                     Await lamShowResults()
                                 End If
                             End If
@@ -519,7 +530,6 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                               _txtStatus.ScrollToEnd()
                                           End Sub)
     End Sub
-
     Sub ShowResults(results As List(Of Dictionary(Of String, LetterList)))
         Dim dictnum = 0
         _spResults.Children.Clear()
@@ -565,6 +575,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                               })
             spSingleResult.Children.Add(lv)
             Dim fInHandler = False
+
             AddHandler lv.SelectionChanged,
                 Async Sub()
                     If lv.SelectedItems.Count > 0 Then
@@ -581,23 +592,8 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                             Dim itm = lv.SelectedItems(0)
                             Dim tdesc = TypeDescriptor.GetProperties(itm)
                             Dim ltrLst = CType(tdesc("lst").GetValue(itm), LetterList)
-
-                            Dim firstTile = _arrTiles(ltrLst(0)._row, ltrLst(0)._col)
                             StrWordSoFar = ltrLst.Word
-                            Dim saveback = firstTile.Background
-                            For Each ltr In ltrLst
-                                Dim tile = _arrTiles(ltr._row, ltr._col)
-                                tile.Background = Brushes.Red
-                                Await Task.Delay(200)
-                                'Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.Background, Function() Nothing)
-                                'System.Threading.Thread.Sleep(200)
-                            Next
-                            Await Task.Delay(800)
-                            'System.Threading.Thread.Sleep(800)
-                            For Each ltr In ltrLst
-                                Dim tile = _arrTiles(ltr._row, ltr._col)
-                                tile.Background = saveback
-                            Next
+                            Await FlashWordAsync(ltrLst, Brushes.Red)
                             fInHandler = False
                         End If
                     End If
@@ -630,11 +626,29 @@ Class WordamentWindow : Implements INotifyPropertyChanged
         '_pnl.Children.Add(New ListView With {.ItemsSource = RandLetterGenerator._letDist})
     End Sub
 
+    Private Async Function FlashWordAsync(ltrLst As LetterList, brush As Brush) As Task
+        Dim firstTile = _arrTiles(ltrLst(0)._row, ltrLst(0)._col)
+        Dim saveback = firstTile.Background
+        For Each ltr In ltrLst
+            Dim tile = _arrTiles(ltr._row, ltr._col)
+            tile.Background = brush
+            Await Task.Delay(200)
+            'Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.Background, Function() Nothing)
+            'System.Threading.Thread.Sleep(200)
+        Next
+        Await Task.Delay(800)
+        'System.Threading.Thread.Sleep(800)
+        For Each ltr In ltrLst
+            Dim tile = _arrTiles(ltr._row, ltr._col)
+            tile.Background = saveback
+        Next
+    End Function
+
     ReadOnly _lstLongWords As New List(Of String)
     Private ReadOnly directions(7) As Integer
     Private Async Function FillGridWithTilesAsync(grd As UniformGrid, Optional isTesting As Boolean = False) As Task
         Dim arr(,) As Char = Nothing
-        isTesting = True
+        isTesting = False
         If isTesting Then
             arr = Array.CreateInstance(GetType(Char), _nRows, _nCols)
             _arrTiles = Array.CreateInstance(GetType(LtrTile), _nRows, _nCols)
@@ -801,7 +815,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
 
 
     Async Function GetResultsAsync() As Task(Of List(Of Dictionary(Of String, LetterList)))
-        Dim res = New List(Of Dictionary(Of String, LetterList))
+        Dim res = New List(Of Dictionary(Of String, LetterList)) ' large , small'
         Await Task.Run(Sub()
                            For Each dictnum As DictionaryLib.DictionaryType In [Enum].GetValues(GetType(DictionaryLib.DictionaryType))
                                '                               AddStatusMsg($"getres {dictnum}")

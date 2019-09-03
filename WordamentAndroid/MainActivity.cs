@@ -112,7 +112,9 @@ namespace WordamentAndroid
             switch (orientation)
             {
                 case Android.Content.Res.Orientation.Portrait:
-                    btnNew.LayoutParameters = new RelativeLayout.LayoutParams(500, RelativeLayout.LayoutParams.WrapContent);
+                    txtTitle.LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
+
+                    btnNew.LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
                     ((RelativeLayout.LayoutParams)(btnNew.LayoutParameters)).AddRule(LayoutRules.Below, idTitleText);
 
                     btnHint.LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
@@ -122,7 +124,6 @@ namespace WordamentAndroid
                     txtTimer.LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
                     ((RelativeLayout.LayoutParams)(txtTimer.LayoutParameters)).AddRule(LayoutRules.Below, idTitleText);
                     ((RelativeLayout.LayoutParams)(txtTimer.LayoutParameters)).AddRule(LayoutRules.RightOf, idBtnHint);
-
 
                     txtStatus.LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, 100);
                     ((RelativeLayout.LayoutParams)(txtStatus.LayoutParameters)).AddRule(LayoutRules.Below, idBtnNew);
@@ -141,21 +142,30 @@ namespace WordamentAndroid
                     ((RelativeLayout.LayoutParams)(lstResults2.LayoutParameters)).AddRule(LayoutRules.RightOf, idLstResults1);
                     break;
                 case Android.Content.Res.Orientation.Landscape:
+                    txtWordSoFar.LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
 
+                    grd.LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 2, RelativeLayout.LayoutParams.WrapContent);
+                    ((RelativeLayout.LayoutParams)(grd.LayoutParameters)).AddRule(LayoutRules.Below, idtxtWordSoFar);
+
+                    txtTitle.LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
+                    ((RelativeLayout.LayoutParams)(txtTitle.LayoutParameters)).AddRule(LayoutRules.RightOf, idGrd);
+
+                    btnNew.LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, RelativeLayout.LayoutParams.WrapContent);
+                    ((RelativeLayout.LayoutParams)(btnNew.LayoutParameters)).AddRule(LayoutRules.RightOf, idGrd);
+                    ((RelativeLayout.LayoutParams)(btnNew.LayoutParameters)).AddRule(LayoutRules.Below, idTitleText);
+
+                    txtStatus.LayoutParameters = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WrapContent, 100);
+                    ((RelativeLayout.LayoutParams)(txtStatus.LayoutParameters)).AddRule(LayoutRules.RightOf, idGrd);
+                    ((RelativeLayout.LayoutParams)(txtStatus.LayoutParameters)).AddRule(LayoutRules.Below, idBtnNew);
 
                     lstResults1.LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 4, RelativeLayout.LayoutParams.WrapContent);
+                    ((RelativeLayout.LayoutParams)(lstResults1.LayoutParameters)).AddRule(LayoutRules.RightOf, idGrd);
                     ((RelativeLayout.LayoutParams)(lstResults1.LayoutParameters)).AddRule(LayoutRules.Below, idTxtStatus);
 
                     lstResults2.LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 4, RelativeLayout.LayoutParams.WrapContent);
                     ((RelativeLayout.LayoutParams)(lstResults2.LayoutParameters)).AddRule(LayoutRules.RightOf, idLstResults1);
                     ((RelativeLayout.LayoutParams)(lstResults2.LayoutParameters)).AddRule(LayoutRules.Below, idTxtStatus);
 
-                    txtWordSoFar.LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 2, RelativeLayout.LayoutParams.WrapContent);
-                    ((RelativeLayout.LayoutParams)(txtWordSoFar.LayoutParameters)).AddRule(LayoutRules.RightOf, idLstResults2);
-
-                    grd.LayoutParameters = new RelativeLayout.LayoutParams(_ptScreenSize.X / 2, RelativeLayout.LayoutParams.WrapContent);
-                    ((RelativeLayout.LayoutParams)(grd.LayoutParameters)).AddRule(LayoutRules.Below, idtxtWordSoFar);
-                    ((RelativeLayout.LayoutParams)(grd.LayoutParameters)).AddRule(LayoutRules.RightOf, idLstResults2);
 
                     break;
             }
@@ -284,7 +294,6 @@ namespace WordamentAndroid
                     var ltrLst = wrd.LtrList;
                     txtWordSoFar.Text = ltrLst.Word;
                     var firstTile = _arrTiles[ltrLst[0]._row, ltrLst[0]._col];
-                    var saveBackground = firstTile.Background;
                     foreach (var ltr in wrd.LtrList)
                     {
                         var tile = _arrTiles[ltr._row, ltr._col];
@@ -351,6 +360,7 @@ namespace WordamentAndroid
 
             var timerEnabled = false;
             CancellationTokenSource cts = null;
+            int _nSecondsElapsed = 0;
             void Showresults()
             {
                 cts?.Cancel();
@@ -378,7 +388,6 @@ namespace WordamentAndroid
             async Task BtnNewClick(object o, EventArgs e)
             {
                 IsShowingResult = !IsShowingResult;
-                var nSecondsElapsed = 0;
                 if (!IsShowingResult)
                 {
                     fdidGetLongWord = false;
@@ -398,6 +407,7 @@ namespace WordamentAndroid
                     await FillGridWithTilesAsync(grd);
                     gridCanRespondToTouch = true;
                     cts = new CancellationTokenSource();
+                    _nSecondsElapsed = 0;
                     var tskTimer = Task.Run(async () =>
                     {
                         while (!cts.IsCancellationRequested)
@@ -406,8 +416,8 @@ namespace WordamentAndroid
                             {
                                 if (timerEnabled && !_IsPaused)
                                 {
-                                    txtTimer.Text = $"{GetTimeAsString(nSecondsElapsed)}";
-                                    nSecondsElapsed++;
+                                    txtTimer.Text = $"{GetTimeAsString(_nSecondsElapsed)}";
+                                    _nSecondsElapsed++;
                                 }
                             });
                             await Task.Delay(1000);
@@ -415,7 +425,7 @@ namespace WordamentAndroid
                     });
                     btnNew.Enabled = false;
                     txtTimer.Text = string.Empty;
-                    nSecondsElapsed = 0;
+                    _nSecondsElapsed = 0;
                     timerEnabled = true;
                     btnHint.Enabled = false;
                     taskGetResultsAsync = GetResultsAsync();
@@ -428,7 +438,7 @@ namespace WordamentAndroid
                 }
                 else
                 {
-                    if (nSecondsElapsed > 2)  // debounce
+                    if (_nSecondsElapsed > 2)  // debounce
                     {
                         Showresults();
                     }
@@ -460,6 +470,22 @@ namespace WordamentAndroid
                         cts.Cancel();
                         var res = $"Got answer in {txtTimer.Text} {_WrdHighestPointsFound} Seconds. Hints={nLastHintNum}";
                         AddStatusMsg(res);
+                        var savebackground = lstTilesSelected[0].Background;
+                        for (int i = 0; i < 5; i++)
+                        {
+                            foreach (var til in lstTilesSelected)
+                            {
+                                til.SetBackgroundColor(Color.Purple);
+                            }
+                            await Task.Delay(100);
+
+                            foreach (var til in lstTilesSelected)
+                            {
+                                til.SetBackgroundColor(LtrTile.g_colorBackground);
+                            }
+                            await Task.Delay(100);
+                        }
+
                         Android.Widget.Toast.MakeText(this, res, Android.Widget.ToastLength.Long).Show();
 
                         //Android.App.AlertDialog.Builder alert = new Android.App.AlertDialog.Builder(this);
