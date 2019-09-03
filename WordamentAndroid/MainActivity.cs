@@ -183,7 +183,7 @@ namespace WordamentAndroid
             idTitleText = txtTitle.Id;
             btnNew = new Button(this)
             {
-                Text = $"Results",
+                Text = $"I Give Up",
                 Id = idBtnNew
             };
             mainLayout.AddView(btnNew);
@@ -381,7 +381,7 @@ namespace WordamentAndroid
                 scoreAdapter2 = new WordScoreAdapter(this, dictObscureResults);
                 lstResults1.Adapter = scoreAdapter1;
                 lstResults2.Adapter = scoreAdapter2;
-                btnNew.Text = "New";
+                btnNew.Text = "Play Again";
             }
 
             await BtnNewClick(null, null);
@@ -400,7 +400,7 @@ namespace WordamentAndroid
                     nLastHintNum = 0;
                     lstResults1.Adapter = null;
                     lstResults2.Adapter = null;
-                    btnNew.Text = "Results";
+                    btnNew.Text = "I Give Up";
                     gridCanRespondToTouch = false;
                     grd.RemoveAllViews();
                     txtWordSoFar.Text = string.Empty;
@@ -469,6 +469,14 @@ namespace WordamentAndroid
                         fdidGetLongWord = true;
                         cts.Cancel();
                         var res = $"Got answer in {txtTimer.Text} {_WrdHighestPointsFound} Seconds. Hints={nLastHintNum}";
+                        Android.Widget.Toast.MakeText(this, res, Android.Widget.ToastLength.Long).Show();
+
+                        //Android.App.AlertDialog.Builder alert = new Android.App.AlertDialog.Builder(this);
+                        //alert.SetTitle("Calvin's Wordament");
+                        //alert.SetMessage(res);
+                        //alert.SetPositiveButton("Ok", (o, e) => { });
+                        //var dlog = alert.Create();
+                        //dlog.Show();
                         AddStatusMsg(res);
                         var savebackground = lstTilesSelected[0].Background;
                         for (int i = 0; i < 5; i++)
@@ -486,14 +494,6 @@ namespace WordamentAndroid
                             await Task.Delay(100);
                         }
 
-                        Android.Widget.Toast.MakeText(this, res, Android.Widget.ToastLength.Long).Show();
-
-                        //Android.App.AlertDialog.Builder alert = new Android.App.AlertDialog.Builder(this);
-                        //alert.SetTitle("Calvin's Wordament");
-                        //alert.SetMessage(res);
-                        //alert.SetPositiveButton("Ok", (o, e) => { });
-                        //var dlog = alert.Create();
-                        //dlog.Show();
                         await BtnNewClick(null, null);
                     }
                 }

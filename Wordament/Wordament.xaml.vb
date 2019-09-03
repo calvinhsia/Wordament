@@ -241,7 +241,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                     Dim res = Await taskGetResultsAsync
                     taskGetResultsAsync = Nothing
                     ShowResults(res)
-                    btnNew.Content = "_New"
+                    btnNew.Content = "_Play Again"
                 End Function
             Dim funcUpdateWordSoFar As Action =
                     Async Sub()
@@ -260,11 +260,16 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                                         For Each til In lstTilesSelected
                                             til.Background = Brushes.Purple
                                         Next
+                                        Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.Background, Function() Nothing)
+                                        'Await Task.Yield()
                                         Await Task.Delay(100)
                                         For Each til In lstTilesSelected
                                             til.Background = saveback
                                         Next
+                                        Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.Background, Function() Nothing)
                                         Await Task.Delay(100)
+                                        'Await Task.Yield()
+                                        'System.Diagnostics.Debug.WriteLine($"Flash {i} {str}")
                                     Next
                                     Await lamShowResults()
                                 End If
@@ -419,7 +424,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         End If
                         nLastHintNum = 0
                         _spResults.Children.Clear()
-                        btnNew.Content = "_Show Results"
+                        btnNew.Content = "_I Give Up"
                         _pnl.Children.Clear()
                         _gridUniCanRespond = False
                         _gridUni.Children.Clear()
