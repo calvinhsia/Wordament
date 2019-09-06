@@ -183,7 +183,7 @@ namespace WordamentAndroid
             idTitleText = txtTitle.Id;
             btnNew = new Button(this)
             {
-                Text = $"I Give Up",
+                Text = _striGiveUp,
                 Id = idBtnNew
             };
             mainLayout.AddView(btnNew);
@@ -381,7 +381,7 @@ namespace WordamentAndroid
                 scoreAdapter2 = new WordScoreAdapter(this, dictObscureResults);
                 lstResults1.Adapter = scoreAdapter1;
                 lstResults2.Adapter = scoreAdapter2;
-                btnNew.Text = "Play Again";
+                btnNew.Text = _strPlayAgain;
             }
 
             await BtnNewClick(null, null);
@@ -467,6 +467,7 @@ namespace WordamentAndroid
                     if (!fdidGetLongWord && !IsShowingResult)
                     {
                         fdidGetLongWord = true;
+                        btnNew.Text = _strPlayAgain;
                         cts.Cancel();
                         var res = $"Got answer in {txtTimer.Text} {_WrdHighestPointsFound} Seconds. Hints={nLastHintNum}";
                         Android.Widget.Toast.MakeText(this, res, Android.Widget.ToastLength.Long).Show();
@@ -724,6 +725,9 @@ namespace WordamentAndroid
         }
 
         readonly List<string> _lstLongWords = new List<string>();
+        private readonly string _striGiveUp = $"I Give Up";
+        private readonly string _strPlayAgain = "Play Again";
+
         private async Task FillGridWithTilesAsync(GridLayout grd)
         {
             _arrTiles = new LtrTile[_nRows, _nCols];

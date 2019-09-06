@@ -109,6 +109,8 @@ Class WordamentWindow : Implements INotifyPropertyChanged
     Private _randLetGenerator As RandLetterGenerator
     Private _txtMinWordLen As TextBox
     Private _arrTiles(,) As LtrTile
+    Private ReadOnly _strIGiveUp As String = "_I Give Up"
+    Private ReadOnly _strPlayAgain As String = "_Play Again"
     Private ReadOnly _pnl As StackPanel = New StackPanel With {
         .Orientation = Orientation.Horizontal
     }
@@ -241,7 +243,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                     Dim res = Await taskGetResultsAsync
                     taskGetResultsAsync = Nothing
                     ShowResults(res)
-                    btnNew.Content = "_Play Again"
+                    btnNew.Content = _strPlayAgain
                 End Function
             Dim funcUpdateWordSoFar As Action =
                     Async Sub()
@@ -254,6 +256,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                             If _WrdHighestPointsFound.Length = str.Length Then
                                 If _WrdHighestPointsFound = str Then
                                     fdidFinish = True
+                                    btnNew.Content = _strPlayAgain
                                     AddStatusMsg($"Got answer in {GetTimeAsString(CountDownTime)} {str}")
                                     Dim saveback = lstTilesSelected(0).Background
                                     For i = 1 To 5
@@ -424,7 +427,7 @@ Class WordamentWindow : Implements INotifyPropertyChanged
                         End If
                         nLastHintNum = 0
                         _spResults.Children.Clear()
-                        btnNew.Content = "_I Give Up"
+                        btnNew.Content = _strIGiveUp
                         _pnl.Children.Clear()
                         _gridUniCanRespond = False
                         _gridUni.Children.Clear()
