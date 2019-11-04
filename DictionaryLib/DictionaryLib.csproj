@@ -1,7 +1,14 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard2.0;net46</TargetFrameworks>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>Calvin Hsia</Authors>
+    <Description>Contains 2 English Language Dictionaries: small (53,000 words) and large (172,000 words)
+Allows you to see if a string is a valid English word. Also can generate random words. Works on Windows, Android</Description>
+    <PackageId>DictionaryLib_Calvin_Hsia</PackageId>
+    <PackageTags>English Words Dictionary</PackageTags>
+    <Version>1.0.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
