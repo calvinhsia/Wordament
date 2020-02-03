@@ -56,6 +56,7 @@
     <Compile Include="TestDict.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestMyWord.cs" />
+    <Compile Include="TestScowl.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
