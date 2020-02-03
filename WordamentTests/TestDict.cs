@@ -505,7 +505,15 @@ namespace WordamentTests
         public void TestMakedDict()
         {
             LogMessage($"{TestContext.TestName}  {DateTime.Now.ToString("MM/dd/yy hh:mm:ss")}");
-            var lstSmall = GetOldDictWords((uint)DictionaryType.Small);
+            //var lstSmall = GetOldDictWords((uint)DictionaryType.Small);
+
+            var lstSmall = TestScowl.GetScowlWords(
+                desiredLevel: 35,
+                desiredFiles: new[] { "american", "english" },
+                undesiredFiles: new[] { "proper", "upper", "variant", "contractions", "abbrev" }
+                ).ToList();
+
+
             var lstlarge = GetOldDictWords((uint)DictionaryType.Large);
             var hashLarge = new HashSet<string>();
             foreach (var wrd in lstlarge)
@@ -542,7 +550,7 @@ namespace WordamentTests
             // XCOPY /dy C:\Users\calvinh\Source\Repos\Wordament\WordamentTests\bin\Debug\*.bin C:\Users\calvinh\Source\Repos\Wordament\DictionaryLib\Resources
             // Then rebuild all
 
-            for (uint dictNum = 1; dictNum <= 2; dictNum++)
+            for (uint dictNum = 2; dictNum >=1; dictNum--)
             {
                 List<string> lstWords = null;
                 if ((DictionaryType)dictNum == DictionaryType.Small)
@@ -587,7 +595,7 @@ namespace WordamentTests
                 //                var newlstWord = DictionaryData.DictionaryUtil.ReadDict(dictBytes);
                 for (int i = 0; i < lstWords.Count; i++)
                 {
-                    Assert.AreEqual(lstWords[i], newlstWord[i]);
+                    Assert.AreEqual(lstWords[i], newlstWord[i],$"dict {dictNum}");
                 }
                 Assert.AreEqual(newlstWord.Count(), lstWords.Count(), $"dict num {dictNum} ");
             }
