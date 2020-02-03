@@ -75,7 +75,7 @@ namespace WordamentTests
                         var justFile = System.IO.Path.GetFileName(file);
                         foreach (var word in File.ReadAllLines(file).Where(l => !string.IsNullOrEmpty(l)))
                         {
-                            if (!word.Contains("�"))
+                            if (!word.Contains("�")) // 'eclair
                             {
                                 if (!char.IsUpper(word[0]) && !word.Contains("'"))
                                 {
