@@ -13,7 +13,7 @@ namespace DictionaryLib
     [DebuggerDisplay("{GetWord()}")]
     internal class MyWord : IComparable
     {
-        public static MyWord Empty;
+        public static MyWord Empty = new MyWord();
         private byte[] _wordBytes = new byte[DictionaryLib.MaxWordLen];
         int _currentLength;
         public MyWord()

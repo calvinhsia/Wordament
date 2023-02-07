@@ -106,7 +106,7 @@ namespace DictionaryLib
         ///     abcdefone=> returns abcdefone (match)
         ///     abcdefg=> returns abcdefone
         ///     abcdefs=> returns abcdeftwo
-        /// 
+        /// If we're at the end of the dictionary, return string.empty
         ///// </summary>
         /// </summary>
         /// <param name="word"></param>
@@ -130,14 +130,21 @@ namespace DictionaryLib
                 let2 = (byte)(word[2]);
             }
             SetDictPos(let0, let1, let2);
-            var result = GetNextWord(out compResult, WordStop: new MyWord(word));
+            var wordStop = new MyWord(word);
+            if (_nibndx == 0 && let0 > 97) // if the nibndx shows 0 but we're past the "A"'s, then we're at the end of the dictionary
+            {
+                compResult = -1;
+                return string.Empty;
+            }
+            var result = GetNextWord(out compResult, wordStop);
             return result.GetWord();
         }
 
         void SetDictPos(byte let0, byte let1 = LetterA, byte let2 = LetterA)
         {
             _havePartialNib = false;
-            _nibndx = _dictHeader.nibPairPtr[((let0 - LetterA) * NumLetters + let1 - LetterA) * NumLetters + let2 - LetterA].nibbleOffset;
+            var n = ((let0 - LetterA) * NumLetters + let1 - LetterA) * NumLetters + let2 - LetterA;
+            _nibndx = _dictHeader.nibPairPtr[n].nibbleOffset;
             _GetNextWordCount = 0;
             _MyWordSoFar.SetWord(let0, let1, let2);
             if ((int)(_nibndx & 1) > 0)
@@ -192,6 +199,10 @@ namespace DictionaryLib
                 }
             }
             _nibndx++;
+            if (_nibndx > _dictBytes.Length * 2)
+            {
+                return 0;
+            }
             _havePartialNib = !_havePartialNib;
             //                LogMessage($"  GetNextNib {nibndx} {result}");
             return result;
@@ -218,12 +229,7 @@ namespace DictionaryLib
         {
             Debug.Assert((WordStop == null) || cntSkip == 0);
             byte nib;
-            MyWord stopAtWord = null;
             compareResult = 0;
-            if (WordStop != null)
-            {
-                stopAtWord = WordStop;
-            }
             var done = false;
             int loopCount = 0;
             while (!done)
@@ -266,9 +272,9 @@ namespace DictionaryLib
                     }
                     _MyWordSoFar.AddByte((byte)newchar);
                 }
-                if (stopAtWord != null)
+                if (WordStop != null)
                 {
-                    var cmp = _MyWordSoFar.CompareTo(stopAtWord);
+                    var cmp = _MyWordSoFar.CompareTo(WordStop);
                     if (cmp >= 0)
                     {
                         compareResult = cmp;
@@ -290,12 +296,42 @@ namespace DictionaryLib
                     }
                 }
             }
-            return _MyWordSoFar;
+            return _MyWordSoFar ?? MyWord.Empty;
         }
 
         /// <summary>
-        /// given a bunch of letters, find all words in dictionary that contain only those letters (could be dup letters)
+        /// Get all words that can be made from permuting the InitialWord ( >=MinLength)
+        /// </summary>
+        public List<string> GenerateSubWords(string InitialWord, int MinLength = 3, bool LeftToRight = true)
+        {
+            var hashSet = new HashSet<string>();
+            PermuteString(InitialWord, LeftToRight, (str) =>
+            {
+                for (int i = MinLength; i < str.Length; i++)
+                {
+                    var testWord = str.Substring(0, i);
+                    var partial = SeekWord(testWord, out var compResult);
+                    if (!string.IsNullOrEmpty(partial) && compResult == 0)
+                    {
+                        hashSet.Add(testWord);
+                    }
+                    else
+                    {
+                        if (!partial.StartsWith(testWord))
+                        {
+                            break;
+                        }
+                    }
+                }
+                return true; // continue 
+            });
+            return hashSet.ToList();
+        }
+
+        /// <summary>
+        /// Given a bunch of letters, find all words in dictionary that contain only those letters (could be dup letters, so not an anagram)
         /// e.g. for "admit", returns "madam", "dam", "timid"
+        /// e.g. for "
         /// </summary>
         /// <param name="inputLetters"></param>
         public IEnumerable<string> FindSubWordsFromLetters(string inputLetters, AnagramType anagramType)
@@ -646,7 +682,7 @@ namespace DictionaryLib
                                else
                                {
                                    LogMessage($"Rejecting perm # {nTimes} {indxLtrFreq} {ApplyCipherToCryptogram()}");
-//                                   LogMessage($"Reject cipher {ApplyCipherToCryptogram()}");
+                                   //                                   LogMessage($"Reject cipher {ApplyCipherToCryptogram()}");
                                    doneThisPermutation = true;
                                    break;
                                    //cipher[ndxCipher] = qmarkChar; // revert the try 
@@ -734,7 +770,7 @@ namespace DictionaryLib
         }
 
         /// <summary>
-        /// 
+        /// Can produce multiple duplicates if there are duplicate letters in the input
         /// </summary>
         /// <param name="inputString"></param>
         /// <param name="LeftToRight">the left part of the string changes the fastest</param>
@@ -791,7 +827,7 @@ namespace DictionaryLib
 
 
         /// <summary>
-        /// Given a word with embedded QMarks, find a match
+        /// Given a word with embedded QMarks, find a match. A QMark is "_" for easy reading
         /// </summary>
         /// <param name="mword"></param>
         /// <returns></returns>
@@ -822,7 +858,7 @@ namespace DictionaryLib
             while (!done)
             {
                 var tryWord = GetNextWord(WordStop: null);
-                if (tryWord == null)
+                if (tryWord == null || tryWord.WordLength == 0)
                 {
                     break;
                 }

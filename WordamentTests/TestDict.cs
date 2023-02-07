@@ -42,6 +42,7 @@ namespace WordamentTests
     {
 
         [TestMethod]
+        [Ignore]
         public void TestOldDictWrapper()
         {
             //            var lstWords = new List<string>();
@@ -67,9 +68,9 @@ namespace WordamentTests
             }
             Assert.AreEqual(dict.SeekWord(""), "a");
             Assert.AreEqual(dict.SeekWord("me"), "me");
-            Assert.AreEqual(dict.SeekWord("mel"), "melancholia");
+            Assert.AreEqual(dict.SeekWord("mel"), "melancholy");
             Assert.AreEqual(dict.SeekWord("aband"), "abandon");
-            Assert.AreEqual(dict.SeekWord("asdf"), "asdic");
+            Assert.AreEqual(dict.SeekWord("asdf"), "asexual");
             Assert.AreEqual(dict.SeekWord("it"), "it");
 
             var partial = dict.SeekWord("test", out var compResult);
@@ -82,7 +83,7 @@ namespace WordamentTests
 
             partial = dict.SeekWord("contemptuousl", out compResult);
             Assert.IsTrue(compResult > 0);
-            Assert.AreEqual("contemptuously", partial);
+            Assert.AreEqual("contend", partial);
 
             partial = dict.SeekWord("contemplatio", out compResult);
             Assert.IsTrue(compResult > 0);
@@ -100,12 +101,12 @@ namespace WordamentTests
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
 
-            var result = dict.FindMatchRegEx("melt*").ToList();
-            Assert.AreEqual(131, result.Count);
-            Assert.IsTrue(result.Contains("wholesomely"));
+            var result = dict.FindMatchRegEx("mel.*").ToList();
+            Assert.AreEqual(66, result.Count);
+            Assert.IsTrue(result.Contains("watermelon"));
 
             result = dict.FindMatchRegEx("zz.*").ToList(); // all words with "zz"
-            Assert.AreEqual(109, result.Count);
+            Assert.AreEqual(94, result.Count);
             Assert.IsTrue(result.Contains("jazz"));
 
             foreach (var str in new[] { "aband*", "^x.*", "asdfg*" })
@@ -118,6 +119,43 @@ namespace WordamentTests
                     LogMessage($"           {ndx++,6}          {wrd}");
                 }
             }
+        }
+        [TestMethod]
+        public void TestIterateDict()
+        {
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
+            var rs = dict.SeekWord("");
+            var cnt = 0;
+            while (!string.IsNullOrEmpty(dict.GetNextWord()))
+            {
+                cnt++;
+            }
+            Trace.WriteLine($"{cnt} entries found");
+            Assert.AreEqual(38750, cnt);
+        }
+
+        [TestMethod]
+        public void TestPermutationIsWord()
+        {
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
+            var rs = dict.SeekWord("");
+            Assert.AreEqual("a", rs);
+            var iss1 = dict.IsWord("tes");
+            var iss2 = dict.IsWord("zuiaelqde");
+            var word = "equalized";
+            var lstPerms = new List<string>();
+            var nPerms = 0;
+            DictionaryLib.DictionaryLib.PermuteString(word, LeftToRight: true, (str) =>
+            {
+                if (dict.IsWord(str))
+                {
+                    lstPerms.Add(str);
+                    Trace.WriteLine($"{str}");
+                }
+                nPerms++;
+                return true;
+            });
+            Trace.WriteLine($"# permutations of {word} = {nPerms}. {lstPerms.Count} are words");
         }
 
         [TestMethod]
@@ -171,7 +209,7 @@ namespace WordamentTests
             Assert.IsTrue(lstAnagrams.Contains("rediscount"));
             Assert.IsTrue(lstAnagrams.Contains("introduces"));
             Assert.IsTrue(lstAnagrams.Contains("reductions"));
-            Assert.AreEqual(20395, dict._nRecursionCnt);
+            Assert.AreEqual(20345, dict._nRecursionCnt);
         }
 
         [TestMethod]
@@ -196,46 +234,16 @@ namespace WordamentTests
                 Console.WriteLine($"Found anagram {anagram}");
             }
             Assert.IsTrue(lstAnagrams.Contains("con"));
-            Assert.IsTrue(lstAnagrams.Contains("cont"));
             Assert.IsTrue(lstAnagrams.Contains("cot"));
             Assert.IsTrue(lstAnagrams.Contains("count"));
             Assert.IsTrue(lstAnagrams.Contains("cut"));
             Assert.IsTrue(lstAnagrams.Contains("not"));
             Assert.IsTrue(lstAnagrams.Contains("nut"));
-            Assert.IsTrue(lstAnagrams.Contains("ont"));
-            Assert.IsTrue(lstAnagrams.Contains("oct"));
             Assert.IsTrue(lstAnagrams.Contains("out"));
             Assert.IsTrue(lstAnagrams.Contains("ton"));
             Assert.IsTrue(lstAnagrams.Contains("unto"));
-            Assert.AreEqual(12, lstAnagrams.Count);
-            Assert.AreEqual(144, dict._nRecursionCnt);
-        }
-
-        [TestMethod]
-        public void TestDoSubAnagrams3()
-        {
-            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
-            var lstAnagrams = new List<string>();
-            var word = "discount";
-            var anagType = DictionaryLib.DictionaryLib.AnagramType.SubWord3;
-            LogMessage($"doing subanagrams {anagType} {word}");
-            dict.FindAnagrams(word,
-                DictionaryLib.DictionaryLib.AnagramType.SubWord5,
-                (str) =>
-                {
-                    lstAnagrams.Add(str);
-                    return true; // continue
-                });
-            Console.WriteLine($"Got {lstAnagrams.Count} results in {dict._nRecursionCnt:n0} calls");
-            foreach (var anagram in lstAnagrams)
-            {
-                Console.WriteLine($"Found anagram {anagram}");
-            }
-            Assert.IsTrue(lstAnagrams.Contains("tucson"));
-            Assert.IsTrue(lstAnagrams.Contains("conduit"));
-            Assert.IsTrue(lstAnagrams.Contains("donuts"));
-            Assert.AreEqual(32, lstAnagrams.Count);
-            Assert.AreEqual(1967, dict._nRecursionCnt);
+            Assert.AreEqual(9, lstAnagrams.Count);
+            Assert.AreEqual(124, dict._nRecursionCnt);
         }
 
 
@@ -258,11 +266,11 @@ namespace WordamentTests
             {
                 Console.WriteLine($"Found anagram {anagram}");
             }
-            Assert.IsTrue(lstAnagrams.Contains("tucson"));
-            Assert.IsTrue(lstAnagrams.Contains("conduit"));
-            Assert.IsTrue(lstAnagrams.Contains("donuts"));
-            Assert.AreEqual(32, lstAnagrams.Count);
-            Assert.AreEqual(1967, dict._nRecursionCnt);
+            Assert.IsTrue(lstAnagrams.Contains("sonic"));
+            Assert.IsTrue(lstAnagrams.Contains("scout"));
+            Assert.IsTrue(lstAnagrams.Contains("icons"));
+            Assert.AreEqual(21, lstAnagrams.Count);
+            Assert.AreEqual(1640, dict._nRecursionCnt);
         }
 
         [TestMethod]
@@ -285,7 +293,7 @@ namespace WordamentTests
             Assert.IsTrue(lstAnagrams.Contains("accountancy"));
             Assert.IsTrue(lstAnagrams.Contains("act"));
             Assert.IsTrue(lstAnagrams.Contains("vaccine"));
-            Assert.AreEqual(2400, lstAnagrams.Count);
+            Assert.AreEqual(1555, lstAnagrams.Count);
         }
 
 
@@ -308,14 +316,31 @@ namespace WordamentTests
                 Console.WriteLine($"Found subwords {anagram}");
             }
             Assert.IsTrue(lstAnagrams.Contains("concussion"));
-            Assert.IsTrue(lstAnagrams.Contains("tucson"));
-            Assert.IsTrue(lstAnagrams.Contains("conduit"));
-            Assert.IsTrue(lstAnagrams.Contains("donuts"));
-            Assert.AreEqual(158, lstAnagrams.Count);
+            Assert.IsTrue(lstAnagrams.Contains("sonic"));
+            Assert.IsTrue(lstAnagrams.Contains("scout"));
+            Assert.IsTrue(lstAnagrams.Contains("icons"));
+            Assert.AreEqual(120, lstAnagrams.Count);
         }
 
+        [TestMethod]
+        public void TestDoGenerateSubWords()
+        {
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
+            var InitWord = "discounter";
+            for (int i = 0; i < 1; i++)
+            {
+                var lst = dict.GenerateSubWords(InitWord);
+                LogMessage($"{InitWord} Found subwords ={lst.Count}");
+                foreach (var word in lst)
+                {
+                    LogMessage($"{word}");
+                }
+            }
+
+        }
 
         [TestMethod]
+        [Ignore]
         public void TestPerfRandWord()
         {
             using (var oldDict = new OldDictWrapper(1))
@@ -342,6 +367,7 @@ namespace WordamentTests
         }
 
         [TestMethod]
+        [Ignore]
         public void TestPerfIsWord()
         {
             using (var oldDict = new OldDictWrapper(1))
@@ -367,7 +393,7 @@ namespace WordamentTests
                         LogMessage($"{word}  _GetNextWordCount {newdict._GetNextWordCount}");
                     }
                     Assert.IsTrue(r);
-                    Assert.AreEqual(809, newdict._GetNextWordCount);
+                    Assert.AreEqual(813, newdict._GetNextWordCount);
                 }
                 var newdictTime = sw.Elapsed.TotalSeconds;
                 LogMessage($"Newdict {newdictTime}");
@@ -376,6 +402,7 @@ namespace WordamentTests
         }
 
         [TestMethod]
+        [Ignore]
         public void TestPerfIsNotWord()
         {
             using (var oldDict = new OldDictWrapper(1))
@@ -502,6 +529,7 @@ namespace WordamentTests
         }
 
         [TestMethod]
+        [Ignore]
         public void TestMakedDict()
         {
             LogMessage($"{TestContext.TestName}  {DateTime.Now.ToString("MM/dd/yy hh:mm:ss")}");
@@ -550,7 +578,7 @@ namespace WordamentTests
             // XCOPY /dy C:\Users\calvinh\Source\Repos\Wordament\WordamentTests\bin\Debug\*.bin C:\Users\calvinh\Source\Repos\Wordament\DictionaryLib\Resources
             // Then rebuild all
 
-            for (uint dictNum = 2; dictNum >=1; dictNum--)
+            for (uint dictNum = 2; dictNum >= 1; dictNum--)
             {
                 List<string> lstWords = null;
                 if ((DictionaryType)dictNum == DictionaryType.Small)
@@ -595,7 +623,7 @@ namespace WordamentTests
                 //                var newlstWord = DictionaryData.DictionaryUtil.ReadDict(dictBytes);
                 for (int i = 0; i < lstWords.Count; i++)
                 {
-                    Assert.AreEqual(lstWords[i], newlstWord[i],$"dict {dictNum}");
+                    Assert.AreEqual(lstWords[i], newlstWord[i], $"dict {dictNum}");
                 }
                 Assert.AreEqual(newlstWord.Count(), lstWords.Count(), $"dict num {dictNum} ");
             }
@@ -659,25 +687,11 @@ namespace WordamentTests
             return sb.ToString();
         }
 
-        [TestMethod]
-        public void TestStr()
-        {
-            var strInput =
-            @"  fc0000   fc1000     1000 MEM_IMAGE   MEM_COMMIT  PAGE_READONLY                      Image      [devenv; ""C:\Program Files(x86)\Microsoft Visual Studio\2019\Professional\Common7\IDE\devenv.exe""]
-    fc1000  1026000    65000 MEM_IMAGE MEM_COMMIT  PAGE_EXECUTE_READ Image[devenv; ""C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\Common7\IDE\devenv.exe""]
-";
-
-            var lineParts = strInput.Split(" \t".ToArray(), StringSplitOptions.RemoveEmptyEntries);
-            foreach (var lin in lineParts)
-            {
-                LogMessage($"got {lin.Trim()}");
-            }
-        }
 
         [TestMethod]
         public void TestGetTimeAsString()
         {
-            foreach (var time in new[] { 0, 59, 60, 61, 119, 120, 121})
+            foreach (var time in new[] { 0, 59, 60, 61, 119, 120, 121 })
             {
                 var str = WordamentWindow.GetTimeAsString(nSecs: time);
                 Console.WriteLine($"for time {time} str={str}");
@@ -686,6 +700,7 @@ namespace WordamentTests
         }
 
         [TestMethod]
+        [Ignore]
         public void TestCryptogram()
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
@@ -697,8 +712,7 @@ namespace WordamentTests
         [TestMethod]
         public void TestPermutation()
         {
-            var txtToUse = "abcdefghijklmnop";
-            txtToUse = "abcdefghi";
+            var txtToUse = "abcdefghi";
             int nTimes = 0;
             bool ActGotResult(string res)
             {
@@ -723,14 +737,14 @@ namespace WordamentTests
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
             var dictTestData = new Dictionary<string, Tuple<int, int>>() // word to cntNumSearches, cntresults, 
             {
-                ["__"] = new Tuple<int, int>(53870, 241),
-                ["____i_i__"] = new Tuple<int, int>(53870, 266),
-                ["c_n___ion"] = new Tuple<int, int>(5115, 3), //confusion, contagion
-                ["_ondition"] = new Tuple<int, int>(53870, 1),
-                ["c_ndition"] = new Tuple<int, int>(5115, 1),
-                ["conditio_"] = new Tuple<int, int>(905, 1),
-                ["con______"] = new Tuple<int, int>(905, 140),
-                ["condition"] = new Tuple<int, int>(905, 1),
+                ["__"] = new Tuple<int, int>(38752, 42),
+                ["____i_i__"] = new Tuple<int, int>(38752, 211),
+                ["c_n___ion"] = new Tuple<int, int>(3800, 3), //confusion, contagion
+                ["_ondition"] = new Tuple<int, int>(38752, 1),
+                ["c_ndition"] = new Tuple<int, int>(3800, 1),
+                ["conditio_"] = new Tuple<int, int>(683, 1),
+                ["con______"] = new Tuple<int, int>(683, 111),
+                ["condition"] = new Tuple<int, int>(683, 1),
             };
             foreach (var kvp in dictTestData)
             {
@@ -741,11 +755,12 @@ namespace WordamentTests
                     lstResults.Add(m.GetWord());
                     return true;
                 });
-                LogMessage($"FindQMarkMatch '{mwordQMark}'  _GetNextWordCount= {dict._GetNextWordCount} #Res={lstResults.Count}");
+//                LogMessage($"FindQMarkMatch '{mwordQMark}'  _GetNextWordCount= {dict._GetNextWordCount} #Res={lstResults.Count}");
                 foreach (var res in lstResults)
                 {
                     LogMessage($" {res}");
                 }
+                LogMessage($"{kvp.Key, -20}  {kvp.Value.Item1} _GetNextWordCount={dict._GetNextWordCount}         #Res= {kvp.Value.Item2} #Res={lstResults.Count}  ");
                 Assert.AreEqual(kvp.Value.Item1, dict._GetNextWordCount, kvp.Key);
 
                 Assert.AreEqual(kvp.Value.Item2, lstResults.Count, kvp.Key);

@@ -173,7 +173,7 @@ namespace MakeDictionary
                     AddNib(0); // write out last nibble
                 }
                 dictHeader.maxWordLen = maxWordLen;
-                if (maxWordLen>30)
+                if (maxWordLen > 30)
                 {
                     throw new InvalidOperationException("Word length > 30");
                 }
@@ -313,6 +313,12 @@ namespace MakeDictionary
             var g3 = typeof(DictionaryCPP.CDictClass).GUID; //3ED98B67-96FC-42A1-A361-2141CC07D1C4
             //var g3 = new Guid("3ED98B67-96FC-42A1-A361-2141CC07D1C4");
 
+            //NOTE: Check Bitness: Dictionary.dll is a 32 bit DLL from revers engineering the Wordperfect dictionary
+            // thus this code must be run as 32 bit
+            if (IntPtr.Size != 4)
+            {
+                throw new InvalidOperationException($"Must run as 32 bit (TestExplorer->Settings Menu->ProcArch for AnyCPU projs=>X86  {dictCppDllName}");
+            }
             var hr = CoCreateFromFile(dictCppDllName, g3, typeof(DictionaryCPP.IDict).GUID, out var pObject);
             if (hr != HResult.S_OK)
             {
@@ -374,7 +380,7 @@ namespace MakeDictionary
             else
             {
                 throw new InvalidOperationException($"Couldn't unload {dictCppDllName}");
-//                Debug.Assert(GetModuleHandle(dictCppDllName) == IntPtr.Zero);
+                //                Debug.Assert(GetModuleHandle(dictCppDllName) == IntPtr.Zero);
 
             }
         }
