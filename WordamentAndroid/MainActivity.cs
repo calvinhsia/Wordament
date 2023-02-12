@@ -77,7 +77,7 @@ namespace WordamentAndroid
             {
                 if (txtStatus != null)
                 {
-                    var txt = $"\n{DateTime.Now.ToString("hh:mm:ss:fff")} {str}";
+                    var txt = $"\n{DateTime.Now:hh:mm:ss:fff} {str}";
                     if (!string.IsNullOrEmpty(txtStatus.Text))
                     {
                         txt = txtStatus.Text + txt;
@@ -331,7 +331,7 @@ namespace WordamentAndroid
                 }
                 catch (Exception ex)
                 {
-                    AddStatusMsg($"click {ex.ToString()}");
+                    AddStatusMsg($"click {ex}");
                 }
             };
             var IsShowingResult = true;
@@ -581,13 +581,13 @@ namespace WordamentAndroid
                                       LtrTile priorSelected = null;
                                       if (lstTilesSelected.Count > 0)
                                       {
-                                          priorSelected = lstTilesSelected[lstTilesSelected.Count - 1];
+                                          priorSelected = lstTilesSelected[^1]; // last element
                                       }
                                       if (ltrTile._IsSelected)
                                       {
                                           if (lstTilesSelected.Count > 1)
                                           {
-                                              var tilePenultimate = lstTilesSelected[lstTilesSelected.Count - 2];
+                                              var tilePenultimate = lstTilesSelected[^2]; // lstTilesSelected.Count - 2
                                               // AddStatusMsg($"{tilePenultimate} {priorSelected} {ltrTile}");
                                               if (ltrTile.Row == tilePenultimate.Row && ltrTile.Col == tilePenultimate.Col)
                                               {// back to prior one
@@ -637,7 +637,7 @@ namespace WordamentAndroid
                   }
                   catch (Exception ex)
                   {
-                      AddStatusMsg($"GRD {ex.ToString()}");
+                      AddStatusMsg($"GRD {ex}");
                   }
               };
 
@@ -656,7 +656,7 @@ namespace WordamentAndroid
             var lstHintTiles = new List<string>();
             for (int i = 1; i <= _WrdHighestPointsFound.Length; i++)
             {
-                lstHintTiles.Add($"{_WrdHighestPointsFound.Substring(0, i)}");
+                lstHintTiles.Add($"{_WrdHighestPointsFound[..i]}");
             }
             var lstOtherHints = new List<string>()
             {
@@ -675,9 +675,7 @@ namespace WordamentAndroid
             for (int i = 0; i < lstOtherHints.Count; i++)
             {
                 var r = _random.Next(lstOtherHints.Count);
-                var tmp = lstOtherHints[r];
-                lstOtherHints[r] = lstOtherHints[i];
-                lstOtherHints[i] = tmp;
+                (lstOtherHints[i], lstOtherHints[r]) = (lstOtherHints[r], lstOtherHints[i]); // tuple swap
             }
             // now interleave the 2 hints randomly: the ltr hints must be sequential
             var nTotalHints = lstOtherHints.Count + lstHintTiles.Count;
@@ -783,9 +781,7 @@ namespace WordamentAndroid
                                for (int i = 0; i < 8; i++)
                                {
                                    var rnd = _random.Next(8);
-                                   var tmp = directions[i];
-                                   directions[i] = directions[rnd];
-                                   directions[rnd] = tmp;
+                                   (directions[rnd], directions[i]) = (directions[i], directions[rnd]);
                                }
                                for (int idir = 0; idir < 8; idir++)
                                {
@@ -990,19 +986,13 @@ namespace WordamentAndroid
 
         public bool OnNavigationItemSelected(IMenuItem item)
         {
-            switch (item.ItemId)
+            return item.ItemId switch
             {
-                case Resource.Id.navigation_home:
-                    //                    textMessage.SetText(Resource.String.title_home);
-                    return true;
-                case Resource.Id.navigation_dashboard:
-                    //                  textMessage.SetText(Resource.String.title_dashboard);
-                    return true;
-                case Resource.Id.navigation_notifications:
-                    //                textMessage.SetText(Resource.String.title_notifications);
-                    return true;
-            }
-            return false;
+                Resource.Id.navigation_home => true,//                    textMessage.SetText(Resource.String.title_home);
+                Resource.Id.navigation_dashboard => true,//                  textMessage.SetText(Resource.String.title_dashboard);
+                Resource.Id.navigation_notifications => true,//                textMessage.SetText(Resource.String.title_notifications);
+                _ => false,
+            };
         }
 
         public class WordScore
