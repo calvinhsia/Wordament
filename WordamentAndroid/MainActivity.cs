@@ -103,8 +103,24 @@ namespace WordamentAndroid
         public override void OnConfigurationChanged(Configuration newConfig)
         {
             base.OnConfigurationChanged(newConfig);
-            WindowManager.DefaultDisplay.GetSize(_ptScreenSize);
+            //WindowManager.DefaultDisplay.GetSize(_ptScreenSize);
+            GetScreenSize();
             SetLayoutForOrientation(newConfig.Orientation);
+        }
+
+        Point GetScreenSize()
+        {
+            WindowManager.DefaultDisplay.GetSize(_ptScreenSize);
+            //var metrics = WindowManager.CurrentWindowMetrics;
+            //var insets = metrics.WindowInsets.GetInsetsIgnoringVisibility(WindowInsets.Type.NavigationBars() | WindowInsets.Type.DisplayCutout());
+            //var insetsWidth = insets.Right + insets.Left;
+            //var insetsHeight = insets.Top + insets.Bottom;
+            //var width = metrics.Bounds.Width(); // - insetsWidth;
+            //var height = metrics.Bounds.Height();// - insetsHeight;
+            //_ptScreenSize.X = width;
+            //_ptScreenSize.Y = height;
+
+            return _ptScreenSize;
         }
 
         private void SetLayoutForOrientation(Android.Content.Res.Orientation orientation)
@@ -253,7 +269,8 @@ namespace WordamentAndroid
         protected override async void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
-            WindowManager.DefaultDisplay.GetSize(_ptScreenSize);
+            //WindowManager.DefaultDisplay.GetSize(_ptScreenSize);
+            GetScreenSize();
             _mainThread = Thread.CurrentThread.ManagedThreadId;
             var seed = 0;
             if (System.Diagnostics.Debugger.IsAttached)
