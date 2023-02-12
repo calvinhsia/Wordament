@@ -91,6 +91,18 @@ namespace DictionaryLib
             {
                 for (int i = 0; i < Math.Min(this._currentLength, other._currentLength); i++)
                 {
+                    /*
+                    var thisone = this._wordBytes[i];
+                    var thatone = other._wordBytes[i];
+                    if (thisone != thatone)
+                    {
+                        retval = thisone.CompareTo(thatone);
+                        if (retval != 0)
+                        {
+                            break;
+                        }
+                    }
+                    /*/
                     if (this[i] != other[i])
                     {
                         retval = this[i].CompareTo(other[i]);
@@ -99,6 +111,7 @@ namespace DictionaryLib
                             break;
                         }
                     }
+                    //*/
                 }
                 if (retval == 0)
                 {

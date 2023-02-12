@@ -9,6 +9,7 @@ using MakeDictionary;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using DictionaryLib;
 using Wordament;
+using BenchmarkDotNet.Running;
 
 namespace WordamentTests
 {
@@ -27,7 +28,7 @@ namespace WordamentTests
         [TestInitialize]
         public void TestInit()
         {
-            LogMessage($"Test Init {DateTime.Now.ToString()} {TestContext.TestName}");
+            LogMessage($"Test Init {DateTime.Now} {TestContext.TestName}");
         }
         public TestBase()
         {
@@ -46,10 +47,8 @@ namespace WordamentTests
         public void TestOldDictWrapper()
         {
             //            var lstWords = new List<string>();
-            using (var dictWrapper = new OldDictWrapper(2))
-            {
-                //                lstWords.AddRange(dictWrapper.GetWords("*"));
-            }
+            using var dictWrapper = new OldDictWrapper(2);
+            //                lstWords.AddRange(dictWrapper.GetWords("*"));
         }
         [TestMethod]
         public void TestSeekWord()
@@ -125,6 +124,7 @@ namespace WordamentTests
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
             var rs = dict.SeekWord("");
+            Trace.WriteLine($"Seek empty string == {rs}");
             var cnt = 0;
             while (!string.IsNullOrEmpty(dict.GetNextWord()))
             {
@@ -163,19 +163,17 @@ namespace WordamentTests
         //        [ExpectedException(typeof(InvalidOperationException), AllowDerivedTypes = false)]
         public void TestDoAnagramOld()
         {
-            using (var dict = new MakeDictionary.OldDictWrapper(1))
-            {
-                var lstAnagrams = new List<string>();
+            using var dict = new MakeDictionary.OldDictWrapper(1);
+            var lstAnagrams = new List<string>();
 
-                var x = dict.FindAnagrams("discounterzz");
-                foreach (var w in x)
-                {
-                    LogMessage($"xxxx  {w}");
-                }
-                foreach (var anagram in lstAnagrams)
-                {
-                    LogMessage(anagram);
-                }
+            var x = dict.FindAnagrams("discounterzz");
+            foreach (var w in x)
+            {
+                LogMessage($"xxxx  {w}");
+            }
+            foreach (var anagram in lstAnagrams)
+            {
+                LogMessage(anagram);
             }
         }
 
@@ -322,12 +320,134 @@ namespace WordamentTests
             Assert.AreEqual(120, lstAnagrams.Count);
         }
 
+        public class foo
+        {
+            private byte[] _wordBytes = new byte[DictionaryLib.DictionaryLib.MaxWordLen];
+            int _currentLength;
+            string TestWord = "foobarfoobarfoobar";
+            string OtherTestWord = "foobarfoobarfoobar";
+            public byte this[int key] { get { return this._wordBytes[key]; } set { this._wordBytes[key] = value; } }
+            public foo()
+            {
+                SetWord(TestWord);
+            }
+            public void SetWord(string word)
+            {
+                _currentLength = word.Length;
+                for (int ndx = 0; ndx < word.Length; ndx++)
+                {
+                    _wordBytes[ndx] = (byte)word[ndx];
+                }
+            }
+
+            [BenchmarkDotNet.Attributes.Benchmark]
+            public void DoOne()
+            {
+                var wother = new foo();
+                wother.SetWord(OtherTestWord);
+                CompareTo1(wother);
+            }
+            [BenchmarkDotNet.Attributes.Benchmark]
+            public void DoTwo()
+            {
+                var wother = new foo();
+                wother.SetWord(OtherTestWord);
+                CompareTo2(wother);
+            }
+            public int CompareTo1(object obj)
+            {
+                int retval = 0;
+                if (obj is foo other)
+                {
+                    for (int i = 0; i < Math.Min(this._currentLength, other._currentLength); i++)
+                    {
+                        /*
+                        var thisone = this._wordBytes[i];
+                        var thatone = other._wordBytes[i];
+                        if (thisone != thatone)
+                        {
+                            retval = thisone.CompareTo(thatone);
+                            if (retval != 0)
+                            {
+                                break;
+                            }
+                        }
+                        /*/
+                        if (this[i] != other[i])
+                        {
+                            retval = this[i].CompareTo(other[i]);
+                            if (retval != 0)
+                            {
+                                break;
+                            }
+                        }
+                        //*/
+                    }
+                    if (retval == 0)
+                    {
+                        retval = this._currentLength.CompareTo(other._currentLength);
+                    }
+                }
+                else
+                {
+                    throw new InvalidOperationException();
+                }
+                return retval;
+            }
+            public int CompareTo2(object obj)
+            {
+                int retval = 0;
+                if (obj is foo other)
+                {
+                    for (int i = 0; i < Math.Min(this._currentLength, other._currentLength); i++)
+                    {
+                        //*
+                        var thisone = this._wordBytes[i];
+                        var thatone = other._wordBytes[i];
+                        if (thisone != thatone)
+                        {
+                            retval = thisone.CompareTo(thatone);
+                            if (retval != 0)
+                            {
+                                break;
+                            }
+                        }
+                        /*/
+                        if (this[i] != other[i])
+                        {
+                            retval = this[i].CompareTo(other[i]);
+                            if (retval != 0)
+                            {
+                                break;
+                            }
+                        }
+                        //*/
+                    }
+                    if (retval == 0)
+                    {
+                        retval = this._currentLength.CompareTo(other._currentLength);
+                    }
+                }
+                else
+                {
+                    throw new InvalidOperationException();
+                }
+                return retval;
+            }
+        }
+        [TestMethod]
+        public void TestBench()
+        {
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
+            BenchmarkRunner.Run(typeof(foo));
+        }
+
         [TestMethod]
         public void TestDoGenerateSubWords()
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
             var InitWord = "discounter";
-            for (int i = 0; i < 1; i++)
+            for (int i = 0; i < 100; i++)
             {
                 var lst = dict.GenerateSubWords(InitWord);
                 LogMessage($"{InitWord} Found subwords ={lst.Count}");
@@ -335,6 +455,7 @@ namespace WordamentTests
                 {
                     LogMessage($"{word}");
                 }
+                Assert.AreEqual(485, lst.Count);
             }
 
         }
@@ -343,97 +464,91 @@ namespace WordamentTests
         [Ignore]
         public void TestPerfRandWord()
         {
-            using (var oldDict = new OldDictWrapper(1))
+            using var oldDict = new OldDictWrapper(1);
+            var newdict = new DictionaryLib.DictionaryLib(DictionaryType.Large, new Random(1));
+            var sw = new Stopwatch();
+            sw.Start();
+            var nCnt = 10000;
+            for (int i = 0; i < nCnt; i++)
             {
-                var newdict = new DictionaryLib.DictionaryLib(DictionaryType.Large, new Random(1));
-                var sw = new Stopwatch();
-                sw.Start();
-                var nCnt = 10000;
-                for (int i = 0; i < nCnt; i++)
-                {
-                    oldDict.RandWord(0);
-                }
-                var olddictTime = sw.Elapsed.TotalSeconds;
-                LogMessage($"Olddict {sw.Elapsed.TotalSeconds}");
-                sw.Restart();
-                for (int i = 0; i < nCnt; i++)
-                {
-                    newdict.RandomWord();
-                }
-                var newdictTime = sw.Elapsed.TotalSeconds;
-                LogMessage($"Newdict {newdictTime}");
-                Assert.Fail($"This test is supposed to fail to show perf results: OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  Ratio {newdictTime / olddictTime:n1}");
+                oldDict.RandWord(0);
             }
+            var olddictTime = sw.Elapsed.TotalSeconds;
+            LogMessage($"Olddict {sw.Elapsed.TotalSeconds}");
+            sw.Restart();
+            for (int i = 0; i < nCnt; i++)
+            {
+                newdict.RandomWord();
+            }
+            var newdictTime = sw.Elapsed.TotalSeconds;
+            LogMessage($"Newdict {newdictTime}");
+            Assert.Fail($"This test is supposed to fail to show perf results: OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  Ratio {newdictTime / olddictTime:n1}");
         }
 
         [TestMethod]
         [Ignore]
         public void TestPerfIsWord()
         {
-            using (var oldDict = new OldDictWrapper(1))
+            using var oldDict = new OldDictWrapper(1);
+            var newdict = new DictionaryLib.DictionaryLib(DictionaryType.Large, new Random(1));
+            var sw = new Stopwatch();
+            sw.Start();
+            var nCnt = 10000;
+            var word = "computer";
+            for (int i = 0; i < nCnt; i++)
             {
-                var newdict = new DictionaryLib.DictionaryLib(DictionaryType.Large, new Random(1));
-                var sw = new Stopwatch();
-                sw.Start();
-                var nCnt = 10000;
-                var word = "computer";
-                for (int i = 0; i < nCnt; i++)
-                {
-                    var r = oldDict.IsWord(word);
-                    Assert.IsTrue(r);
-                }
-                var olddictTime = sw.Elapsed.TotalSeconds;
-                LogMessage($"Olddict {sw.Elapsed.TotalSeconds}");
-                sw.Restart();
-                for (int i = 0; i < nCnt; i++)
-                {
-                    var r = newdict.IsWord(word);
-                    if (i == 0)
-                    {
-                        LogMessage($"{word}  _GetNextWordCount {newdict._GetNextWordCount}");
-                    }
-                    Assert.IsTrue(r);
-                    Assert.AreEqual(813, newdict._GetNextWordCount);
-                }
-                var newdictTime = sw.Elapsed.TotalSeconds;
-                LogMessage($"Newdict {newdictTime}");
-                Assert.Fail($"This test is supposed to fail to show perf results: OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  Ratio {newdictTime / olddictTime:n1}");
+                var r = oldDict.IsWord(word);
+                Assert.IsTrue(r);
             }
+            var olddictTime = sw.Elapsed.TotalSeconds;
+            LogMessage($"Olddict {sw.Elapsed.TotalSeconds}");
+            sw.Restart();
+            for (int i = 0; i < nCnt; i++)
+            {
+                var r = newdict.IsWord(word);
+                if (i == 0)
+                {
+                    LogMessage($"{word}  _GetNextWordCount {newdict._GetNextWordCount}");
+                }
+                Assert.IsTrue(r);
+                Assert.AreEqual(813, newdict._GetNextWordCount);
+            }
+            var newdictTime = sw.Elapsed.TotalSeconds;
+            LogMessage($"Newdict {newdictTime}");
+            Assert.Fail($"This test is supposed to fail to show perf results: OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  Ratio {newdictTime / olddictTime:n1}");
         }
 
         [TestMethod]
         [Ignore]
         public void TestPerfIsNotWord()
         {
-            using (var oldDict = new OldDictWrapper(1))
+            using var oldDict = new OldDictWrapper(1);
+            var newdict = new DictionaryLib.DictionaryLib(DictionaryType.Large, new Random(1));
+            var sw = new Stopwatch();
+            sw.Start();
+            var nCnt = 10000;
+            var word = "qqq";
+            for (int i = 0; i < nCnt; i++)
             {
-                var newdict = new DictionaryLib.DictionaryLib(DictionaryType.Large, new Random(1));
-                var sw = new Stopwatch();
-                sw.Start();
-                var nCnt = 10000;
-                var word = "qqq";
-                for (int i = 0; i < nCnt; i++)
-                {
-                    var r = oldDict.IsWord(word);
-                    Assert.IsFalse(r);
-                }
-                var olddictTime = sw.Elapsed.TotalSeconds;
-                LogMessage($"Olddict {sw.Elapsed.TotalSeconds}");
-                sw.Restart();
-                for (int i = 0; i < nCnt; i++)
-                {
-                    var r = newdict.IsWord(word);
-                    if (i == 0)
-                    {
-                        LogMessage($"{word}  _GetNextWordCount {newdict._GetNextWordCount}");
-                    }
-                    Assert.IsFalse(r);
-                    Assert.AreEqual(1, newdict._GetNextWordCount);
-                }
-                var newdictTime = sw.Elapsed.TotalSeconds;
-                LogMessage($"Newdict {newdictTime}");
-                Assert.Fail($"This test is supposed to fail to show perf results: OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  Ratio {newdictTime / olddictTime:n1}");
+                var r = oldDict.IsWord(word);
+                Assert.IsFalse(r);
             }
+            var olddictTime = sw.Elapsed.TotalSeconds;
+            LogMessage($"Olddict {sw.Elapsed.TotalSeconds}");
+            sw.Restart();
+            for (int i = 0; i < nCnt; i++)
+            {
+                var r = newdict.IsWord(word);
+                if (i == 0)
+                {
+                    LogMessage($"{word}  _GetNextWordCount {newdict._GetNextWordCount}");
+                }
+                Assert.IsFalse(r);
+                Assert.AreEqual(1, newdict._GetNextWordCount);
+            }
+            var newdictTime = sw.Elapsed.TotalSeconds;
+            LogMessage($"Newdict {newdictTime}");
+            Assert.Fail($"This test is supposed to fail to show perf results: OldDict {olddictTime:n1} newdict {sw.Elapsed.TotalSeconds:n1}  Ratio {newdictTime / olddictTime:n1}");
         }
 
         [TestMethod]
@@ -515,6 +630,7 @@ namespace WordamentTests
             Assert.IsTrue(dict.IsWord("contemporary"));
             Assert.IsTrue(dict.IsWord("police"));
             Assert.IsFalse(dict.IsWord("pollice"));
+            Assert.IsFalse(dict.IsWord("zzsil"));
         }
 
         [TestMethod]
@@ -532,7 +648,7 @@ namespace WordamentTests
         [Ignore]
         public void TestMakedDict()
         {
-            LogMessage($"{TestContext.TestName}  {DateTime.Now.ToString("MM/dd/yy hh:mm:ss")}");
+            LogMessage($"{TestContext.TestName}  {DateTime.Now:MM/dd/yy hh:mm:ss}");
             //var lstSmall = GetOldDictWords((uint)DictionaryType.Small);
 
             var lstSmall = TestScowl.GetScowlWords(
@@ -641,7 +757,7 @@ namespace WordamentTests
 
         public string DumpBytes(byte[] bytes, bool fIncludeCharRep = true)
         {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
             var addr = 0;
             var padLength = (16 - (bytes.Length % 16)) % 16;
             sb.AppendLine($"padlen = {padLength}");
