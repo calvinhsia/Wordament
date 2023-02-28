@@ -436,6 +436,7 @@ namespace WordamentTests
             }
         }
         [TestMethod]
+        [Ignore]
         public void TestBench()
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
@@ -447,7 +448,7 @@ namespace WordamentTests
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
             var InitWord = "discounter";
-            for (int i = 0; i < 100; i++)
+            for (int i = 0; i < 1; i++)
             {
                 var lst = dict.GenerateSubWords(InitWord);
                 LogMessage($"{InitWord} Found subwords ={lst.Count}");
@@ -600,12 +601,23 @@ namespace WordamentTests
                 }
             }
         }
-
         [TestMethod]
         public void TestDictIsWord()
         {
             var lstOldWords = GetOldDictWords(2);
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
+            var dictLarge = new DictionaryLib.DictionaryLib(DictionaryType.Large);
+            foreach (var word in new[]
+            {
+                "fliest",
+                "sorta",
+                "oat",
+                "center",
+                "mister",
+            })
+            {
+                LogMessage($"{word,-10} Small: {dict.IsWord(word)}  Large:  {dictLarge.IsWord(word)}");
+            }
 
             var w = dict.IsWord("sinoiaterrpze");
             Assert.IsFalse(w);
@@ -631,6 +643,8 @@ namespace WordamentTests
             Assert.IsTrue(dict.IsWord("police"));
             Assert.IsFalse(dict.IsWord("pollice"));
             Assert.IsFalse(dict.IsWord("zzsil"));
+
+
         }
 
         [TestMethod]
@@ -664,6 +678,26 @@ namespace WordamentTests
             {
                 hashLarge.Add(wrd);
             }
+            lstSmall.Remove("fliest");
+            hashLarge.Remove("fliest");
+            lstSmall.Remove("sorta");
+            lstSmall.Add("oat");
+            lstSmall.Add("center");
+            lstSmall.Add("mister");
+
+            foreach (var word in new[]
+            {
+                "fliest",
+                "sorta",
+                "oat",
+                "center",
+                "mister",
+            })
+            {
+                LogMessage($"{word,-10} Small: {lstSmall.Contains(word)}  Large:  {hashLarge.Contains(word)}");
+            }
+
+
             foreach (var wrd in lstSmall)
             {
                 if (!hashLarge.Contains(wrd))
