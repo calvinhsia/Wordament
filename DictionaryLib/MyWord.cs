@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 
 namespace DictionaryLib
 {
@@ -52,13 +53,13 @@ namespace DictionaryLib
             {
                 len = Math.Min(DesiredLength, len);
             }
-            var str = string.Empty;
-            for (int i = 0; i < len; i++)
-            {
-                str += (char)_wordBytes[i];
-            }
-            //            return Encoding.ASCII.GetString(_wordBytes, 0, len);
-            return str;
+            //var str = string.Empty;
+            //for (int i = 0; i < len; i++)
+            //{
+            //    str += (char)_wordBytes[i];
+            //}
+            //return str;
+            return Encoding.ASCII.GetString(_wordBytes, 0, len);
         }
 
         public void AddByte(byte b)

@@ -41,6 +41,29 @@ namespace WordamentTests
     [TestClass]
     public class TestDict : TestBase
     {
+        [TestMethod]
+        public void TestResources()
+        {
+            var asm = typeof(DictionaryLib.DictionaryLib).Assembly;
+//            var asm = System.Reflection.Assembly.GetExecutingAssembly();
+            var names = asm.GetManifestResourceNames(); // "Dictionary.Properties.Resources.resources"
+
+            Assert.AreEqual(1, names.Length);
+            Assert.AreEqual("DictionaryLib.Properties.Resources.resources", names[0]);
+            var resInfo = asm.GetManifestResourceInfo(names[0]);
+
+            Assert.IsTrue(resInfo.ResourceLocation.HasFlag(System.Reflection.ResourceLocation.Embedded));
+            Assert.IsTrue(resInfo.ResourceLocation.HasFlag(System.Reflection.ResourceLocation.ContainedInManifestFile));
+            var resdata = asm.GetManifestResourceStream(names[0]);
+            Assert.IsTrue(resdata.Length > 600000);
+            var resman = new System.Resources.ResourceManager("DictionaryLib.Properties.Resources", typeof(DictionaryLib.DictionaryLib).Assembly);
+            var dict1 = (byte[])resman.GetObject("dict1"); //large
+            Assert.IsTrue(dict1.Length > 500000);
+            var dict2 = (byte[])resman.GetObject("dict2");
+            Assert.IsTrue(dict1.Length > 180000);
+            var dictSmall = new DictionaryLib.DictionaryLib(DictionaryType.Small);
+            var dictLarge = new DictionaryLib.DictionaryLib(DictionaryType.Large);
+        }
 
         [TestMethod]
         [Ignore]
@@ -131,7 +154,7 @@ namespace WordamentTests
                 cnt++;
             }
             Trace.WriteLine($"{cnt} entries found");
-            Assert.AreEqual(38750, cnt);
+            Assert.AreEqual(38743, cnt);
         }
 
         [TestMethod]
@@ -456,7 +479,7 @@ namespace WordamentTests
                 {
                     LogMessage($"{word}");
                 }
-                Assert.AreEqual(485, lst.Count);
+                Assert.AreEqual(482, lst.Count);
             }
 
         }
@@ -681,6 +704,14 @@ namespace WordamentTests
             lstSmall.Remove("fliest");
             hashLarge.Remove("fliest");
             lstSmall.Remove("sorta");
+            lstSmall.Remove("uteri");
+            lstSmall.Remove("maria");
+            lstSmall.Remove("non");
+            lstSmall.Remove("gonna");
+            lstSmall.Remove("genii");
+            lstSmall.Remove("roes");
+            lstSmall.Remove("mes");
+            lstSmall.Remove("dos");
             lstSmall.Add("oat");
             lstSmall.Add("center");
             lstSmall.Add("mister");
@@ -733,7 +764,7 @@ namespace WordamentTests
                 List<string> lstWords = null;
                 if ((DictionaryType)dictNum == DictionaryType.Small)
                 {
-                    lstWords = lstSmall;
+                    lstWords = lstSmall.OrderBy(w => w).ToList();
                 }
                 else
                 {
@@ -887,11 +918,11 @@ namespace WordamentTests
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
             var dictTestData = new Dictionary<string, Tuple<int, int>>() // word to cntNumSearches, cntresults, 
             {
-                ["__"] = new Tuple<int, int>(38752, 42),
-                ["____i_i__"] = new Tuple<int, int>(38752, 211),
-                ["c_n___ion"] = new Tuple<int, int>(3800, 3), //confusion, contagion
-                ["_ondition"] = new Tuple<int, int>(38752, 1),
-                ["c_ndition"] = new Tuple<int, int>(3800, 1),
+                ["__"] = new Tuple<int, int>(38745, 42),
+                ["____i_i__"] = new Tuple<int, int>(38745, 211),
+                ["c_n___ion"] = new Tuple<int, int>(3801, 3), //confusion, contagion
+                ["_ondition"] = new Tuple<int, int>(38745, 1),
+                ["c_ndition"] = new Tuple<int, int>(3801, 1),
                 ["conditio_"] = new Tuple<int, int>(683, 1),
                 ["con______"] = new Tuple<int, int>(683, 111),
                 ["condition"] = new Tuple<int, int>(683, 1),
@@ -905,12 +936,12 @@ namespace WordamentTests
                     lstResults.Add(m.GetWord());
                     return true;
                 });
-//                LogMessage($"FindQMarkMatch '{mwordQMark}'  _GetNextWordCount= {dict._GetNextWordCount} #Res={lstResults.Count}");
+                //                LogMessage($"FindQMarkMatch '{mwordQMark}'  _GetNextWordCount= {dict._GetNextWordCount} #Res={lstResults.Count}");
                 foreach (var res in lstResults)
                 {
                     LogMessage($" {res}");
                 }
-                LogMessage($"{kvp.Key, -20}  {kvp.Value.Item1} _GetNextWordCount={dict._GetNextWordCount}         #Res= {kvp.Value.Item2} #Res={lstResults.Count}  ");
+                LogMessage($"{kvp.Key,-20}  {kvp.Value.Item1} _GetNextWordCount={dict._GetNextWordCount}         #Res= {kvp.Value.Item2} #Res={lstResults.Count}  ");
                 Assert.AreEqual(kvp.Value.Item1, dict._GetNextWordCount, kvp.Key);
 
                 Assert.AreEqual(kvp.Value.Item2, lstResults.Count, kvp.Key);
