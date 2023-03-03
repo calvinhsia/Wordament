@@ -313,19 +313,25 @@ namespace DictionaryLib
             }
             return _MyWordSoFar ?? MyWord.Empty;
         }
+        public List<string> GenerateSubWords(string InitialWord, int MinLength = 3, bool LeftToRight = true, int MaxSubWords = int.MaxValue)
+        {
+            return GenerateSubWords(InitialWord, out var _, MinLength, LeftToRight, MaxSubWords);
+        }
 
         /// <summary>
-        /// Get all words that can be made from permuting the InitialWord ( >=MinLength)
+        /// Get a sorted list of all words that can be made from permuting the InitialWord ( >=MinLength)
         /// </summary>
-        public List<string> GenerateSubWords(string InitialWord, int MinLength = 3, bool LeftToRight = true)
+        public List<string> GenerateSubWords(string InitialWord, out int numLookups, int MinLength = 3, bool LeftToRight = true, int MaxSubWords = int.MaxValue)
         {
-            var hashSet = new HashSet<string>();
+            var numlookups = 0;
+            var hashSet = new SortedSet<string>();
             PermuteString(InitialWord, LeftToRight, (str) =>
             {
-                for (int i = MinLength; i < str.Length; i++)
+                for (int i = MinLength; i <= str.Length; i++)
                 {
                     var testWord = str.Substring(0, i);
                     var partial = SeekWord(testWord, out var compResult);
+                    numlookups++;
                     if (!string.IsNullOrEmpty(partial) && compResult == 0)
                     {
                         hashSet.Add(testWord);
@@ -338,8 +344,9 @@ namespace DictionaryLib
                         }
                     }
                 }
-                return true; // continue 
+                return hashSet.Count < MaxSubWords; // continue 
             });
+            numLookups = numlookups;
             return hashSet.ToList();
         }
 

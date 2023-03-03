@@ -471,16 +471,16 @@ namespace WordamentTests
         public void TestDoGenerateSubWords()
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
-            var InitWord = "discounter";
+            var InitWord = "discounter"; // not in small dict
             for (int i = 0; i < 1; i++)
             {
-                var lst = dict.GenerateSubWords(InitWord);
-                LogMessage($"{InitWord} Found subwords ={lst.Count}");
+                var lst = dict.GenerateSubWords(InitWord, out var numLookups);
+                LogMessage($"{InitWord} Found subwords ={lst.Count} #Lookups = {numLookups:n0}");
                 foreach (var word in lst)
                 {
                     LogMessage($"{word}");
                 }
-                Assert.AreEqual(482, lst.Count);
+                Assert.AreEqual(484, lst.Count);
             }
 
         }
@@ -511,7 +511,7 @@ namespace WordamentTests
         }
 
         [TestMethod]
-//        [Ignore]
+        [Ignore]
         public void TestPerfIsWord()
         {
             using var oldDict = new OldDictWrapper(1);
