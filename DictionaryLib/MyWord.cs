@@ -31,7 +31,7 @@ namespace DictionaryLib
             _currentLength = word.Length;
             for (int ndx = 0; ndx < word.Length; ndx++)
             {
-                _wordBytes[ndx] = (byte)word[ndx];
+                _wordBytes[ndx] = DictionaryLib.ToLowerByte((byte)word[ndx]);
             }
         }
         public void SetWord(byte byte0, byte byte1, byte byte2)
@@ -53,11 +53,6 @@ namespace DictionaryLib
             {
                 len = Math.Min(DesiredLength, len);
             }
-            //var str = string.Empty;
-            //for (int i = 0; i < len; i++)
-            //{
-            //    str += (char)_wordBytes[i];
-            //}
             //return str;
             return Encoding.ASCII.GetString(_wordBytes, 0, len);
         }

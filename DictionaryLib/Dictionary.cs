@@ -26,9 +26,14 @@ namespace DictionaryLib
     }
 
     public class DictionaryLib
-    {
-        public const byte LetterA = 97; // 'a'
-        public const byte LetterZ = 97 + 26 - 1; // 'a'
+    {            // 0x41 - 0x5a == A-Z   0x61-0x7a == a-z
+
+        public const byte Lettera = 97; // 'a'
+        public const byte Letterz = Lettera + 26 - 1; // 'z'
+        public const byte LetterA = 65; // 'A'
+        public const byte LetterZ = LetterA + 26 - 1; // 'Z'
+        public const byte ToLowerDiff = Lettera - LetterA; // 32: add this to convert from upper case to lower case
+
         public const int NumLetters = 26; // # letters in alphabet
         public const int MaxWordLen = 30; // longest word in any dictionaryy
         public const byte qmarkChar = (byte)'_';// + 1 - LetterA;
@@ -96,8 +101,21 @@ namespace DictionaryLib
             return SeekWord(word, out var _);
         }
 
+        public static byte ToLowerByte(byte b)
+        {
+            var ret = b;
+            if (b < LetterZ)
+            {
+                b += ToLowerDiff;
+            }
+            if ((b < Lettera || b > Letterz) && b != qmarkChar)
+            {
+                throw new InvalidOperationException($"non alphabetic input");
+            }
+            return b;
+        }
         /// <summary>
-        /// Seek in dictionary to provided "word".
+        /// Seek in dictionary to provided "word". (Case insensitive)
         /// if found in dict, returns the same string
         /// if not found, returns the word just beyond where the word would be found.
         /// IOW, 2 consecutive words in dictionary: abcdefone, abcdeftwo (and dict does not have abc,abcdefg)
@@ -109,25 +127,22 @@ namespace DictionaryLib
         /// If we're at the end of the dictionary, return string.empty
         ///// </summary>
         /// </summary>
-        /// <param name="word"></param>
-        /// <returns></returns>
         public string SeekWord(string word, out int compResult)
         {
-            word = word.ToLower();
-            byte let0 = LetterA;
-            byte let1 = LetterA;
-            byte let2 = LetterA;
+            byte let0 = Lettera;
+            byte let1 = Lettera;
+            byte let2 = Lettera;
             if (word.Length > 0)
             {
-                let0 = (byte)(word[0]);
+                let0 = ToLowerByte((byte)(word[0]));
             }
             if (word.Length > 1)
             {
-                let1 = (byte)(word[1]);
+                let1 = ToLowerByte((byte)(word[1]));
             }
             if (word.Length > 2)
             {
-                let2 = (byte)(word[2]);
+                let2 = ToLowerByte((byte)(word[2]));
             }
             SetDictPos(let0, let1, let2);
             var wordStop = new MyWord(word);
@@ -140,10 +155,10 @@ namespace DictionaryLib
             return result.GetWord();
         }
 
-        void SetDictPos(byte let0, byte let1 = LetterA, byte let2 = LetterA)
+        void SetDictPos(byte let0, byte let1 = Lettera, byte let2 = Lettera)
         {
             _havePartialNib = false;
-            var n = ((let0 - LetterA) * NumLetters + let1 - LetterA) * NumLetters + let2 - LetterA;
+            var n = ((let0 - Lettera) * NumLetters + let1 - Lettera) * NumLetters + let2 - Lettera;
             _nibndx = _dictHeader.nibPairPtr[n].nibbleOffset;
             _GetNextWordCount = 0;
             _MyWordSoFar.SetWord(let0, let1, let2);
@@ -156,8 +171,8 @@ namespace DictionaryLib
         void SetDictPos(MyWord mword)
         {
             byte let0;
-            byte let1 = LetterA;
-            byte let2 = LetterA;
+            byte let1 = Lettera;
+            byte let2 = Lettera;
             switch (mword.WordLength)
             {
                 case 0:
@@ -502,17 +517,18 @@ namespace DictionaryLib
                 }
             }
         }
-
+        /// <summary>
+        /// Determine if word (case insensitive) is in dictionary. 
+        /// </summary>
         public bool IsWord(string word)
         {
             bool isWord = false;
             if (!string.IsNullOrEmpty(word))
             {
-                word = word.ToLower();
                 switch (word.Length)
                 {
                     case 1:
-                        if (word == "a" || word == "i")
+                        if (word == "a" || word == "i" || word == "A" || word == "I")
                         {
                             isWord = true;
                         }
@@ -528,7 +544,9 @@ namespace DictionaryLib
             }
             return isWord;
         }
-
+        /// <summary>
+        /// Gets a random word: will be lower case.
+        /// </summary>
         public string RandomWord()
         {
             var rnum = _random.Next(_dictHeader.wordCount);
@@ -546,7 +564,7 @@ namespace DictionaryLib
                         }
                         else
                         {
-                            SetDictPos((byte)(i + LetterA), (byte)(j + LetterA), (byte)(k + LetterA));
+                            SetDictPos((byte)(i + Lettera), (byte)(j + Lettera), (byte)(k + Lettera));
                             var r = GetNextWord(cntSkip: rnum - sum).GetWord();
                             return r;
                         }
@@ -596,7 +614,7 @@ namespace DictionaryLib
                     }
                     for (byte i = 0; i < mword.WordLength; i++)
                     {
-                        var ndx = (byte)(mword[i] - LetterA);
+                        var ndx = (byte)(mword[i] - Lettera);
                         if (encryptedByteDist.ContainsKey(ndx))
                         {
                             encryptedByteDist[ndx]++;
@@ -613,11 +631,11 @@ namespace DictionaryLib
             lstEncryptedWords.ForEach(s => LogMessage($"Got CryptWord {s}"));
             foreach (var kvp in encryptedByteDist.OrderByDescending(p => p.Value))
             {
-                LogMessage($"ByteDist {kvp.Key,2} {Convert.ToChar(kvp.Key + LetterA)} {kvp.Value}");
+                LogMessage($"ByteDist {kvp.Key,2} {Convert.ToChar(kvp.Key + Lettera)} {kvp.Value}");
             }
             var lstEncLets = encryptedByteDist
                 .OrderByDescending(p => p.Value)
-                .Select(p => (char)(p.Key + LetterA))
+                .Select(p => (char)(p.Key + Lettera))
                 .ToArray();
 
             var strEncLets = new string(lstEncLets); //encrypt "rlqxydtbgineachjpufz" order of freq
@@ -661,7 +679,7 @@ namespace DictionaryLib
                        for (int indxLtrFreq = 0; indxLtrFreq < strEncLets.Length; indxLtrFreq++) // 26 ltrs in alphabet, but <=26 are in cipher
                        {
                            // each time thru loop we guess an additional char in cipher
-                           var ndxCipher = strEncLets[indxLtrFreq] - LetterA;
+                           var ndxCipher = strEncLets[indxLtrFreq] - Lettera;
                            var singleLetterGood = false;
                            while (!singleLetterGood && indxLtrFreq < strLtrfreq.Length)
                            {
@@ -717,7 +735,7 @@ namespace DictionaryLib
                     var theEncChar = chr;
                     if (char.IsLetter(theEncChar))
                     {
-                        var plaintextChar = cipher[theEncChar - LetterA];
+                        var plaintextChar = cipher[theEncChar - Lettera];
                         str += (char)plaintextChar;
                     }
                     else
@@ -744,7 +762,7 @@ namespace DictionaryLib
                     int nQMarks = 0;
                     for (int i = 0; i < encWrd.WordLength; i++)
                     {
-                        var plaintextLtr = cipher[encWrd[i] - LetterA];
+                        var plaintextLtr = cipher[encWrd[i] - Lettera];
                         if (plaintextLtr == qmarkChar)
                         {
                             nQMarks++;
@@ -842,7 +860,7 @@ namespace DictionaryLib
                     SetDictPos(mword);
                     break;
                 case 0:
-                    SetDictPos(LetterA); // 1st is qmark, so search entire dict
+                    SetDictPos(Lettera); // 1st is qmark, so search entire dict
                     break;
                 case 1:
                     SetDictPos(mword[0]);
@@ -904,7 +922,7 @@ namespace DictionaryLib
                 case 0:
                     break;
                 case 1:
-                    if (mword[0] != LetterZ)
+                    if (mword[0] != Letterz)
                     {
                         result = new MyWord();
                         result[0] = (byte)(mword[0] + 1);
@@ -913,16 +931,16 @@ namespace DictionaryLib
                     break;
                 case 2:
                     result = new MyWord();
-                    if (mword[1] == LetterZ)
+                    if (mword[1] == Letterz)
                     {
-                        if (mword[0] == LetterZ)
+                        if (mword[0] == Letterz)
                         {
                             result = null; // both 'z', go to end of dict
                         }
                         else
                         {
                             result[0] = (byte)(mword[1] + 1);
-                            result[1] = LetterA;
+                            result[1] = Lettera;
                         }
                     }
                     else
@@ -930,22 +948,22 @@ namespace DictionaryLib
                         result[0] = mword[0];
                         result[1] = (byte)(mword[1] + 1);
                     }
-                    result[2] = LetterA;
+                    result[2] = Lettera;
                     result.SetLength(3);
                     break;
                 default:
                     result = new MyWord();
-                    if (mword[2] == LetterZ)
+                    if (mword[2] == Letterz)
                     {
-                        if (mword[1] == LetterZ)
+                        if (mword[1] == Letterz)
                         {
                             result = null; // at least 2 'z', go to end of dict
                         }
                         else
                         {
                             result[0] = (byte)(mword[1] + 1);
-                            result[1] = LetterA;
-                            result[2] = LetterA;
+                            result[1] = Lettera;
+                            result[2] = Lettera;
                         }
                     }
                     else

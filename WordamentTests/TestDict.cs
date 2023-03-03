@@ -10,6 +10,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using DictionaryLib;
 using Wordament;
 using BenchmarkDotNet.Running;
+using BenchmarkDotNet.Configs;
 
 namespace WordamentTests
 {
@@ -459,11 +460,11 @@ namespace WordamentTests
             }
         }
         [TestMethod]
-        [Ignore]
         public void TestBench()
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
-            BenchmarkRunner.Run(typeof(foo));
+            var config = ManualConfig.Create(BenchmarkDotNet.Configs.DefaultConfig.Instance);//.WithOptions(ConfigOptions.DisableOptimizationsValidator);
+            BenchmarkRunner.Run<foo>(config);
         }
 
         [TestMethod]
@@ -510,7 +511,7 @@ namespace WordamentTests
         }
 
         [TestMethod]
-        [Ignore]
+//        [Ignore]
         public void TestPerfIsWord()
         {
             using var oldDict = new OldDictWrapper(1);
