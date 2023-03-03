@@ -155,7 +155,7 @@ namespace WordamentTests
                 cnt++;
             }
             Trace.WriteLine($"{cnt} entries found");
-            Assert.AreEqual(38743, cnt);
+            Assert.AreEqual(38745, cnt);
         }
 
         [TestMethod]
@@ -471,6 +471,18 @@ namespace WordamentTests
         public void TestDoGenerateSubWords()
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
+            var setAllWords = new HashSet<string>();
+            dict.SeekWord("");
+            while (true)
+            {
+                var word = dict.GetNextWord();
+                if (string.IsNullOrEmpty(word))
+                {
+                    break;
+                }
+                setAllWords.Add(word);
+            }
+            var x = setAllWords.Contains("i");
             var InitWord = "discounter"; // not in small dict
             for (int i = 0; i < 1; i++)
             {
@@ -482,6 +494,8 @@ namespace WordamentTests
                 }
                 Assert.AreEqual(484, lst.Count);
             }
+
+
 
         }
 
@@ -625,6 +639,25 @@ namespace WordamentTests
                 }
             }
         }
+        [TestMethod]
+        public void TestGetNextWord()
+        {
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
+            // note: for small dict: from "hysterics" to "ice" no "I"
+
+            var word = dict.GetNextWord();
+            Assert.AreEqual("a", word);
+            dict.SeekWord("hysterically");
+            var set = new List<string>();
+            while (string.CompareOrdinal( word,"iced") < 0)
+            {
+                word = dict.GetNextWord();
+                set.Add(word);
+                LogMessage($"word={word}");
+            }
+
+        }
+
         [TestMethod]
         public void TestDictIsWord()
         {
@@ -919,10 +952,10 @@ namespace WordamentTests
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
             var dictTestData = new Dictionary<string, Tuple<int, int>>() // word to cntNumSearches, cntresults, 
             {
-                ["__"] = new Tuple<int, int>(38745, 42),
-                ["____i_i__"] = new Tuple<int, int>(38745, 211),
+                ["__"] = new Tuple<int, int>(38746, 42),
+                ["____i_i__"] = new Tuple<int, int>(38746, 211),
                 ["c_n___ion"] = new Tuple<int, int>(3801, 3), //confusion, contagion
-                ["_ondition"] = new Tuple<int, int>(38745, 1),
+                ["_ondition"] = new Tuple<int, int>(38746, 1),
                 ["c_ndition"] = new Tuple<int, int>(3801, 1),
                 ["conditio_"] = new Tuple<int, int>(683, 1),
                 ["con______"] = new Tuple<int, int>(683, 111),

@@ -145,6 +145,11 @@ namespace DictionaryLib
                 let2 = ToLowerByte((byte)(word[2]));
             }
             SetDictPos(let0, let1, let2);
+            if (word.Length == 0) // the first word in dictionary is "a"
+            {
+                compResult = 0;
+                return "a";
+            }
             var wordStop = new MyWord(word);
             if (_nibndx == 0 && let0 > 97) // if the nibndx shows 0 but we're past the "A"'s, then we're at the end of the dictionary
             {
@@ -263,6 +268,14 @@ namespace DictionaryLib
                 lenSoFar += nib;
                 if (lenSoFar < _MyWordSoFar.WordLength)
                 {
+                    if (lenSoFar == 0) // we're transitioning to a new first letter
+                    {
+                        if (_MyWordSoFar[0] == (byte)'h')
+                        {
+                            _MyWordSoFar.SetWord("i");
+                            return _MyWordSoFar;
+                        }
+                    }
                     _MyWordSoFar.SetLength(lenSoFar);
                 }
                 while ((nib = GetNextNib()) != 0)
