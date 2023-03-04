@@ -664,6 +664,12 @@ namespace WordamentTests
             var lstOldWords = GetOldDictWords(2);
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
             var dictLarge = new DictionaryLib.DictionaryLib(DictionaryType.Large);
+            Assert.IsTrue(dict.IsWord("an"));
+            Assert.IsTrue(dict.IsWord("and"));
+            Assert.IsTrue(dict.IsWord("at"));
+            Assert.IsTrue(dict.IsWord("of"));
+            Assert.IsTrue(dict.IsWord("we"));
+            Assert.IsTrue(dict.IsWord("is"));
             foreach (var word in new[]
             {
                 "fliest",

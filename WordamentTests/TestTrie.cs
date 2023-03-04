@@ -1,5 +1,8 @@
 ﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
+using DictionaryLib;
+using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
@@ -10,7 +13,7 @@ using System.Threading.Tasks;
 namespace WordamentTests
 {
     [TestClass]
-    public class TestNodes : TestBase
+    public class TestTrie : TestBase
     {
         [TestMethod]
         public void TestWordNodes()
@@ -18,27 +21,14 @@ namespace WordamentTests
             var dictionarySmall = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
             var bytes = System.Text.Encoding.ASCII.GetBytes("test");
             var wrd = Encoding.ASCII.GetString(bytes);
-            var setAllWords = new HashSet<string>();
-            while (true)
-            {
-                var word = dictionarySmall.GetNextWord();
-                if (string.IsNullOrEmpty(word))
-                {
-                    break;
-                }
-                setAllWords.Add(word);
+            var lstAllWords = dictionarySmall.GetAllWords();
 
-            }
-            //WordNode.AddWord("test");
-            //WordNode.AddWord("testing");
-            //var xx = WordNode.IsWord("test");
-            //var xy = WordNode.IsWord("testings");
-
-            foreach (var word in setAllWords)
-            {
-                WordNode.AddWord(word);
-            }
-            TestContext.WriteLine($"{dictionarySmall}  WordNode Count = {WordNode.NodeCnt}");
+            WordTrie.AddWords(lstAllWords);
+            var testword = "testp";
+            var iss = dictionarySmall.SeekWord(testword, out var compResult);
+            var x = WordTrie.IsWord(testword, out var nodePath);
+            var str = WordTrie.GetStringFromPath(nodePath);
+            TestContext.WriteLine($"{dictionarySmall}  WordNode Count = {WordTrie.NodeCnt}");
         }
         [TestMethod]
         public void TestWordNodesBench()
@@ -77,6 +67,117 @@ remove tolower:
 
             
              */
+        }
+        [TestMethod]
+        public void TestBenchGenSubWords()
+        {
+            /*
+            var config = ManualConfig.Create(BenchmarkDotNet.Configs.DefaultConfig.Instance);//.WithOptions(ConfigOptions.DisableOptimizationsValidator);
+            BenchmarkRunner.Run<BenchGenSubWords>(config);
+            /*/
+            var x = new BenchGenSubWords()
+            {
+                InitialWord = "discounter"
+            };
+            //Word Testing == 45 subwords, Discount = 75
+            x.DoWithWordNode();
+            x.DoWithNone();
+            x.DoWithHashSet();
+            //*/
+
+        }
+    }
+
+    [MemoryDiagnoser]
+    public class BenchGenSubWords
+    {
+        public enum GenSubWordType
+        {
+            UseNone,
+            UseWordNode,
+            UseHashSet,
+        }
+        //        [ParamsAllValues]
+        public GenSubWordType GenType { get; set; }
+
+        [Params("discounter", "testing")]
+        public string InitialWord { get; set; }
+        public int MinLength = 3;
+        public int MaxSubWords = int.MaxValue;
+        private readonly DictionaryLib.DictionaryLib dict;
+
+        public BenchGenSubWords()
+        {
+            dict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
+        }
+        [Benchmark]
+        public void DoWithNone()
+        {
+            var lst = dict.GenerateSubWords(InitialWord, out var numSearches);
+            Console.WriteLine($"{InitialWord,12} None #SubWords= {lst.Count} #Searches={numSearches}");
+            //var ndx = 0;
+            //lst.ForEach(d => Console.WriteLine($"N {ndx++} {d}"));
+        }
+        [Benchmark]
+        public void DoWithHashSet()
+        {
+            var lstAllWords = dict.GetAllWords();
+            var hashSetSubWords = new SortedSet<string>();
+            var numSearches = 0;
+            DictionaryLib.DictionaryLib.PermuteString(InitialWord, LeftToRight: true, (str) =>
+            {
+                for (int i = MinLength; i <= str.Length; i++)
+                {
+                    var testWord = str.Substring(0, i);
+                    numSearches++;
+                    var res = lstAllWords.BinarySearch(testWord);
+                    if (res >= 0)
+                    {
+                        hashSetSubWords.Add(testWord);
+                    }
+                    else
+                    {
+                        var partial = lstAllWords[~res];
+                        if (!partial.StartsWith(testWord))
+                        {
+                            break;
+                        }
+                    }
+                }
+                return hashSetSubWords.Count < MaxSubWords; // continue ?
+            });
+            Console.WriteLine($"{InitialWord,12} Hash #SubWords= {hashSetSubWords.Count} #Searches={numSearches}");
+            //var ndx = 0;
+            //hashSetSubWords.ToList().ForEach(d => Console.WriteLine($"H {ndx++} {d}"));
+        }
+
+        //        [Benchmark]
+        public void DoWithWordNode()
+        {
+            var lstAllWords = dict.GetAllWords();
+            WordTrie.AddWords(lstAllWords);
+            var hashSetSubWords = new SortedSet<string>();
+            DictionaryLib.DictionaryLib.PermuteString(InitialWord, LeftToRight: true, (str) =>
+            {
+                for (int i = MinLength; i <= str.Length; i++)
+                {
+                    var testWord = str.Substring(0, i);
+                    var partial = dict.SeekWord(testWord, out var compResult);
+                    if (!string.IsNullOrEmpty(partial) && compResult == 0)
+                    {
+                        hashSetSubWords.Add(testWord);
+                    }
+                    else
+                    {
+                        if (!partial.StartsWith(testWord))
+                        {
+                            break;
+                        }
+                    }
+                }
+                return hashSetSubWords.Count < MaxSubWords; // continue 
+            });
+
         }
     }
 
@@ -123,12 +224,12 @@ remove tolower:
         public void TestSeekWordNode()
         {
             _ = MakeWordNodes.Value;
-            WordNode.Clear();
-            if (WordNode.NodeCnt < 2)
+            WordTrie.Clear();
+            if (WordTrie.NodeCnt < 2)
             {
                 foreach (var word in setAllWords)
                 {
-                    WordNode.AddWord(word);
+                    WordTrie.AddWord(word);
                 }
             }
             // find sweet spot
@@ -136,12 +237,12 @@ remove tolower:
             {
                 foreach (var word in WordsToTest)
                 {
-                    var x = WordNode.IsWord(word);
+                    var x = WordTrie.IsWord(word);
                     Assert.IsTrue(x, word);
                 }
                 foreach (var word in NonWordsToTest)
                 {
-                    var x = WordNode.IsWord(word);
+                    var x = WordTrie.IsWord(word);
                     Assert.IsFalse(x, word);
                 }
             }
@@ -165,33 +266,42 @@ remove tolower:
         }
     }
 
-    class WordNode // a node in a graph: a single root node has 26 first letter words, each of which has child nodes. For 38751 words in small dict, this produces 86711 nodes,each with an array of 26 = 18M (vs 191K for small dict)
+
+
+    class WordTrie // a node in a graph: a single root node has 26 first letter words, each of which has child nodes. For 38751 words in small dict, this produces 86711 nodes,each with an array of 26 = 18M (vs 191K for small dict)
     {
         public static char RootNodeChar = '\0';
-        public static WordNode root = new WordNode(RootNodeChar);
+        public static WordTrie root = new WordTrie(RootNodeChar);
         public static int NodeCnt;
         public char ltr;
-        public WordNode[] wordNodes = new WordNode[26];
-        public WordNode(char ltr)
+        public WordTrie[] wordNodes = new WordTrie[26];
+        public WordTrie(char ltr)
         {
             NodeCnt++;
             this.ltr = ltr;
         }
         public static void Clear()
         {
-            root.wordNodes = new WordNode[26];
+            root.wordNodes = new WordTrie[26];
             NodeCnt = 1;
+        }
+        public static void AddWords(IEnumerable<string> words)
+        {
+            foreach (var word in words)
+            {
+                AddWord(word);
+            }
         }
         public static void AddWord(string word) // lower case word passed in
         {
-            var curNode = WordNode.root;
+            var curNode = WordTrie.root;
             foreach (var chr in word)
             {
                 var ndx = chr - 97;
                 var nextNode = curNode.wordNodes[ndx];
                 if (nextNode == null)
                 {
-                    nextNode = new WordNode(chr);
+                    nextNode = new WordTrie(chr);
                     curNode.wordNodes[ndx] = nextNode;
                 }
                 curNode = nextNode;
@@ -199,8 +309,19 @@ remove tolower:
         }
         public static bool IsWord(string word)
         {
+            return IsWord(word, out var _);
+        }
+        public static string GetStringFromPath(List<WordTrie> wordNodes)
+        {
+            var str = string.Empty;
+            wordNodes.ForEach(n => str += n.ltr);
+            return str;
+        }
+        public static bool IsWord(string word, out List<WordTrie> path)
+        {
             var isWord = true;
-            var curNode = WordNode.root;
+            var curNode = WordTrie.root;
+            path = new List<WordTrie>();
             foreach (var chr in word)
             {
                 var ndx = chr - 97;
@@ -210,6 +331,7 @@ remove tolower:
                     isWord = false;
                     break;
                 }
+                path.Add(nextNode);
                 curNode = nextNode;
             }
             return isWord;

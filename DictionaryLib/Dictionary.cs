@@ -64,17 +64,6 @@ namespace DictionaryLib
         public DictionaryLib(DictionaryType dictType, Random random = null)
         {
             this._dictionaryType = dictType;
-
-            //var asm = System.Reflection.Assembly.GetExecutingAssembly();
-            //var names = asm.GetManifestResourceNames(); // "Dictionary.Properties.Resources.resources"
-
-            //var res = asm.GetManifestResourceInfo(names[0]);
-
-            //var resdata = asm.GetManifestResourceStream(names[0]);
-
-            //var resman = new System.Resources.ResourceManager("Dictionary.Properties.Resources", typeof(Dictionary).Assembly);
-            //var dict1 = (byte[])resman.GetObject("dict1");
-
             if (dictType == DictionaryType.Large)
             {
                 _dictBytes = Properties.Resources.dict1;
@@ -337,7 +326,7 @@ namespace DictionaryLib
         public List<string> GenerateSubWords(string InitialWord, out int numLookups, int MinLength = 3, bool LeftToRight = true, int MaxSubWords = int.MaxValue)
         {
             var numlookups = 0;
-            var hashSet = new SortedSet<string>();
+            var hashSetSubWords = new SortedSet<string>();
             PermuteString(InitialWord, LeftToRight, (str) =>
             {
                 for (int i = MinLength; i <= str.Length; i++)
@@ -345,22 +334,42 @@ namespace DictionaryLib
                     var testWord = str.Substring(0, i);
                     var partial = SeekWord(testWord, out var compResult);
                     numlookups++;
-                    if (!string.IsNullOrEmpty(partial) && compResult == 0)
+                    if (compResult == 0)
                     {
-                        hashSet.Add(testWord);
+                        hashSetSubWords.Add(testWord);
                     }
                     else
                     {
-                        if (!partial.StartsWith(testWord))
+                        if (!partial.StartsWith(testWord)) // if "ids" isn't a word and the closest word is "idyllic" which doesn't start with "ids" then there's no point trying words longer than "ids"
                         {
                             break;
                         }
+                        // "sci" is not a word, but the closest "science" starts with "sci", then continue
                     }
                 }
-                return hashSet.Count < MaxSubWords; // continue 
+                return hashSetSubWords.Count < MaxSubWords; // continue 
             });
             numLookups = numlookups;
-            return hashSet.ToList();
+            return hashSetSubWords.ToList();
+        }
+        /// <summary>
+        /// All the dictionary entries in order. A binary search can be made.
+        /// </summary>
+        /// <returns></returns>
+        public List<string> GetAllWords()
+        {
+            var res = new List<string>();
+            SeekWord(string.Empty);
+            while (true)
+            {
+                var word = GetNextWord();
+                if (string.IsNullOrEmpty(word))
+                {
+                    break;
+                }
+                res.Add(word);
+            }
+            return res;
         }
 
         /// <summary>
