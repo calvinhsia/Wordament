@@ -46,7 +46,7 @@ namespace WordamentTests
         public void TestResources()
         {
             var asm = typeof(DictionaryLib.DictionaryLib).Assembly;
-//            var asm = System.Reflection.Assembly.GetExecutingAssembly();
+            //            var asm = System.Reflection.Assembly.GetExecutingAssembly();
             var names = asm.GetManifestResourceNames(); // "Dictionary.Properties.Resources.resources"
 
             Assert.AreEqual(1, names.Length);
@@ -198,6 +198,32 @@ namespace WordamentTests
             foreach (var anagram in lstAnagrams)
             {
                 LogMessage(anagram);
+            }
+        }
+        [TestMethod]
+        public void TestLongAnagramDupes()
+        {
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
+            var allWords = dict.GetAllWords();
+            var dictWordsBysort = new Dictionary<string, List<string>>(); // sortedlets=>Listof words with thos letters
+            foreach (var word in allWords)
+            {
+                var wordSortedByLetter = string.Join("", word.OrderBy(c => c).ToList());
+                if (!dictWordsBysort.TryGetValue(wordSortedByLetter, out var lstWords))
+                {
+                    lstWords = new List<string>();
+                    dictWordsBysort[wordSortedByLetter] = lstWords;
+                }
+                lstWords.Add(word);
+            }
+            var wordsGrouped = dictWordsBysort
+                .Where(kvp => kvp.Value.Count > 1)
+                .OrderByDescending(kvp => kvp.Key.Length)
+                .ThenByDescending(kvp => kvp.Value.Count);
+            foreach (var wordgroup in wordsGrouped)
+            {
+                var words = string.Join(",", wordgroup.Value);
+                LogMessage($"{wordgroup.Key.Length} {words}");
             }
         }
 
@@ -649,7 +675,7 @@ namespace WordamentTests
             Assert.AreEqual("a", word);
             dict.SeekWord("hysterically");
             var set = new List<string>();
-            while (string.CompareOrdinal( word,"iced") < 0)
+            while (string.CompareOrdinal(word, "iced") < 0)
             {
                 word = dict.GetNextWord();
                 set.Add(word);
