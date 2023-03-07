@@ -205,7 +205,7 @@ namespace WordamentTests
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
             var allWords = dict.GetAllWords();
-            var dictWordsBysort = new Dictionary<string, List<string>>(); // sortedlets=>Listof words with thos letters
+            var dictWordsBysort = new Dictionary<string, List<string>>(); // sortedlets=>Listof words with those letters
             foreach (var word in allWords)
             {
                 var wordSortedByLetter = string.Join("", word.OrderBy(c => c).ToList());
