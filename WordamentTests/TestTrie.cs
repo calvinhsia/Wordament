@@ -37,8 +37,8 @@ namespace WordamentTests
         public void TestWordRadix()
         {
             var dictionarySmall = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
-            //var lstAllWords = dictionarySmall.GetAllWords();
-            var lstAllWords = new List<string>() { "a", "aardvark", "aback", "abacus", "abacuses", "abandon" };
+            var lstAllWords = dictionarySmall.GetAllWords().Take(1000000).ToList();
+            //var lstAllWords = new List<string>() { "a", "aardvark", "aback", "abacus", "abacuses", "abandon" };
             //var lstAllWords = new List<string>() { "ta1", "ta2", "ta4", "ta5", "ta3", "ta6", "test" };
             //            var lstAllWords = new List<string>() { "test", "toaster", "toasting", "vslow", "vslowly" };
             WordRadix.ClearAll();
@@ -421,93 +421,169 @@ remove tolower:
                 return true;
             }
             WordRadix curNode = RootNode;
+            if (testword == "babbling")
+            {
+                "".ToString();
+            }
             var len = 0;
             while (curNode != null && len < testword.Length)// find a node in the tree to which the testword is being added.
             {
-                if (string.Compare(curNode.value, testword) > 0)
-                {
-                }
-                if (!testword.Substring(len).StartsWith(curNode.value)) // the word does not belong to the node?
-                {
-                    var prefndx = GetCommonPrefLength(curNode.value, testword);
-                    var nodeRest = curNode.value.Substring(prefndx);
-                    curNode.value = curNode.value.Substring(0, prefndx);
-                    var curnodeChildren = curNode.Children;
-                    curNode.Children = new List<WordRadix>()
-                    {
-                        new WordRadix() { value = nodeRest, IsNodeAWord=curNode.IsNodeAWord, Children = curnodeChildren },
-                        new WordRadix() {value = testword.Substring(prefndx), IsNodeAWord = true}
-                    };
-                    curNode.IsNodeAWord = false;
-                    TotalWords++;
-                    break;
+                // the word must always belong to the current node. Determine if we need to split the curNode or add the word as a descendant (if the word matches the entire node value)
+                var testRest = testword.Substring(len);
 
-                }
-                if (curNode.Children != null)
+                if ((curNode.value.Length == 0 && curNode == RootNode) || testRest.StartsWith(curNode.value)) // the word matches the prefix completely. We don't need to split the node, but we need to add it as a descendant
                 {
-                    len += curNode.value.Length;
-                    var tnode = new WordRadix() { value = testword.Substring(len) };
-                    var res = curNode.Children.BinarySearch(tnode, WordRadix.comparerInstance);
-                    if (res >= 0)
+                    if (curNode.Children == null) // with no children, we add the word as a childnode and we're done
                     {
-
-                    }
-                    else
-                    {
-                        var targnodeNdx = (~res) - 1;
-                        var targnode = curNode.Children[targnodeNdx];
-                        var restTestWord = testword.Substring(len);
-                        var prefndx = GetCommonPrefLength(targnode.value, restTestWord);
-                        if (prefndx == 0) // no common prefix
-                        {
-                            curNode.Children.Insert(targnodeNdx + 1, new WordRadix() { value = restTestWord, IsNodeAWord = true });
-                        }
-                        else
-                        {
-                            curNode = curNode.Children[targnodeNdx];
-                            var nodeRest = curNode.value.Substring(prefndx);
-                            curNode.value = curNode.value.Substring(0, prefndx);
-                            curNode.Children = new List<WordRadix>()
-                            {
-                                new WordRadix() { value = nodeRest, IsNodeAWord=true },
-                                new WordRadix() {value = restTestWord.Substring(prefndx), IsNodeAWord=true}
-                            };
-                            curNode.IsNodeAWord = false;
-                        }
-                        TotalWords++;
-                    }
-                    break;
-
-                }
-                else
-                { // curnode has no children, so we split it, insert and we're done
-                    if (curNode.value == testword.Substring(len))
-                    {
-                        return curNode.IsNodeAWord; // is a word
-                    }
-                    var prefndx = GetCommonPrefLength(curNode.value, testword);
-                    var nodeRest = curNode.value.Substring(prefndx);
-                    if (nodeRest.Length == 0) // a split would result in an empty parent node, so we just add one child
-                    {
+                        len += curNode.value.Length;
+                        testRest = testword.Substring(len);
                         curNode.Children = new()
                         {
-                            new WordRadix() {value = testword.Substring(prefndx),IsNodeAWord=true}
+                            new WordRadix() { value = testRest, IsNodeAWord=true},
                         };
                     }
                     else
-                    {
-                        curNode.value = curNode.value.Substring(0, prefndx);
-                        curNode.Children = new List<WordRadix>()
+                    { // we need to descend to find the target node: use binary search to find which child node to use
+                        len += curNode.value.Length;
+                        var tnode = new WordRadix() { value = testword.Substring(len) };
+                        var res = curNode.Children.BinarySearch(tnode, WordRadix.comparerInstance);
+                        if (res == 0)
+                        { // exact match. word is already in tree
+
+                        }
+                        else if (res > 0)
+                        {
+                            curNode = curNode.Children[res];
+                            continue;
+                        }
+                        else
+                        {
+                            var targnodeNdx = (~res) - 1; // prior node
+                            var targnode = curNode.Children[targnodeNdx];
+                            if (targnodeNdx == curNode.Children.Count - 1) // we don't want to descend, we want to add as a new sibling
                             {
-                                new WordRadix() { value = nodeRest, IsNodeAWord=curNode.IsNodeAWord },
-                                new WordRadix() {value = testword.Substring(prefndx), IsNodeAWord = true}
-                            };
-                        curNode.IsNodeAWord = false;
+                                var prefndx = GetCommonPrefLength(targnode.value, testword.Substring(len));
+                                if (testword.Substring(len).StartsWith(targnode.value)) // if belongs to the prior node 
+                                                                                        //                                    if (prefndx < targnode.value.Length || testword.Substring(len).StartsWith(targnode.value)) // if belongs to the prior node 
+                                {
+                                    curNode = targnode;
+                                    continue;
+                                }
+                                curNode.Children.Add(
+                                        new WordRadix() { value = testword.Substring(len), IsNodeAWord = true } // add as sibling
+                                    );
+                            }
+                            else
+                            {
+                                if (testword.Substring(len).StartsWith(targnode.value)) // if belongs to the prior node 
+                                {
+                                    curNode = targnode;
+                                    len += curNode.value.Length;
+                                    continue;
+                                }
+                            }
+                        }
                     }
+
                     TotalWords++;
                     break;
                 }
+                "".ToString();
+                //we need to split the node
+                var curnodeChildren = curNode.Children;
+                curNode.Children = new List<WordRadix>()
+                    {
+                        new WordRadix() { value = curNode.value, IsNodeAWord=curNode.IsNodeAWord, Children = curnodeChildren }, // copy all from curnode
+                        new WordRadix() {value = testword.Substring(len), IsNodeAWord = true}
+                    };
+                curNode.IsNodeAWord = false;
+                curNode.value = string.Empty;
+                break;
+                //if (string.Compare(curNode.value, testword) > 0)
+                //{
+                //}
+                //if (!testword.Substring(len).StartsWith(curNode.value)) // the word does not belong to the node?
+                //{
+                //    var prefndx = GetCommonPrefLength(curNode.value, testword);
+                //    var nodeRest = curNode.value.Substring(prefndx);
+                //    curNode.value = curNode.value.Substring(0, prefndx);
+                //    var curnodeChildren = curNode.Children;
+                //    curNode.Children = new List<WordRadix>()
+                //    {
+                //        new WordRadix() { value = nodeRest, IsNodeAWord=curNode.IsNodeAWord, Children = curnodeChildren },
+                //        new WordRadix() {value = testword.Substring(prefndx), IsNodeAWord = true}
+                //    };
+                //    curNode.IsNodeAWord = false;
+                //    TotalWords++;
+                //    break;
+
+                //}
+                //if (curNode.Children != null)
+                //{
+                //    len += curNode.value.Length;
+                //    var tnode = new WordRadix() { value = testword.Substring(len) };
+                //    var res = curNode.Children.BinarySearch(tnode, WordRadix.comparerInstance);
+                //    if (res >= 0)
+                //    {
+
+                //    }
+                //    else
+                //    {
+                //        var targnodeNdx = (~res) - 1;
+                //        var targnode = curNode.Children[targnodeNdx];
+                //        var restTestWord = testword.Substring(len);
+                //        var prefndx = GetCommonPrefLength(targnode.value, restTestWord);
+                //        if (prefndx == 0) // no common prefix
+                //        {
+                //            curNode.Children.Insert(targnodeNdx + 1, new WordRadix() { value = restTestWord, IsNodeAWord = true });
+                //        }
+                //        else
+                //        {
+                //            curNode = curNode.Children[targnodeNdx];
+                //            var nodeRest = curNode.value.Substring(prefndx);
+                //            curNode.value = curNode.value.Substring(0, prefndx);
+                //            curNode.Children = new List<WordRadix>()
+                //            {
+                //                new WordRadix() { value = nodeRest, IsNodeAWord=true },
+                //                new WordRadix() {value = restTestWord.Substring(prefndx), IsNodeAWord=true}
+                //            };
+                //            curNode.IsNodeAWord = false;
+                //        }
+                //        TotalWords++;
+                //    }
+                //    break;
+
+                //}
+                //else
+                //{ // curnode has no children, so we split it, insert and we're done
+                //    if (curNode.value == testword.Substring(len))
+                //    {
+                //        return curNode.IsNodeAWord; // is a word
+                //    }
+                //    var prefndx = GetCommonPrefLength(curNode.value, testword);
+                //    var nodeRest = curNode.value.Substring(prefndx);
+                //    if (nodeRest.Length == 0) // a split would result in an empty parent node, so we just add one child
+                //    {
+                //        curNode.Children = new()
+                //        {
+                //            new WordRadix() {value = testword.Substring(prefndx),IsNodeAWord=true}
+                //        };
+                //    }
+                //    else
+                //    {
+                //        curNode.value = curNode.value.Substring(0, prefndx);
+                //        curNode.Children = new List<WordRadix>()
+                //            {
+                //                new WordRadix() { value = nodeRest, IsNodeAWord=curNode.IsNodeAWord },
+                //                new WordRadix() {value = testword.Substring(prefndx), IsNodeAWord = true}
+                //            };
+                //        curNode.IsNodeAWord = false;
+                //    }
+                //    TotalWords++;
+                //    break;
+                //}
             }
+
             return isWord;
         }
         void SplitNode(WordRadix targetNode, string value) // insert a value node into the targetnode
@@ -545,7 +621,8 @@ remove tolower:
                     {
                         Trace.WriteLine($"{nWords} {ndx} {word}  {str}");
                     }
-                    Trace.WriteLine($"{ndx++,4} {str}");
+                    //    Trace.WriteLine($"{ndx,4} {str}");
+                    ndx++;
                     return true; //continue
                 });
                 nWords++;
