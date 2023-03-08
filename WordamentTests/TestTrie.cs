@@ -460,27 +460,18 @@ remove tolower:
                         {
                             var targnodeNdx = (~res) - 1; // prior node
                             var targnode = curNode.Children[targnodeNdx];
-                            if (targnodeNdx == curNode.Children.Count - 1) // we don't want to descend, we want to add as a new sibling
+                            var prefndx = GetCommonPrefLength(testword.Substring(len), targnode.value);
+                            if (prefndx > 0) // if belongs to the prior node 
                             {
-                                var prefndx = GetCommonPrefLength(targnode.value, testword.Substring(len));
-                                if (testword.Substring(len).StartsWith(targnode.value)) // if belongs to the prior node 
-                                                                                        //                                    if (prefndx < targnode.value.Length || testword.Substring(len).StartsWith(targnode.value)) // if belongs to the prior node 
-                                {
-                                    curNode = targnode;
-                                    continue;
-                                }
-                                curNode.Children.Add(
-                                        new WordRadix() { value = testword.Substring(len), IsNodeAWord = true } // add as sibling
-                                    );
+                                curNode = targnode;
+                                //len += targnode.value.Length;
+                                continue;
                             }
                             else
                             {
-                                if (testword.Substring(len).StartsWith(targnode.value)) // if belongs to the prior node 
-                                {
-                                    curNode = targnode;
-                                    len += curNode.value.Length;
-                                    continue;
-                                }
+                                curNode.Children.Add(
+                                        new WordRadix() { value = testword.Substring(len), IsNodeAWord = true } // add as sibling
+                                    );
                             }
                         }
                     }
@@ -491,13 +482,17 @@ remove tolower:
                 "".ToString();
                 //we need to split the node
                 var curnodeChildren = curNode.Children;
+                var prefndx2 = GetCommonPrefLength(testword.Substring(len), curNode.value);
+                var split1 = curNode.value.Substring(0, prefndx2);
+                var split2 = curNode.value.Substring(prefndx2);
+                var child2 = testword.Substring(len + prefndx2);
                 curNode.Children = new List<WordRadix>()
                     {
-                        new WordRadix() { value = curNode.value, IsNodeAWord=curNode.IsNodeAWord, Children = curnodeChildren }, // copy all from curnode
-                        new WordRadix() {value = testword.Substring(len), IsNodeAWord = true}
+                        new WordRadix() { value = split2, IsNodeAWord=curNode.IsNodeAWord, Children = curnodeChildren }, // copy all from curnode
+                        new WordRadix() {value = child2, IsNodeAWord = true}
                     };
                 curNode.IsNodeAWord = false;
-                curNode.value = string.Empty;
+                curNode.value = split1;
                 break;
                 //if (string.Compare(curNode.value, testword) > 0)
                 //{
