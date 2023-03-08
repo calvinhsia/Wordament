@@ -21,8 +21,6 @@ namespace WordamentTests
         public void TestWordTrie()
         {
             var dictionarySmall = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
-            var bytes = System.Text.Encoding.ASCII.GetBytes("test");
-            var wrd = Encoding.ASCII.GetString(bytes);
             var lstAllWords = dictionarySmall.GetAllWords();
 
             WordTrie.AddWords(lstAllWords);
@@ -71,10 +69,18 @@ namespace WordamentTests
             lstAllWords.ForEach(w => Assert.IsTrue(WordRadix.IsWord(w), $"{w} not found"));
 
             new List<string>() {
+                "beckoningly",
                 "testp",
                 "foobar",
                 "alskdjf"
             }.ForEach(w => Assert.IsFalse(WordRadix.IsWord(w), $"{w} found ??"));
+
+            //WordRadix.WalkTreeNodes((node, depth) =>
+            //{
+            //    Trace.WriteLine($"{new string(' ', depth)} {node.value} {(node.Children==null? "0":node.Children.Count)}");
+            //    return true;
+            //});
+
 
             Assert.AreEqual(lstAllWords.Count, WordRadix.TotalWords);
         }
@@ -435,6 +441,29 @@ remove tolower:
                 return res;
             }
         }
+        public static void WalkTreeNodes(Func<WordRadix, int, bool> func)
+        {
+            var fAbort = false;
+            WalkTreeNodesRecur(RootNode, 0);
+            void WalkTreeNodesRecur(WordRadix curNode, int depth)
+            {
+                if (fAbort)
+                {
+                    return;
+                }
+                if (!func(curNode, depth))
+                {
+                    fAbort = true;
+                }
+                if (curNode.Children != null)
+                {
+                    foreach (var child in curNode.Children)
+                    {
+                        WalkTreeNodesRecur(child, depth + 1);
+                    }
+                }
+            }
+        }
         public static void WalkTreeWords(Func<string, int, bool> func)
         {
             WalkWordsRecursive(RootNode, string.Empty, 0);
@@ -467,9 +496,10 @@ remove tolower:
             }
             WordRadix curNode = RootNode;
             var len = 0;
-            //while (curNode != null && len < testword.Length)// find a node in the tree to which the testword is being added.
-            while (true)
+//            var lstNodesVisited = new List<WordRadix>(); // doesn't work for AddMode when we're building the tree because of node splits
+            while (true) //while (curNode != null && len < testword.Length)// find a node in the tree to which the testword is being added.
             {   // the word must always belong to the current node. Determine if we need to split the curNode or add the word as a descendant (if the word matches the entire node value)
+  //              lstNodesVisited.Add(curNode);
                 if (testword.Substring(len).StartsWith(curNode.value)) // if the word matches the prefix completely. We don't need to split the node, but we need to add it as a descendant
                 {
                     if (!AddIfAbsent && len + curNode.value.Length == testword.Length && curNode.IsNodeAWord) // if we're not adding and exact match with node
@@ -483,12 +513,10 @@ remove tolower:
                     {
                         if (!AddIfAbsent)
                         {
+                            isWord = false; // not found
                             break;
                         }
-                        curNode.Children = new()
-                        {
-                            new WordRadix(TestNode.value, isWord = true),
-                        };
+                        curNode.Children = new() { new WordRadix(TestNode.value, isWord = true) };
                     }
                     else
                     { // we need to descend to find the target node
@@ -498,8 +526,8 @@ remove tolower:
                             if (!AddIfAbsent)
                             {
                                 isWord = true;
-                                break;
                             }
+                            break;
                         }
                         else if (res > 0) // found the node to which the word belongs
                         {
@@ -513,6 +541,7 @@ remove tolower:
                             {
                                 if (!AddIfAbsent)
                                 {
+                                    isWord = false; // not found
                                     break;
                                 }
                                 throw new Exception($"How did we get here? Are words sorted? {testword} {curNode}");
@@ -528,6 +557,7 @@ remove tolower:
                             {
                                 if (!AddIfAbsent)
                                 {
+                                    isWord = false; // not found
                                     break;
                                 }
                                 curNode.Children.Add(new WordRadix(TestNode.value, IsAWord: true)); // add as last sibling
@@ -546,10 +576,7 @@ remove tolower:
                     var split1 = curNode.value.Substring(0, prefndx2);
                     var split2 = curNode.value.Substring(prefndx2);
                     var child2 = testword.Substring(len + prefndx2);
-                    curNode.Children = new List<WordRadix>()
-                    {
-                        new WordRadix(split2,curNode.IsNodeAWord) { Children = curnodeChildren }, // copy all from curnode
-                    };
+                    curNode.Children = new List<WordRadix>() { new WordRadix(split2, curNode.IsNodeAWord) { Children = curnodeChildren }, }; // copy all from curnode
                     if (!string.IsNullOrEmpty(child2))
                     {
                         curNode.Children.Add(new WordRadix(child2, IsAWord: true));

@@ -497,18 +497,6 @@ namespace WordamentTests
         public void TestDoGenerateSubWords()
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
-            var setAllWords = new HashSet<string>();
-            dict.SeekWord("");
-            while (true)
-            {
-                var word = dict.GetNextWord();
-                if (string.IsNullOrEmpty(word))
-                {
-                    break;
-                }
-                setAllWords.Add(word);
-            }
-            var x = setAllWords.Contains("i");
             var InitWord = "discounter"; // not in small dict
             for (int i = 0; i < 1; i++)
             {
