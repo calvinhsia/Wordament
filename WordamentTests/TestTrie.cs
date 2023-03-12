@@ -98,10 +98,10 @@ namespace WordamentTests
             var maxnodelengstr = string.Empty;
             wordRadixTree.WalkTreeNodes((node, depth) =>
             {
-                if (node.NodeString.Length > maxNodeLength)
+                if (node.NodeString.WordLength > maxNodeLength)
                 {
-                    maxNodeLength = node.NodeString.Length;
-                    maxnodelengstr = node.NodeString;
+                    maxNodeLength = node.NodeString.WordLength;
+                    maxnodelengstr = node.GetWord();
                 }
                 //                Trace.WriteLine($"{new string(' ', depth)} {node.NodeString} {(node.Children == null ? "0" : node.Children.Count)}");
                 return true;
@@ -187,7 +187,7 @@ remove tolower:
         [TestMethod]
         public void TestBenchGenSubWords()
         {
-            /*
+            //*
             var config = ManualConfig.Create(BenchmarkDotNet.Configs.DefaultConfig.Instance);//.WithOptions(ConfigOptions.DisableOptimizationsValidator);
             BenchmarkRunner.Run<BenchGenSubWords>(config);
             /*/

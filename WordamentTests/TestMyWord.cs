@@ -34,8 +34,18 @@ namespace WordamentTests
 
             Assert.IsTrue(new MyWord("food").CompareTo(new MyWord("foo")) > 0);
 
+        }
+        [TestMethod]
+        public void TestMyWordSubstring()
+        {
+            var w1 = new MyWord("testing");
+            var s = w1.Substring(2);
+            Assert.AreEqual("sting",s.GetWord());
+            var s2 = w1.Substring(3, 4);
+            Assert.AreEqual("ting", s2.GetWord());
 
-
+            var s3 = w1.Substring(7);
+            Assert.AreEqual("", s3.GetWord());
         }
     }
 }

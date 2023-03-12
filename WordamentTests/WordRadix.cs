@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DictionaryLib;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -16,7 +17,7 @@ namespace WordamentTests
         internal WordRadixNode TestNode; // used for testing a string using List.BinarySearch. Reuse same node to reduce mem consumption
         public WordRadixTree()
         {
-            TestNode = new(this, parentNode: null, nodePrefixLength: 0, "dummy", IsAWord: false);
+            TestNode = new(this, parentNode: null, nodePrefixLength: 0, new MyWord("dummy"), IsAWord: false);
         }
         public void ClearAll()
         {
@@ -69,8 +70,9 @@ namespace WordamentTests
         {
             return IsWord(testword, AddIfAbsent, out _);
         }
-        public bool IsWord(string testword, bool AddIfAbsent, out WordRadixNode closestNode)
+        public bool IsWord(string testwordinput, bool AddIfAbsent, out WordRadixNode closestNode)
         {
+            var testword = new MyWord(testwordinput);
             var isWord = false;
             closestNode = RootNode;
             if (RootNode == null)
@@ -87,12 +89,12 @@ namespace WordamentTests
                 lstNodesVisited.Add(curNode);
                 if (testword.Substring(len).StartsWith(curNode.NodeString)) // if the word matches the prefix completely. We don't need to split the node, but we need to add it as a descendant
                 {
-                    if (!AddIfAbsent && len + curNode.NodeString.Length == testword.Length && curNode.IsNodeAWord) // if we're not adding and exact match with node
+                    if (!AddIfAbsent && len + curNode.NodeString.WordLength == testword.WordLength && curNode.IsNodeAWord) // if we're not adding and exact match with node
                     {
                         isWord = true;
                         break;
                     }
-                    len += curNode.NodeString.Length;
+                    len += curNode.NodeString.WordLength;
                     TestNode.NodeString = testword.Substring(len);
                     if (curNode.Children == null) // with no children, we add the word as a childnode and we're done
                     {
@@ -172,7 +174,7 @@ namespace WordamentTests
                     var child2 = testword.Substring(len + prefndx2);
                     curNode.IsNodeAWord = false;
                     curNode.NodeString = split1;
-                    var newchild1 = new WordRadixNode(this, curNode, nodePrefixLength: curnodePrefixLen + split1.Length, split2, curnodeIsAWord)
+                    var newchild1 = new WordRadixNode(this, curNode, nodePrefixLength: curnodePrefixLen + split1.WordLength, split2, curnodeIsAWord)
                     {
                         Children = curnodeChildren
                     }; // copy all from curnode
@@ -184,9 +186,9 @@ namespace WordamentTests
                         }
                     }
                     curNode.Children = new List<WordRadixNode>() { newchild1 };
-                    if (!string.IsNullOrEmpty(child2))
+                    if (child2.WordLength != 0)
                     {
-                        curNode.Children.Add(new WordRadixNode(this, curNode, nodePrefixLength: len + split1.Length, child2, IsAWord: true) { ChildNumber = curNode.Children.Count });
+                        curNode.Children.Add(new WordRadixNode(this, curNode, nodePrefixLength: len + split1.WordLength, child2, IsAWord: true) { ChildNumber = curNode.Children.Count });
                     }
                 }
                 TotalWords++;
@@ -194,10 +196,10 @@ namespace WordamentTests
             }
             return isWord;
         }
-        int GetCommonPrefLength(string word1, string word2)
+        int GetCommonPrefLength(MyWord word1, MyWord word2)
         {
             var prefndx = -1;
-            for (var i = 0; i < Math.Min(word1.Length, word2.Length); i++)
+            for (var i = 0; i < Math.Min(word1.WordLength, word2.WordLength); i++)
             {
                 if (word1[i] != word2[i])
                 {
@@ -207,7 +209,7 @@ namespace WordamentTests
             }
             if (prefndx == -1)
             {
-                prefndx = Math.Min(word1.Length, word2.Length);
+                prefndx = Math.Min(word1.WordLength, word2.WordLength);
             }
             return prefndx;
         }
@@ -248,7 +250,7 @@ namespace WordamentTests
                 }
                 if (node.IsNodeAWord)
                 {
-                    var wrd = string.Join("", lstNodes.Where(w => !string.IsNullOrEmpty(w.NodeString)).Select(w => w.NodeString).ToList());
+                    var wrd = string.Join("", lstNodes.Where(w => w.NodeString.WordLength != 0).Select(w => w.NodeString).ToList()); // xxxxx
                     if (!IsWord(wrd))
                     {
                         throw new Exception($"{nameof(VerifyTree)} Word not found {wrd}");
@@ -259,7 +261,7 @@ namespace WordamentTests
                     var preflen = wrd.Length;
                     while (curNode != null) // walk back from curnode to root via parentNode chain. Construct the word backwards
                     {
-                        preflen -= curNode.NodeString.Length;
+                        preflen -= curNode.NodeString.WordLength;
                         wrdViaParents = curNode.NodeString + wrdViaParents;
                         if (nWords > 1 && preflen != wrd.Length - wrdViaParents.Length)
                         {
@@ -333,7 +335,7 @@ namespace WordamentTests
         {
             int IComparer<WordRadixNode>.Compare(WordRadixNode x, WordRadixNode y)
             {
-                var res = string.Compare(x.NodeString, y.NodeString);
+                var res = x.NodeString.CompareTo(y.NodeString);
                 return res;
             }
         }
@@ -350,15 +352,15 @@ namespace WordamentTests
         private readonly WordRadixTree wordRadixTree;
         public WordRadixNode ParentNode;
         SmallStuff smallStuff;
-        public string NodeString;
+        public MyWord NodeString;
         public int NodePrefixLength { get { return smallStuff.NodePrefixLength; } set { smallStuff.NodePrefixLength = (byte)value; } } // the # of chars missing before NodeString
         public bool IsNodeAWord { get { return smallStuff.IsNodeAWord; } set { smallStuff.IsNodeAWord = value; } } // a node with children can also be a word; E.G. "tea" can have a child "team"
         public int ChildNumber { get { return smallStuff.ChildNumber; } set { smallStuff.ChildNumber = (byte)value; } }
         public List<WordRadixNode> Children;
-        public WordRadixNode(WordRadixTree wordRadixTree, WordRadixNode parentNode, int nodePrefixLength, string str, bool IsAWord)
+        public WordRadixNode(WordRadixTree wordRadixTree, WordRadixNode parentNode, int nodePrefixLength, MyWord str, bool IsAWord)
         {
             this.wordRadixTree = wordRadixTree;
-            if (string.IsNullOrEmpty(str) && this != wordRadixTree.RootNode)
+            if (str.WordLength == 0 && this != wordRadixTree.RootNode)
             {
                 throw new Exception($"empty string not root?");
             }
@@ -452,7 +454,7 @@ namespace WordamentTests
             var str = $"{NodeString} Children={(Children == null ? "null" : Children.Count)} {nameof(IsNodeAWord)}={IsNodeAWord} ";
             if (Children != null)
             {
-                str += string.Join(",", Children.Select(e => e.NodeString).ToArray());
+                str += string.Join(",", Children.Select(e => e.NodeString.GetWord()).ToArray());
             }
             return str;
         }

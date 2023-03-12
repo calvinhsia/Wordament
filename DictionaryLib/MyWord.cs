@@ -79,6 +79,37 @@ namespace DictionaryLib
             }
             return res;
         }
+        public bool StartsWith(MyWord otherWord)
+        {
+            var res = true;
+            for (int i = 0; i < otherWord.WordLength; i++)
+            {
+                if (_wordBytes[i] != otherWord[i])
+                {
+                    res = false;
+                    break;
+                }
+            }
+            return res;
+        }
+        public MyWord Substring(int StartIndex, int Length)
+        {
+            if (StartIndex > WordLength)
+            {
+                throw new IndexOutOfRangeException();
+            }
+            var res = new MyWord();
+            res.SetLength(Length);
+            for (int i = 0; i < Length; i++)
+            {
+                res[i] = _wordBytes[i + StartIndex];
+            }
+            return res;
+        }
+        public MyWord Substring(int StartIndex)
+        {
+            return Substring(StartIndex, WordLength - StartIndex);
+        }
 
         public int CompareTo(object obj)
         {
