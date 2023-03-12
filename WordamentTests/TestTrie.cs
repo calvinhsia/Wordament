@@ -39,8 +39,9 @@ namespace WordamentTests
         {
             var dictionarySmall = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
             var lstAllWords = dictionarySmall.GetAllWords();
-            WordRadix.ClearAll();
-            WordRadix.AddWords(lstAllWords);
+            var wordRadixTree = new WordRadixTree();
+            wordRadixTree.ClearAll();
+            wordRadixTree.AddWords(lstAllWords);
             for (int i = 0; i < 300; i++)
             {
                 var hashSetSubWords = new SortedSet<string>();
@@ -49,7 +50,7 @@ namespace WordamentTests
                     for (int i = 3; i <= str.Length; i++)
                     {
                         var testWord = str.Substring(0, i);
-                        var partial = WordRadix.SeekWord(testWord, out var compResult);
+                        var partial = wordRadixTree.SeekWord(testWord, out var compResult);
                         if (!string.IsNullOrEmpty(partial) && compResult == 0)
                         {
                             hashSetSubWords.Add(testWord);
@@ -73,28 +74,29 @@ namespace WordamentTests
         {
             var dictionarySmall = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
             var lstAllWords = dictionarySmall.GetAllWords();
-            WordRadix.ClearAll();
+            var wordRadixTree = new WordRadixTree();
+            wordRadixTree.ClearAll();
             Trace.WriteLine($"Adding {lstAllWords.Count} words");
-            WordRadix.AddWords(lstAllWords);
+            wordRadixTree.AddWords(lstAllWords);
             // now verify
             var nWords = 0;
             var maxDepth = 0;
-            WordRadix.WalkTreeWords((str, nDepth) =>
+            wordRadixTree.WalkTreeWords((str, nDepth) =>
             {
                 nWords++;
                 maxDepth = Math.Max(nDepth, maxDepth);
                 return true;//continue
             });
-            Trace.WriteLine($"Tree has #words={nWords}  MaxDepth= {maxDepth} # nodes = {WordRadix.TotalNodes}");
+            Trace.WriteLine($"Tree has #words={nWords}  MaxDepth= {maxDepth} # nodes = {wordRadixTree.TotalNodes}");
 
-            lstAllWords.ForEach(w => Assert.IsTrue(WordRadix.IsWord(w), $"{w} not found"));
+            lstAllWords.ForEach(w => Assert.IsTrue(wordRadixTree.IsWord(w), $"{w} not found"));
 
 
-            WordRadix.VerifyTree(lstAllWords, NumWordsExpected: lstAllWords.Count);
+            wordRadixTree.VerifyTree(lstAllWords, NumWordsExpected: lstAllWords.Count);
 
             var maxNodeLength = 0;
             var maxnodelengstr = string.Empty;
-            WordRadix.WalkTreeNodes((node, depth) =>
+            wordRadixTree.WalkTreeNodes((node, depth) =>
             {
                 if (node.NodeString.Length > maxNodeLength)
                 {
@@ -108,7 +110,7 @@ namespace WordamentTests
 
 
             // verify all nodes reachable via GetNextNode
-            var curNode = WordRadix.RootNode;
+            var curNode = wordRadixTree.RootNode;
             var wrdCnt = 0;
             while (true)
             {
@@ -128,7 +130,7 @@ namespace WordamentTests
                 }
                 curNode = node;
             }
-            var x = WordRadix.SeekWord("cids", out var compResult);
+            var x = wordRadixTree.SeekWord("cids", out var compResult);
             var lstBadWords = new List<string>() { // 3 different kinds of find failures
                 "beckoningly",
                 "testp",
@@ -136,13 +138,13 @@ namespace WordamentTests
             };
             lstBadWords.ForEach(w =>
             {
-                var resSeek = WordRadix.SeekWord(w, out var compResult);
+                var resSeek = wordRadixTree.SeekWord(w, out var compResult);
 
             });
-            lstBadWords.ForEach(w => Assert.IsFalse(WordRadix.IsWord(w), $"{w} found ??"));
+            lstBadWords.ForEach(w => Assert.IsFalse(wordRadixTree.IsWord(w), $"{w} found ??"));
 
 
-            Assert.AreEqual(lstAllWords.Count, WordRadix.TotalWords);
+            Assert.AreEqual(lstAllWords.Count, wordRadixTree.TotalWords);
         }
         [TestMethod]
         public void TestWordNodesBench()
@@ -209,6 +211,18 @@ remove tolower:
 | DoWordRadix |     testing |    12.378 ms |  0.0425 ms |  0.0398 ms |    328.1250 |    328.1250 |    1721.76 KB |
              */
         }
+        [TestMethod]
+        public void TestGenSubWordsHashSetRadix()
+        {
+            var x = new BenchGenSubWords()
+            {
+                InitialWord = "testing"
+            };
+            //Word Testing == 45 subwords, Discount = 75
+            Assert.AreEqual(45, x.DoWordRadix());
+            Assert.AreEqual(45, x.DoHashSet());
+            Assert.AreEqual(45, x.DoWithNone());
+        }
     }
 
     [MemoryDiagnoser]
@@ -230,23 +244,26 @@ remove tolower:
         public int MaxSubWords = int.MaxValue;
         private readonly DictionaryLib.DictionaryLib dict;
         private readonly List<string> lstAllWords;
+        private readonly WordRadixTree wordRadixTree;
 
         public BenchGenSubWords()
         {
             dict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
             lstAllWords = dict.GetAllWords();
-            WordRadix.AddWords(lstAllWords);
+            wordRadixTree = new WordRadixTree();
+            wordRadixTree.AddWords(lstAllWords);
         }
         [Benchmark]
-        public void DoWithNone()
+        public int DoWithNone()
         {
             var lst = dict.GenerateSubWords(InitialWord, out var numSearches);
             Console.WriteLine($"{InitialWord,12} None #SubWords= {lst.Count} #Searches={numSearches}");
             //var ndx = 0;
             //lst.ForEach(d => Console.WriteLine($"N {ndx++} {d}"));
+            return lst.Count;
         }
         [Benchmark]
-        public void DoHashSet()
+        public int DoHashSet()
         {
             var hashSetSubWords = new SortedSet<string>();
             var numSearches = 0;
@@ -275,10 +292,11 @@ remove tolower:
             Console.WriteLine($"{InitialWord,12} Hash #SubWords= {hashSetSubWords.Count} #Searches={numSearches}");
             //var ndx = 0;
             //hashSetSubWords.ToList().ForEach(d => Console.WriteLine($"H {ndx++} {d}"));
+            return hashSetSubWords.Count;
         }
 
         [Benchmark]
-        public void DoWordRadix()
+        public int DoWordRadix()
         {
             var hashSetSubWords = new SortedSet<string>();
             DictionaryLib.DictionaryLib.PermuteString(InitialWord, LeftToRight: true, (str) =>
@@ -286,7 +304,7 @@ remove tolower:
                 for (int i = MinLength; i <= str.Length; i++)
                 {
                     var testWord = str.Substring(0, i);
-                    var partial = WordRadix.SeekWord(testWord, out var compResult);
+                    var partial = wordRadixTree.SeekWord(testWord, out var compResult);
                     if (!string.IsNullOrEmpty(partial) && compResult == 0)
                     {
                         hashSetSubWords.Add(testWord);
@@ -302,7 +320,7 @@ remove tolower:
                 return hashSetSubWords.Count < MaxSubWords; // continue 
             });
             Console.WriteLine($"{InitialWord,12} WordRadix #SubWords= {hashSetSubWords.Count} ");
-
+            return hashSetSubWords.Count;
         }
     }
 

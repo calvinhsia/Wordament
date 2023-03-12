@@ -7,58 +7,24 @@ using System.Threading.Tasks;
 
 namespace WordamentTests
 {
-    public class WordRadix
+    public class WordRadixTree
     {
-        public static WordRadix RootNode;
-        public static int TotalNodes = 0;
-        public static int TotalWords = 0;
-        public static ComparerWordRadix comparerInstance = new();
-
-        [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        public struct SmallStuff
+        public WordRadixNode RootNode;
+        public int TotalNodes = 0;
+        public int TotalWords = 0;
+        public ComparerWordRadix comparerInstance = new();
+        internal WordRadixNode TestNode; // used for testing a string using List.BinarySearch. Reuse same node to reduce mem consumption
+        public WordRadixTree()
         {
-            public byte NodePrefixLength;
-            public byte ChildNumber;
-            public bool IsNodeAWord;
+            TestNode = new(this, parentNode: null, nodePrefixLength: 0, "dummy", IsAWord: false);
         }
-        static WordRadix TestNode = new(parentNode: null, nodePrefixLength: 0, "dummy", IsAWord: false); // used for testing a string using List.BinarySearch. Reuse same node to reduce mem consumption
-        public WordRadix ParentNode;
-        SmallStuff smallStuff;
-        public string NodeString;
-        public int NodePrefixLength { get { return smallStuff.NodePrefixLength; } set { smallStuff.NodePrefixLength = (byte)value; } } // the # of chars missing before NodeString
-        public bool IsNodeAWord { get { return smallStuff.IsNodeAWord; } set { smallStuff.IsNodeAWord = value; } } // a node with children can also be a word; E.G. "tea" can have a child "team"
-        public int ChildNumber { get { return smallStuff.ChildNumber; } set { smallStuff.ChildNumber = (byte)value; } }
-        public List<WordRadix> Children;
-        public WordRadix(WordRadix parentNode, int nodePrefixLength, string str, bool IsAWord)
+        public void ClearAll()
         {
-            if (string.IsNullOrEmpty(str) && this != RootNode)
-            {
-                throw new Exception($"empty string not root?");
-            }
-
-            //unsafe
-            //{
-            //    var ss = new SmallStuff();
-            //    var addr = (byte*)&ss;
-            //    var size = sizeof(SmallStuff);
-            //    var msize = Marshal.SizeOf(smallStuff);
-            //    var msize2 = Marshal.SizeOf<SmallStuff>();
-            //    var off1 = (byte*)&ss.IsNodeAWord - addr;
-            //    var arr = new SmallStuff[2];
-            //    //var addr2 = (byte*)&arr;
-            //    arr[0] = new SmallStuff();
-            //    //                var addrarr0 = (byte*)&arr[0];
-            //    //fixed (byte *ptr0= (byte*)&arr[0]) {
-            //    //};
-            //    //arr[1]=new SmallStuff();
-            //}
-            NodeString = str;
-            IsNodeAWord = IsAWord;
-            NodePrefixLength = nodePrefixLength;
-            ParentNode = parentNode;
-            TotalNodes++;
+            TotalWords = 0;
+            TotalNodes = 0;
+            RootNode = null;
         }
-        public static void AddWords(List<string> lstAllWords)
+        public void AddWords(List<string> lstAllWords)
         {
             var nCnt = 0;
             foreach (var word in lstAllWords)
@@ -69,147 +35,7 @@ namespace WordamentTests
             }
             VerifyTree(lstAllWords, nCnt);
         }
-        public static void ClearAll()
-        {
-            TotalWords = 0;
-            TotalNodes = 0;
-            RootNode = null;
-        }
-        public static WordRadix AddWord(string word)
-        {
-            if (IsWord(word, AddIfAbsent: true))
-            {
-
-            }
-            return RootNode;
-        }
-        public class ComparerWordRadix : IComparer<WordRadix>
-        {
-            int IComparer<WordRadix>.Compare(WordRadix x, WordRadix y)
-            {
-                var res = string.Compare(x.NodeString, y.NodeString);
-                return res;
-            }
-        }
-
-        internal static void VerifyTree(List<string> lstAllWords, int NumWordsExpected)
-        {
-            var strSoFar = string.Empty;
-            var lstNodes = new List<WordRadix>();
-            var nWords = 0;
-            WalkTreeNodes((node, depth) =>
-            {
-                if (lstNodes.Count == depth)
-                {
-                    lstNodes.Add(node);
-                }
-                else if (lstNodes.Count < depth)
-                {
-
-                }
-                else
-                {
-                    while (lstNodes.Count > depth)
-                    {
-                        lstNodes.RemoveAt(lstNodes.Count - 1);
-
-                    }
-                    lstNodes.Add(node);
-                }
-                if (node.Children != null)
-                {
-                    for (var i = 0; i < node.Children.Count; i++)
-                    {
-                        if (node.Children[i].ChildNumber != i)
-                        {
-                            throw new Exception($"{nameof(VerifyTree)} ChildNumber incorrect {node}");
-                        }
-                    }
-                }
-                if (node.IsNodeAWord)
-                {
-                    var wrd = string.Join("", lstNodes.Where(w => !string.IsNullOrEmpty(w.NodeString)).Select(w => w.NodeString).ToList());
-                    if (!WordRadix.IsWord(wrd))
-                    {
-                        throw new Exception($"{nameof(VerifyTree)} Word not found {wrd}");
-                    }
-                    // now verify parent links
-                    var wrdViaParents = string.Empty;
-                    var curNode = node;
-                    var preflen = wrd.Length;
-                    while (curNode != null) // walk back from curnode to root via parentNode chain. Construct the word backwards
-                    {
-                        preflen -= curNode.NodeString.Length;
-                        wrdViaParents = curNode.NodeString + wrdViaParents;
-                        if (nWords > 1 && preflen != wrd.Length - wrdViaParents.Length)
-                        {
-                            throw new Exception($"{nameof(VerifyTree)} Word pref len not match {wrd} {wrdViaParents}");
-                        }
-
-                        curNode = curNode.ParentNode;
-                    }
-                    if (wrdViaParents != wrd)
-                    {
-                        throw new Exception($"{nameof(VerifyTree)} Word parents not match {wrd} {wrdViaParents}");
-                    }
-                    nWords++;
-                }
-                return true;///continue
-            });
-            if (nWords != NumWordsExpected)
-            {
-                throw new Exception($"{nameof(VerifyTree)} Expected: {NumWordsExpected}  WrdsFound={nWords} ");
-            }
-        }
-        public static void WalkTreeNodes(Func<WordRadix, int, bool> func)
-        {
-            var fAbort = false;
-            WalkTreeNodesRecur(RootNode, 0);
-            void WalkTreeNodesRecur(WordRadix curNode, int depth)
-            {
-                if (fAbort)
-                {
-                    return;
-                }
-                if (!func(curNode, depth))
-                {
-                    fAbort = true;
-                }
-                if (curNode.Children != null)
-                {
-                    foreach (var child in curNode.Children)
-                    {
-                        WalkTreeNodesRecur(child, depth + 1);
-                    }
-                }
-            }
-        }
-        public static void WalkTreeWords(Func<string, int, bool> func)
-        {
-            WalkWordsRecursive(RootNode, string.Empty, 0);
-            void WalkWordsRecursive(WordRadix curNode, string strSoFar, int nDepth)
-            {
-                if (curNode.IsNodeAWord)
-                {
-                    if (strSoFar.Length != curNode.NodePrefixLength)
-                    {
-                        "".ToString();
-                    }
-                    if (!func(strSoFar + curNode.NodeString, nDepth))
-                    {
-                        return;
-                    }
-                }
-                if (curNode.Children != null)
-                {
-                    foreach (var child in curNode.Children)
-                    {
-                        WalkWordsRecursive(child, strSoFar + curNode.NodeString, nDepth + 1);
-                    }
-                }
-            }
-        }
-        public static string SeekWord(string testWord, out int compResult)
+        public string SeekWord(string testWord, out int compResult)
         {
             var strResult = string.Empty;
             compResult = 0;
@@ -239,23 +65,23 @@ namespace WordamentTests
             }
             return strResult;
         }
-        public static bool IsWord(string testword, bool AddIfAbsent = false)
+        public bool IsWord(string testword, bool AddIfAbsent = false)
         {
             return IsWord(testword, AddIfAbsent, out _);
         }
-        public static bool IsWord(string testword, bool AddIfAbsent, out WordRadix closestNode)
+        public bool IsWord(string testword, bool AddIfAbsent, out WordRadixNode closestNode)
         {
             var isWord = false;
             closestNode = RootNode;
             if (RootNode == null)
             {
-                RootNode = new(parentNode: null, nodePrefixLength: 0, testword, IsAWord: true);
+                RootNode = new(this, parentNode: null, nodePrefixLength: 0, testword, IsAWord: true);
                 TotalWords++;
                 return true;
             }
-            WordRadix curNode = RootNode;
+            WordRadixNode curNode = RootNode;
             var len = 0;
-            var lstNodesVisited = new List<WordRadix>(); // doesn't work for AddMode when we're building the tree because of node splits
+            var lstNodesVisited = new List<WordRadixNode>(); // doesn't work for AddMode when we're building the tree because of node splits
             while (true) //while (curNode != null && len < testword.Length)// find a node in the tree to which the testword is being added.
             {   // the word must always belong to the current node. Determine if we need to split the curNode or add the word as a descendant (if the word matches the entire node value)
                 lstNodesVisited.Add(curNode);
@@ -276,11 +102,11 @@ namespace WordamentTests
                             closestNode = curNode.GetNextNode(OnlyWordNodes: true, InitialDirectionDown: false); // the node on which the word would go: would be just before testword in alpha order
                             break;
                         }
-                        curNode.Children = new() { new WordRadix(curNode, nodePrefixLength: len, TestNode.NodeString, isWord = true) };
+                        curNode.Children = new() { new WordRadixNode(this, curNode, nodePrefixLength: len, TestNode.NodeString, isWord = true) };
                     }
                     else
                     { // we need to descend to find the target node
-                        var res = curNode.Children.BinarySearch(TestNode, WordRadix.comparerInstance);
+                        var res = curNode.Children.BinarySearch(TestNode, comparerInstance);
                         if (res == 0)// exact match. word is already in tree
                         {
                             if (!AddIfAbsent && curNode.IsNodeAWord)
@@ -324,7 +150,7 @@ namespace WordamentTests
                                     closestNode = targnode.GetNextNode(OnlyWordNodes: true, InitialDirectionDown: false); // before testword in alpha order. did not descend into node because prefndx == 0 
                                     break;
                                 }
-                                curNode.Children.Add(new WordRadix(curNode, nodePrefixLength: len, TestNode.NodeString, IsAWord: true) { ChildNumber = curNode.Children.Count }); // add as last sibling
+                                curNode.Children.Add(new WordRadixNode(this, curNode, nodePrefixLength: len, TestNode.NodeString, IsAWord: true) { ChildNumber = curNode.Children.Count }); // add as last sibling
                             }
                         }
                     }
@@ -346,7 +172,7 @@ namespace WordamentTests
                     var child2 = testword.Substring(len + prefndx2);
                     curNode.IsNodeAWord = false;
                     curNode.NodeString = split1;
-                    var newchild1 = new WordRadix(curNode, nodePrefixLength: curnodePrefixLen + split1.Length, split2, curnodeIsAWord)
+                    var newchild1 = new WordRadixNode(this, curNode, nodePrefixLength: curnodePrefixLen + split1.Length, split2, curnodeIsAWord)
                     {
                         Children = curnodeChildren
                     }; // copy all from curnode
@@ -357,19 +183,18 @@ namespace WordamentTests
                             pnode.ParentNode = newchild1;
                         }
                     }
-                    curNode.Children = new List<WordRadix>() { newchild1 };
+                    curNode.Children = new List<WordRadixNode>() { newchild1 };
                     if (!string.IsNullOrEmpty(child2))
                     {
-                        curNode.Children.Add(new WordRadix(curNode, nodePrefixLength: len + split1.Length, child2, IsAWord: true) { ChildNumber = curNode.Children.Count });
+                        curNode.Children.Add(new WordRadixNode(this, curNode, nodePrefixLength: len + split1.Length, child2, IsAWord: true) { ChildNumber = curNode.Children.Count });
                     }
-
                 }
                 TotalWords++;
                 break;
             }
             return isWord;
         }
-        static int GetCommonPrefLength(string word1, string word2)
+        int GetCommonPrefLength(string word1, string word2)
         {
             var prefndx = -1;
             for (var i = 0; i < Math.Min(word1.Length, word2.Length); i++)
@@ -386,11 +211,186 @@ namespace WordamentTests
             }
             return prefndx;
         }
+
+        internal void VerifyTree(List<string> lstAllWords, int NumWordsExpected)
+        {
+            var strSoFar = string.Empty;
+            var lstNodes = new List<WordRadixNode>();
+            var nWords = 0;
+            WalkTreeNodes((node, depth) =>
+            {
+                if (lstNodes.Count == depth)
+                {
+                    lstNodes.Add(node);
+                }
+                else if (lstNodes.Count < depth)
+                {
+
+                }
+                else
+                {
+                    while (lstNodes.Count > depth)
+                    {
+                        lstNodes.RemoveAt(lstNodes.Count - 1);
+
+                    }
+                    lstNodes.Add(node);
+                }
+                if (node.Children != null)
+                {
+                    for (var i = 0; i < node.Children.Count; i++)
+                    {
+                        if (node.Children[i].ChildNumber != i)
+                        {
+                            throw new Exception($"{nameof(VerifyTree)} ChildNumber incorrect {node}");
+                        }
+                    }
+                }
+                if (node.IsNodeAWord)
+                {
+                    var wrd = string.Join("", lstNodes.Where(w => !string.IsNullOrEmpty(w.NodeString)).Select(w => w.NodeString).ToList());
+                    if (!IsWord(wrd))
+                    {
+                        throw new Exception($"{nameof(VerifyTree)} Word not found {wrd}");
+                    }
+                    // now verify parent links
+                    var wrdViaParents = string.Empty;
+                    var curNode = node;
+                    var preflen = wrd.Length;
+                    while (curNode != null) // walk back from curnode to root via parentNode chain. Construct the word backwards
+                    {
+                        preflen -= curNode.NodeString.Length;
+                        wrdViaParents = curNode.NodeString + wrdViaParents;
+                        if (nWords > 1 && preflen != wrd.Length - wrdViaParents.Length)
+                        {
+                            throw new Exception($"{nameof(VerifyTree)} Word pref len not match {wrd} {wrdViaParents}");
+                        }
+
+                        curNode = curNode.ParentNode;
+                    }
+                    if (wrdViaParents != wrd)
+                    {
+                        throw new Exception($"{nameof(VerifyTree)} Word parents not match {wrd} {wrdViaParents}");
+                    }
+                    nWords++;
+                }
+                return true;///continue
+            });
+            if (nWords != NumWordsExpected)
+            {
+                throw new Exception($"{nameof(VerifyTree)} Expected: {NumWordsExpected}  WrdsFound={nWords} ");
+            }
+        }
+        public void WalkTreeNodes(Func<WordRadixNode, int, bool> func)
+        {
+            var fAbort = false;
+            WalkTreeNodesRecur(RootNode, 0);
+            void WalkTreeNodesRecur(WordRadixNode curNode, int depth)
+            {
+                if (fAbort)
+                {
+                    return;
+                }
+                if (!func(curNode, depth))
+                {
+                    fAbort = true;
+                }
+                if (curNode.Children != null)
+                {
+                    foreach (var child in curNode.Children)
+                    {
+                        WalkTreeNodesRecur(child, depth + 1);
+                    }
+                }
+            }
+        }
+        public void WalkTreeWords(Func<string, int, bool> func)
+        {
+            WalkWordsRecursive(RootNode, string.Empty, 0);
+            void WalkWordsRecursive(WordRadixNode curNode, string strSoFar, int nDepth)
+            {
+                if (curNode.IsNodeAWord)
+                {
+                    if (strSoFar.Length != curNode.NodePrefixLength)
+                    {
+                        "".ToString();
+                    }
+                    if (!func(strSoFar + curNode.NodeString, nDepth))
+                    {
+                        return;
+                    }
+                }
+                if (curNode.Children != null)
+                {
+                    foreach (var child in curNode.Children)
+                    {
+                        WalkWordsRecursive(child, strSoFar + curNode.NodeString, nDepth + 1);
+                    }
+                }
+            }
+        }
+        public class ComparerWordRadix : IComparer<WordRadixNode>
+        {
+            int IComparer<WordRadixNode>.Compare(WordRadixNode x, WordRadixNode y)
+            {
+                var res = string.Compare(x.NodeString, y.NodeString);
+                return res;
+            }
+        }
+    }
+    public class WordRadixNode
+    {
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct SmallStuff
+        {
+            public byte NodePrefixLength;
+            public byte ChildNumber;
+            public bool IsNodeAWord;
+        }
+        private readonly WordRadixTree wordRadixTree;
+        public WordRadixNode ParentNode;
+        SmallStuff smallStuff;
+        public string NodeString;
+        public int NodePrefixLength { get { return smallStuff.NodePrefixLength; } set { smallStuff.NodePrefixLength = (byte)value; } } // the # of chars missing before NodeString
+        public bool IsNodeAWord { get { return smallStuff.IsNodeAWord; } set { smallStuff.IsNodeAWord = value; } } // a node with children can also be a word; E.G. "tea" can have a child "team"
+        public int ChildNumber { get { return smallStuff.ChildNumber; } set { smallStuff.ChildNumber = (byte)value; } }
+        public List<WordRadixNode> Children;
+        public WordRadixNode(WordRadixTree wordRadixTree, WordRadixNode parentNode, int nodePrefixLength, string str, bool IsAWord)
+        {
+            this.wordRadixTree = wordRadixTree;
+            if (string.IsNullOrEmpty(str) && this != wordRadixTree.RootNode)
+            {
+                throw new Exception($"empty string not root?");
+            }
+
+            //unsafe
+            //{
+            //    var ss = new SmallStuff();
+            //    var addr = (byte*)&ss;
+            //    var size = sizeof(SmallStuff);
+            //    var msize = Marshal.SizeOf(smallStuff);
+            //    var msize2 = Marshal.SizeOf<SmallStuff>();
+            //    var off1 = (byte*)&ss.IsNodeAWord - addr;
+            //    var arr = new SmallStuff[2];
+            //    //var addr2 = (byte*)&arr;
+            //    arr[0] = new SmallStuff();
+            //    //                var addrarr0 = (byte*)&arr[0];
+            //    //fixed (byte *ptr0= (byte*)&arr[0]) {
+            //    //};
+            //    //arr[1]=new SmallStuff();
+            //}
+            NodeString = str;
+            IsNodeAWord = IsAWord;
+            NodePrefixLength = nodePrefixLength;
+            ParentNode = parentNode;
+            wordRadixTree.TotalNodes++;
+        }
+
         public string GetWord()
         {
             var str = string.Empty;
             var curnode = this;
-            while (curnode != RootNode)
+            while (curnode != wordRadixTree.RootNode)
             {
                 str = curnode.NodeString + str;
                 curnode = curnode.ParentNode;
@@ -398,7 +398,7 @@ namespace WordamentTests
             return str;
         }
 
-        public WordRadix GetNextNode(bool OnlyWordNodes, bool InitialDirectionDown = true)
+        public WordRadixNode GetNextNode(bool OnlyWordNodes, bool InitialDirectionDown = true)
         {
             var curNode = this;
             while (curNode != null)
@@ -412,7 +412,7 @@ namespace WordamentTests
             }
             return curNode;
         }
-        static WordRadix GetNextNode(WordRadix curNode, bool InitialDirectionDown)
+        internal WordRadixNode GetNextNode(WordRadixNode curNode, bool InitialDirectionDown)
         {
             var down = InitialDirectionDown;
             while (curNode != null)
