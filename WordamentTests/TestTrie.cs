@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -33,11 +34,43 @@ namespace WordamentTests
             //var str = WordTrie.GetStringFromPath(nodePath);
             TestContext.WriteLine($"{dictionarySmall}  WordNode Count = {WordTrie.NodeCnt}");
         }
+        [TestMethod]
+        public void TestWordRadixPerf()
+        {
+            var dictionarySmall = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
+            var lstAllWords = dictionarySmall.GetAllWords();
+            WordRadix.ClearAll();
+            WordRadix.AddWords(lstAllWords);
+            for (int i = 0; i < 300; i++)
+            {
+                var hashSetSubWords = new SortedSet<string>();
+                DictionaryLib.DictionaryLib.PermuteString("testing", LeftToRight: true, (str) =>
+                {
+                    for (int i = 3; i <= str.Length; i++)
+                    {
+                        var testWord = str.Substring(0, i);
+                        var partial = WordRadix.SeekWord(testWord, out var compResult);
+                        if (!string.IsNullOrEmpty(partial) && compResult == 0)
+                        {
+                            hashSetSubWords.Add(testWord);
+                        }
+                        else
+                        {
+                            if (!partial.StartsWith(testWord))
+                            {
+                                break;
+                            }
+                        }
+                    }
+                    return true; // continue 
+                });
+                Trace.WriteLine($"{hashSetSubWords.Count} words");
+            }
+        }
 
         [TestMethod]
         public void TestWordRadix()
         {
-            var rand = new Random();
             var dictionarySmall = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
             var lstAllWords = dictionarySmall.GetAllWords();
             WordRadix.ClearAll();
@@ -152,20 +185,29 @@ remove tolower:
         [TestMethod]
         public void TestBenchGenSubWords()
         {
-            //*
+            /*
             var config = ManualConfig.Create(BenchmarkDotNet.Configs.DefaultConfig.Instance);//.WithOptions(ConfigOptions.DisableOptimizationsValidator);
             BenchmarkRunner.Run<BenchGenSubWords>(config);
             /*/
             var x = new BenchGenSubWords()
             {
-                InitialWord = "discounter"
+                InitialWord = "testing"
             };
             //Word Testing == 45 subwords, Discount = 75
             x.DoWordRadix();
             x.DoHashSet();
             x.DoWithNone();
             //*/
-
+            /*
+|      Method | InitialWord |         Mean |      Error |     StdDev |        Gen0 |        Gen1 |     Allocated |
+|------------ |------------ |-------------:|-----------:|-----------:|------------:|------------:|--------------:|
+|  DoWithNone |  discounter | 2,693.806 ms |  4.4708 ms |  3.9633 ms | 134000.0000 | 134000.0000 |   687285.7 KB |
+|   DoHashSet |  discounter | 7,388.738 ms | 16.9374 ms | 15.8432 ms |  46000.0000 |  46000.0000 |  239401.89 KB |
+| DoWordRadix |  discounter | 9,305.156 ms | 11.4991 ms |  9.6023 ms | 262000.0000 | 262000.0000 | 1346081.56 KB |
+|  DoWithNone |     testing |     3.587 ms |  0.0217 ms |  0.0203 ms |    175.7813 |    175.7813 |     914.85 KB |
+|   DoHashSet |     testing |    10.029 ms |  0.0586 ms |  0.0519 ms |     46.8750 |     46.8750 |     292.63 KB |
+| DoWordRadix |     testing |    12.378 ms |  0.0425 ms |  0.0398 ms |    328.1250 |    328.1250 |    1721.76 KB |
+             */
         }
     }
 
@@ -179,7 +221,7 @@ remove tolower:
             HashSet,
             WordRadix
         }
-//        [ParamsAllValues]
+        //        [ParamsAllValues]
         public GenSubWordType GenType { get; set; }
 
         [Params("discounter", "testing")]
@@ -235,7 +277,7 @@ remove tolower:
             //hashSetSubWords.ToList().ForEach(d => Console.WriteLine($"H {ndx++} {d}"));
         }
 
-        //        [Benchmark]
+        [Benchmark]
         public void DoWordRadix()
         {
             var hashSetSubWords = new SortedSet<string>();
@@ -259,7 +301,7 @@ remove tolower:
                 }
                 return hashSetSubWords.Count < MaxSubWords; // continue 
             });
-            Console.WriteLine($"{InitialWord,12} Hash #SubWords= {hashSetSubWords.Count} ");
+            Console.WriteLine($"{InitialWord,12} WordRadix #SubWords= {hashSetSubWords.Count} ");
 
         }
     }

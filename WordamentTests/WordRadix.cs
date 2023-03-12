@@ -283,11 +283,13 @@ namespace WordamentTests
                         var res = curNode.Children.BinarySearch(TestNode, WordRadix.comparerInstance);
                         if (res == 0)// exact match. word is already in tree
                         {
-                            if (!AddIfAbsent)
+                            if (!AddIfAbsent && curNode.IsNodeAWord)
                             {
                                 isWord = true;
+                                break;
                             }
-                            break;
+                            curNode = curNode.Children[res];
+                            continue;
                         }
                         else if (res > 0) // found the node to which the word belongs
                         {
