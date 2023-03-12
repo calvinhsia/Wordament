@@ -225,12 +225,17 @@ namespace WordamentTests
                     var tmp = curnode.GetWord();
                     if (string.Compare(tmp, testWord) > 0)
                     {
-                        compResult = 1;
+                        compResult = -1;
                         strResult = tmp;
                         break;
                     }
                     curnode = curnode.GetNextNode(OnlyWordNodes: true);
                 }
+            }
+            else
+            {
+                strResult = testWord;
+                compResult = 0;
             }
             return strResult;
         }
@@ -326,7 +331,9 @@ namespace WordamentTests
                 {   //we need to split the node: curnode gets a shorter string and 2 children are created: the first with the same children as the curnode, the 2nd with the rest of the string
                     if (!AddIfAbsent)
                     {
-                        throw new Exception($"how did we get here? {testword} {curNode} ");
+                        isWord = false; //not found: TestWord == "cids"  curnode=="(ci)der". 
+                        closestNode = curNode.GetNextNode(OnlyWordNodes: true, InitialDirectionDown: true);
+                        break;
                     }
                     var curnodeChildren = curNode.Children; // save these values to move them
                     var curnodeIsAWord = curNode.IsNodeAWord;// save these values to move them

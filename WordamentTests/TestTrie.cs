@@ -95,6 +95,7 @@ namespace WordamentTests
                 }
                 curNode = node;
             }
+            var x = WordRadix.SeekWord("cids", out var compResult);
             var lstBadWords = new List<string>() { // 3 different kinds of find failures
                 "beckoningly",
                 "testp",
@@ -151,7 +152,7 @@ remove tolower:
         [TestMethod]
         public void TestBenchGenSubWords()
         {
-            /*
+            //*
             var config = ManualConfig.Create(BenchmarkDotNet.Configs.DefaultConfig.Instance);//.WithOptions(ConfigOptions.DisableOptimizationsValidator);
             BenchmarkRunner.Run<BenchGenSubWords>(config);
             /*/
@@ -160,9 +161,9 @@ remove tolower:
                 InitialWord = "discounter"
             };
             //Word Testing == 45 subwords, Discount = 75
+            x.DoWordRadix();
             x.DoHashSet();
             x.DoWithNone();
-            x.DoWordRadix();
             //*/
 
         }
@@ -186,10 +187,13 @@ remove tolower:
         public int MinLength = 3;
         public int MaxSubWords = int.MaxValue;
         private readonly DictionaryLib.DictionaryLib dict;
+        private readonly List<string> lstAllWords;
 
         public BenchGenSubWords()
         {
             dict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
+            lstAllWords = dict.GetAllWords();
+            WordRadix.AddWords(lstAllWords);
         }
         [Benchmark]
         public void DoWithNone()
@@ -202,7 +206,6 @@ remove tolower:
         [Benchmark]
         public void DoHashSet()
         {
-            var lstAllWords = dict.GetAllWords();
             var hashSetSubWords = new SortedSet<string>();
             var numSearches = 0;
             DictionaryLib.DictionaryLib.PermuteString(InitialWord, LeftToRight: true, (str) =>
@@ -235,15 +238,13 @@ remove tolower:
         //        [Benchmark]
         public void DoWordRadix()
         {
-            var lstAllWords = dict.GetAllWords();
-            WordRadix.AddWords(lstAllWords);
             var hashSetSubWords = new SortedSet<string>();
             DictionaryLib.DictionaryLib.PermuteString(InitialWord, LeftToRight: true, (str) =>
             {
                 for (int i = MinLength; i <= str.Length; i++)
                 {
                     var testWord = str.Substring(0, i);
-                    var partial = dict.SeekWord(testWord, out var compResult);
+                    var partial = WordRadix.SeekWord(testWord, out var compResult);
                     if (!string.IsNullOrEmpty(partial) && compResult == 0)
                     {
                         hashSetSubWords.Add(testWord);
@@ -258,6 +259,7 @@ remove tolower:
                 }
                 return hashSetSubWords.Count < MaxSubWords; // continue 
             });
+            Console.WriteLine($"{InitialWord,12} Hash #SubWords= {hashSetSubWords.Count} ");
 
         }
     }
