@@ -181,6 +181,7 @@
     <Compile Include="TestMyWord.cs" />
     <Compile Include="TestTrie.cs" />
     <Compile Include="TestScowl.cs" />
+    <Compile Include="WordRadix.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
