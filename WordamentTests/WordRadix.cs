@@ -120,17 +120,18 @@ namespace WordamentTests
                     else
                     { // we need to descend to find the target node
                         var res = curNode.Children.BinarySearch(TestNode, comparerInstance);
-                        if (res == 0)// exact match. word is already in tree
-                        {
-                            if (!AddIfAbsent && curNode.IsNodeAWord)
-                            {
-                                isWord = true;
-                                break;
-                            }
-                            curNode = curNode.Children[res];
-                            continue;
-                        }
-                        else if (res > 0) // found the node to which the word belongs
+                        //if (res == 0)// exact match. word is already in tree
+                        //{
+                        //    if (!AddIfAbsent && curNode.IsNodeAWord)
+                        //    {
+                        //        isWord = true;
+                        //        break;
+                        //    }
+                        //    curNode = curNode.Children[res];
+                        //    continue;
+                        //}
+                        //else
+                        if (res >= 0) // found the node to which the word belongs
                         {
                             curNode = curNode.Children[res]; //descend
                             continue;

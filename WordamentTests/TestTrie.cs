@@ -41,10 +41,10 @@ namespace WordamentTests
             var lstAllWords = dictionarySmall.GetAllWords();
             var wordRadixTree = new WordRadixTree(lstAllWords);
             var testWord = new MyWord();
-            for (int i = 0; i < 300; i++)
+            for (int i = 0; i < 1; i++)
             {
                 var hashSetSubWords = new SortedSet<string>();
-                DictionaryLib.DictionaryLib.PermuteString("testing", LeftToRight: true, act: null, actMyWord: (str) =>
+                DictionaryLib.DictionaryLib.PermuteString("discounter", LeftToRight: true, act: null, actMyWord: (str) =>
                 {
                     for (int i = 3; i <= str.WordLength; i++)
                     {
@@ -69,7 +69,7 @@ namespace WordamentTests
                     }
                     return true; // continue 
                 });
-                Trace.WriteLine($"{hashSetSubWords.Count} words");
+                Trace.WriteLine($"{i} {hashSetSubWords.Count} words");
             }
         }
 
@@ -260,6 +260,16 @@ remove List<nodes> in IsWord
 |   DoHashSet |     testing |    10.009 ms |  0.0211 ms |  0.0176 ms |     46.8750 |     292.63 KB |
 | DoWordRadix |     testing |     4.227 ms |  0.0321 ms |  0.0300 ms |    257.8125 |    1336.82 KB |
 
+remove substr in Permute lambda
+|      Method | InitialWord |         Mean |      Error |     StdDev |        Gen0 |     Allocated |
+|------------ |------------ |-------------:|-----------:|-----------:|------------:|--------------:|
+|  DoWithNone |  discounter | 2,709.025 ms | 18.1848 ms | 17.0100 ms | 134000.0000 |   687285.7 KB |
+|   DoHashSet |  discounter | 7,394.279 ms | 15.5168 ms | 13.7553 ms |  46000.0000 |  239401.89 KB |
+| DoWordRadix |  discounter | 3,266.656 ms |  8.3775 ms |  6.9956 ms | 203000.0000 | 1041945.14 KB |
+|  DoWithNone |     testing |     3.595 ms |  0.0205 ms |  0.0192 ms |    175.7813 |     914.85 KB |
+|   DoHashSet |     testing |    10.078 ms |  0.1162 ms |  0.1087 ms |     46.8750 |     292.63 KB |
+| DoWordRadix |     testing |     4.185 ms |  0.0091 ms |  0.0076 ms |    257.8125 |    1336.82 KB |
+
 
              */
         }
@@ -271,9 +281,24 @@ remove List<nodes> in IsWord
                 InitialWord = "testing"
             };
             //Word Testing == 45 subwords, Discount = 75
-            Assert.AreEqual(45, x.DoWordRadix());
-            Assert.AreEqual(45, x.DoHashSet());
-            Assert.AreEqual(45, x.DoWithNone());
+            var lstWordRadix = x.DoWordRadix();
+            TestContext.WriteLine($"WordRadix {lstWordRadix.Count}");
+            var lstHashSet = x.DoHashSet();
+            TestContext.WriteLine($"HashSet {lstHashSet.Count}");
+            var lstWithNone = x.DoWithNone();
+            TestContext.WriteLine($"None {lstWithNone.Count}");
+            foreach (var word in lstWithNone)
+            {
+                lstWordRadix.Remove(word);
+            }
+            foreach (var word in lstWordRadix)
+            {
+                TestContext.WriteLine($"Extra {word}");
+            }
+            // 45 for "testing", 484 for "discounter"
+            Assert.AreEqual(0, lstWordRadix.Count);
+            Assert.AreEqual(45, lstHashSet.Count);
+            Assert.AreEqual(45, lstWithNone.Count);
         }
     }
 
@@ -305,16 +330,16 @@ remove List<nodes> in IsWord
             wordRadixTree = new WordRadixTree(lstAllWords);
         }
         [Benchmark]
-        public int DoWithNone()
+        public List<string> DoWithNone()
         {
             var lst = dict.GenerateSubWords(InitialWord, out var numSearches);
             Console.WriteLine($"{InitialWord,12} None #SubWords= {lst.Count} #Searches={numSearches}");
             //var ndx = 0;
             //lst.ForEach(d => Console.WriteLine($"N {ndx++} {d}"));
-            return lst.Count;
+            return lst;
         }
         [Benchmark]
-        public int DoHashSet()
+        public List<string> DoHashSet()
         {
             var hashSetSubWords = new SortedSet<string>();
             var numSearches = 0;
@@ -343,12 +368,14 @@ remove List<nodes> in IsWord
             Console.WriteLine($"{InitialWord,12} Hash #SubWords= {hashSetSubWords.Count} #Searches={numSearches}");
             //var ndx = 0;
             //hashSetSubWords.ToList().ForEach(d => Console.WriteLine($"H {ndx++} {d}"));
-            return hashSetSubWords.Count;
+            return hashSetSubWords.ToList();
         }
 
         [Benchmark]
-        public int DoWordRadix()
+        public List<string> DoWordRadix()
         {
+
+
             var hashSetSubWords = new SortedSet<string>();
             DictionaryLib.DictionaryLib.PermuteString(InitialWord, LeftToRight: true, (str) =>
             {
@@ -371,7 +398,7 @@ remove List<nodes> in IsWord
                 return hashSetSubWords.Count < MaxSubWords; // continue 
             });
             Console.WriteLine($"{InitialWord,12} WordRadix #SubWords= {hashSetSubWords.Count} ");
-            return hashSetSubWords.Count;
+            return hashSetSubWords.ToList();
         }
     }
 
