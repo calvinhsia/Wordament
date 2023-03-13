@@ -85,11 +85,6 @@ namespace DictionaryLib
             _MyWordSoFar = new MyWord();
         }
 
-        public string SeekWord(string word)
-        {
-            return SeekWord(word, out var _);
-        }
-
         public static byte ToLowerByte(byte b)
         {
             var ret = b;
@@ -102,6 +97,20 @@ namespace DictionaryLib
                 throw new InvalidOperationException($"non alphabetic input");
             }
             return b;
+        }
+
+        public string SeekWord(string word)
+        {
+            return SeekWord(word, out var _);
+        }
+        public string SeekWord(string testWord, out int compResult)
+        {
+            var node = SeekWord(new MyWord(testWord), out compResult);
+            if (node != null)
+            {
+                return node.GetWord();
+            }
+            return null;
         }
         /// <summary>
         /// Seek in dictionary to provided "word". (Case insensitive)
@@ -116,37 +125,37 @@ namespace DictionaryLib
         /// If we're at the end of the dictionary, return string.empty
         ///// </summary>
         /// </summary>
-        public string SeekWord(string word, out int compResult)
+        public MyWord SeekWord(MyWord word, out int compResult)
         {
             byte let0 = Lettera;
             byte let1 = Lettera;
             byte let2 = Lettera;
-            if (word.Length > 0)
+            if (word.WordLength > 0)
             {
                 let0 = ToLowerByte((byte)(word[0]));
             }
-            if (word.Length > 1)
+            if (word.WordLength > 1)
             {
                 let1 = ToLowerByte((byte)(word[1]));
             }
-            if (word.Length > 2)
+            if (word.WordLength > 2)
             {
                 let2 = ToLowerByte((byte)(word[2]));
             }
             SetDictPos(let0, let1, let2);
-            if (word.Length == 0) // the first word in dictionary is "a"
+            if (word.WordLength == 0) // the first word in dictionary is "a"
             {
                 compResult = 0;
-                return "a";
+                return new MyWord("a");
             }
             var wordStop = new MyWord(word);
             if (_nibndx == 0 && let0 > 97) // if the nibndx shows 0 but we're past the "A"'s, then we're at the end of the dictionary
             {
                 compResult = -1;
-                return string.Empty;
+                return null;
             }
             var result = GetNextWord(out compResult, wordStop);
-            return result.GetWord();
+            return result;
         }
 
         void SetDictPos(byte let0, byte let1 = Lettera, byte let2 = Lettera)
@@ -327,20 +336,25 @@ namespace DictionaryLib
         {
             var numlookups = 0;
             var hashSetSubWords = new SortedSet<string>();
-            PermuteString(InitialWord, LeftToRight, (str) =>
+            var testWord = new MyWord();
+            PermuteString(InitialWord, LeftToRight, act: null, actMyWord: (str) =>
             {
-                for (int i = MinLength; i <= str.Length; i++)
+                for (int i = MinLength; i <= str.WordLength; i++)
                 {
-                    var testWord = str.Substring(0, i);
+                    testWord.SetLength(i);
+                    for (int j = 0; j < i; j++)
+                    {
+                        testWord[j] = str[j];
+                    }
                     var partial = SeekWord(testWord, out var compResult);
                     numlookups++;
                     if (compResult == 0)
                     {
-                        hashSetSubWords.Add(testWord);
+                        hashSetSubWords.Add(testWord.GetWord());
                     }
                     else
                     {
-                        if (!partial.StartsWith(testWord)) // if "ids" isn't a word and the closest word is "idyllic" which doesn't start with "ids" then there's no point trying words longer than "ids" that start with "ids"
+                        if (partial.WordLength == 0) // if "ids" isn't a word and the closest word is "idyllic" which doesn't start with "ids" then there's no point trying words longer than "ids" that start with "ids"
                         {
                             break;
                         }
@@ -869,7 +883,7 @@ namespace DictionaryLib
                 }
                 else
                 {
-                    if (act !=null)
+                    if (act != null)
                     {
                         fAbort = !act(myWord.GetWord());
                     }

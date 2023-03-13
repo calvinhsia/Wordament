@@ -37,39 +37,48 @@ namespace WordamentTests
         [TestMethod]
         public void TestWordRadixPerf()
         {
-            var dictionarySmall = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
-            var lstAllWords = dictionarySmall.GetAllWords();
-            var wordRadixTree = new WordRadixTree(lstAllWords);
-            var testWord = new MyWord();
+            var bench = new BenchGenSubWords()
+            {
+                InitialWord = "testing"
+            };
             for (int i = 0; i < 1; i++)
             {
-                var hashSetSubWords = new SortedSet<string>();
-                DictionaryLib.DictionaryLib.PermuteString("discounter", LeftToRight: true, act: null, actMyWord: (str) =>
-                {
-                    for (int i = 3; i <= str.WordLength; i++)
-                    {
-                        testWord.SetLength(i);
-                        for (int j = 0; j < i; j++)
-                        {
-                            testWord[j] = str[j];
-                        }
-                        var partial = wordRadixTree.SeekWord(testWord, out var compResult);
-                        if (partial.WordLength > 0 && compResult == 0)
-                        {
-                            hashSetSubWords.Add(testWord.GetWord());
-                        }
-                        else
-                        {
-                            if (!partial.StartsWith(testWord))
-                            {
-                                break;
-                            }
-                        }
-                    }
-                    return true; // continue 
-                });
-                Trace.WriteLine($"{i} {hashSetSubWords.Count} words");
+                var lst = bench.DoWithNone();
+                Trace.WriteLine($"{i} {lst.Count} words");
             }
+            //var dictionarySmall = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
+            //var lstAllWords = dictionarySmall.GetAllWords();
+            //var wordRadixTree = new WordRadixTree(lstAllWords);
+            //var testWord = new MyWord();
+            //for (int i = 0; i < 1; i++)
+            //{
+            //    var hashSetSubWords = new SortedSet<string>();
+            //    DictionaryLib.DictionaryLib.PermuteString("discounter", LeftToRight: true, act: null, actMyWord: (str) =>
+            //    {
+            //        for (int i = 3; i <= str.WordLength; i++)
+            //        {
+            //            testWord.SetLength(i);
+            //            for (int j = 0; j < i; j++)
+            //            {
+            //                testWord[j] = str[j];
+            //            }
+            //            var partial = wordRadixTree.SeekWord(testWord, out var compResult);
+            //            if (partial.WordLength > 0 && compResult == 0)
+            //            {
+            //                hashSetSubWords.Add(testWord.GetWord());
+            //            }
+            //            else
+            //            {
+            //                if (!partial.StartsWith(testWord))
+            //                {
+            //                    break;
+            //                }
+            //            }
+            //        }
+            //        return true; // continue 
+            //    });
+            //    Trace.WriteLine($"{i} {hashSetSubWords.Count} words");
+            //}
         }
 
         [TestMethod]
@@ -213,15 +222,6 @@ calvinh5:
 | DoWordRadix |     testing |    12.378 ms |  0.0425 ms |  0.0398 ms |    328.1250 |    328.1250 |    1721.76 KB |
 
 With MyWord:
-|      Method | InitialWord |          Mean |       Error |        StdDev |        Median |         Gen0 |      Gen1 |     Allocated |
-|------------ |------------ |--------------:|------------:|--------------:|--------------:|-------------:|----------:|--------------:|
-|  DoWithNone |  discounter |  4,357.888 ms |  72.0785 ms |   128.1195 ms |  4,297.169 ms |  249000.0000 |         - | 1020128.32 KB |
-|   DoHashSet |  discounter | 12,671.543 ms | 487.9133 ms | 1,352.0054 ms | 12,126.428 ms |   85000.0000 | 1000.0000 |   351813.3 KB |
-| DoWordRadix |  discounter |  7,698.831 ms |  91.9871 ms |    86.0448 ms |  7,708.209 ms | 1442000.0000 |         - |  5907520.2 KB |
-|  DoWithNone |     testing |      8.894 ms |   0.7823 ms |     2.3065 ms |      7.728 ms |     328.1250 |         - |    1373.33 KB |
-|   DoHashSet |     testing |     34.061 ms |   0.4352 ms |     0.4071 ms |     34.090 ms |      66.6667 |         - |     448.54 KB |
-| DoWordRadix |     testing |     20.885 ms |   0.4025 ms |     0.4635 ms |     20.812 ms |    1875.0000 |         - |    7746.88 KB |
-calvinh5:
 |      Method | InitialWord |         Mean |      Error |     StdDev |        Gen0 |        Gen1 |     Allocated |
 |------------ |------------ |-------------:|-----------:|-----------:|------------:|------------:|--------------:|
 |  DoWithNone |  discounter | 2,666.301 ms |  6.6024 ms |  5.8529 ms | 134000.0000 |           - |   687285.7 KB |
@@ -260,14 +260,14 @@ remove List<nodes> in IsWord
 | DoWordRadix |     testing |     4.227 ms |  0.0321 ms |  0.0300 ms |    257.8125 |    1336.82 KB |
 
 remove substr in Permute lambda
-|      Method | InitialWord |         Mean |      Error |     StdDev |        Gen0 |     Allocated |
-|------------ |------------ |-------------:|-----------:|-----------:|------------:|--------------:|
-|  DoWithNone |  discounter | 2,709.025 ms | 18.1848 ms | 17.0100 ms | 134000.0000 |   687285.7 KB |
-|   DoHashSet |  discounter | 7,394.279 ms | 15.5168 ms | 13.7553 ms |  46000.0000 |  239401.89 KB |
-| DoWordRadix |  discounter | 3,266.656 ms |  8.3775 ms |  6.9956 ms | 203000.0000 | 1041945.14 KB |
-|  DoWithNone |     testing |     3.595 ms |  0.0205 ms |  0.0192 ms |    175.7813 |     914.85 KB |
-|   DoHashSet |     testing |    10.078 ms |  0.1162 ms |  0.1087 ms |     46.8750 |     292.63 KB |
-| DoWordRadix |     testing |     4.185 ms |  0.0091 ms |  0.0076 ms |    257.8125 |    1336.82 KB |
+|      Method | InitialWord |         Mean |      Error |     StdDev |        Gen0 |        Gen1 |    Allocated |
+|------------ |------------ |-------------:|-----------:|-----------:|------------:|------------:|-------------:|
+|  DoWithNone |  discounter | 2,702.335 ms | 12.7247 ms | 11.2801 ms | 134000.0000 | 134000.0000 |  687285.7 KB |
+|   DoHashSet |  discounter | 7,437.212 ms | 26.8032 ms | 22.3819 ms |  46000.0000 |           - | 239409.89 KB |
+| DoWordRadix |  discounter | 2,311.770 ms | 22.4443 ms | 20.9944 ms |  71000.0000 |           - | 364003.37 KB |
+|  DoWithNone |     testing |     3.587 ms |  0.0093 ms |  0.0078 ms |    175.7813 |           - |    914.85 KB |
+|   DoHashSet |     testing |    10.026 ms |  0.0327 ms |  0.0290 ms |     46.8750 |           - |       293 KB |
+| DoWordRadix |     testing |     2.915 ms |  0.0043 ms |  0.0040 ms |     85.9375 |     85.9375 |       441 KB |
 
 
              */
