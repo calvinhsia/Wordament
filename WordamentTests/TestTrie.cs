@@ -43,15 +43,15 @@ namespace WordamentTests
             for (int i = 0; i < 300; i++)
             {
                 var hashSetSubWords = new SortedSet<string>();
-                DictionaryLib.DictionaryLib.PermuteString("testing", LeftToRight: true, (str) =>
+                DictionaryLib.DictionaryLib.PermuteString("testing", LeftToRight: true, act: null, actMyWord: (str) =>
                 {
-                    for (int i = 3; i <= str.Length; i++)
+                    for (int i = 3; i <= str.WordLength; i++)
                     {
                         var testWord = str.Substring(0, i);
                         var partial = wordRadixTree.SeekWord(testWord, out var compResult);
-                        if (!string.IsNullOrEmpty(partial) && compResult == 0)
+                        if (partial.WordLength > 0 && compResult == 0)
                         {
-                            hashSetSubWords.Add(testWord);
+                            hashSetSubWords.Add(testWord.GetWord());
                         }
                         else
                         {
@@ -225,6 +225,16 @@ calvinh5:
 |  DoWithNone |     testing |     3.598 ms |  0.0180 ms |  0.0168 ms |    175.7813 |           - |     914.85 KB |
 |   DoHashSet |     testing |    10.025 ms |  0.0344 ms |  0.0287 ms |     46.8750 |           - |     292.63 KB |
 | DoWordRadix |     testing |     6.055 ms |  0.0088 ms |  0.0073 ms |    968.7500 |      7.8125 |    4987.86 KB |
+
+Fewer allocs:
+|      Method | InitialWord |         Mean |      Error |     StdDev |        Gen0 |     Allocated |
+|------------ |------------ |-------------:|-----------:|-----------:|------------:|--------------:|
+|  DoWithNone |  discounter | 2,709.671 ms | 11.0827 ms | 10.3668 ms | 134000.0000 |   687285.7 KB |
+|   DoHashSet |  discounter | 7,437.304 ms | 22.8454 ms | 20.2518 ms |  46000.0000 |  239401.89 KB |
+| DoWordRadix |  discounter | 4,442.320 ms | 15.0772 ms | 14.1032 ms | 340000.0000 | 1740924.73 KB |
+|  DoWithNone |     testing |     3.601 ms |  0.0152 ms |  0.0134 ms |    175.7813 |     914.85 KB |
+|   DoHashSet |     testing |    10.055 ms |  0.0509 ms |  0.0451 ms |     46.8750 |     292.63 KB |
+| DoWordRadix |     testing |     5.556 ms |  0.0385 ms |  0.0341 ms |    421.8750 |     2187.2 KB |
 
              */
         }

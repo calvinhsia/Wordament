@@ -33,7 +33,11 @@ namespace WordamentTests
         }
         public string SeekWord(string testWord, out int compResult)
         {
-            var strResult = string.Empty;
+            return SeekWord(new MyWord(testWord), out compResult).GetWord();
+        }
+        public MyWord SeekWord(MyWord testWord, out int compResult)
+        {
+            MyWord strResult = null;
             compResult = 0;
             if (!IsWord(testWord, AddIfAbsent: false, out var closestNode))
             {
@@ -44,8 +48,9 @@ namespace WordamentTests
                     {
                         break;
                     }
-                    var tmp = curnode.GetWord();
-                    if (string.Compare(tmp, testWord) > 0)
+                    var tmp = curnode.GetWordAsMyWord();
+                    if (tmp.CompareTo(testWord) > 0)
+//                    if (string.Compare(tmp, testWord) > 0)
                     {
                         compResult = -1;
                         strResult = tmp;
@@ -68,6 +73,10 @@ namespace WordamentTests
         public bool IsWord(string testwordinput, bool AddIfAbsent, out WordRadixNode closestNode)
         {
             var testword = new MyWord(testwordinput);
+            return IsWord(testword, AddIfAbsent, out closestNode);
+        }
+        public bool IsWord(MyWord testword, bool AddIfAbsent, out WordRadixNode closestNode)
+        {
             var isWord = false;
             closestNode = RootNode;
             if (RootNode == null)
@@ -402,6 +411,17 @@ namespace WordamentTests
                 curnode = curnode.ParentNode;
             }
             return str;
+        }
+        public MyWord GetWordAsMyWord()
+        {
+            var curnode = this;
+            var myword = new MyWord();
+            while (curnode != wordRadixTree.RootNode)
+            {
+                myword.InsertBefore(curnode.NodeString);
+                curnode = curnode.ParentNode;
+            }
+            return myword;
         }
 
         public WordRadixNode GetNextNode(bool OnlyWordNodes, bool InitialDirectionDown = true)

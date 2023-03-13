@@ -818,11 +818,13 @@ namespace DictionaryLib
 
         /// <summary>
         /// Can produce multiple duplicates if there are duplicate letters in the input
+        /// Pass in either act or actMyWord. The latter can be faster by avoiding converting to a string
         /// </summary>
         /// <param name="inputString"></param>
         /// <param name="LeftToRight">the left part of the string changes the fastest</param>
         /// <param name="act">the action to execute on each permutation. Return false to abort</param>
-        public static void PermuteString(string inputString, bool LeftToRight, Func<string, bool> act)
+        /// <param name="actMyWord">the action to execute on each permutation (parameter is MyWord). Return false to abort</param>
+        public static void PermuteString(string inputString, bool LeftToRight, Func<string, bool> act, Func<MyWord, bool> actMyWord = null)
         {
             var myWord = new MyWord(inputString);
             bool fAbort = false;
@@ -867,7 +869,15 @@ namespace DictionaryLib
                 }
                 else
                 {
-                    fAbort = !act(myWord.GetWord());
+                    if (act !=null)
+                    {
+                        fAbort = !act(myWord.GetWord());
+                    }
+                    else
+                    {
+                        fAbort = !actMyWord(myWord);
+
+                    }
                 }
             }
         }

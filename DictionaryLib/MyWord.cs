@@ -138,7 +138,43 @@ namespace DictionaryLib
         {
             return Substring(StartIndex, WordLength - StartIndex);
         }
+        /// <summary>
+        /// InPlace Addition: Adds the 2nd MyWord instance to the first and returns the 1st MyWord: does not return a new MyWOrd
+        /// </summary>
+        public static MyWord operator +(MyWord word1, MyWord word2)
+        {
+            if (word1.WordLength + word2.WordLength >= word1._wordBytes.Length)
+            {
+                throw new ArgumentOutOfRangeException();
+            }
+            for (int i = 0; i < word2.WordLength; i++)
+            {
+                word1[i + word1.WordLength] = word2[i];
+            }
+            word1.SetLength(word1.WordLength + word2.WordLength);
+            return word1;
+        }
+        /// <summary>
+        /// Insert the 2nd word before the first, return the 1st MyWord: does not create a new myword
+        /// </summary>
+        public MyWord InsertBefore(MyWord wordOther)
+        {
+            if (wordOther.WordLength + this.WordLength >= wordOther._wordBytes.Length)
+            {
+                throw new ArgumentOutOfRangeException();
+            }
+            for (int i = this.WordLength - 1; i >= 0; i--)
+            {
+                this[i + wordOther.WordLength] = this[i];
+            }
+            for (int i = 0; i < wordOther.WordLength; i++)
+            {
+                this[i] = wordOther[i];
+            }
 
+            this.SetLength(this.WordLength + wordOther.WordLength);
+            return this;
+        }
         public int CompareTo(object obj)
         {
             int retval = 0;
