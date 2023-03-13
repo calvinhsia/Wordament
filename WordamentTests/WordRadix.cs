@@ -87,10 +87,8 @@ namespace WordamentTests
             }
             WordRadixNode curNode = RootNode;
             var len = 0;
-            var lstNodesVisited = new List<WordRadixNode>(); // doesn't work for AddMode when we're building the tree because of node splits
             while (true) //while (curNode != null && len < testword.Length)// find a node in the tree to which the testword is being added.
             {   // the word must always belong to the current node. Determine if we need to split the curNode or add the word as a descendant (if the word matches the entire node value)
-                lstNodesVisited.Add(curNode);
                 if (testword.StartsWith(curNode.NodeString, StartingIndexOfFirstWord: len)) // if the word matches the prefix completely. We don't need to split the node, but we need to add it as a descendant
                 {
                     if (!AddIfAbsent && len + curNode.NodeString.WordLength == testword.WordLength && curNode.IsNodeAWord) // if we're not adding and exact match with node
