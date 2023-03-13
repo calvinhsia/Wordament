@@ -48,7 +48,6 @@ namespace WordamentTests
                 {
                     for (int i = 3; i <= str.WordLength; i++)
                     {
-                        //var testWord = str.Substring(0, i);
                         testWord.SetLength(i);
                         for (int j = 0; j < i; j++)
                         {
@@ -374,18 +373,21 @@ remove substr in Permute lambda
         [Benchmark]
         public List<string> DoWordRadix()
         {
-
-
             var hashSetSubWords = new SortedSet<string>();
-            DictionaryLib.DictionaryLib.PermuteString(InitialWord, LeftToRight: true, (str) =>
+            var testWord = new MyWord();
+            DictionaryLib.DictionaryLib.PermuteString(InitialWord, LeftToRight: true, act: null, actMyWord: (str) =>
             {
-                for (int i = MinLength; i <= str.Length; i++)
+                for (int i = MinLength; i <= str.WordLength; i++)
                 {
-                    var testWord = str.Substring(0, i);
-                    var partial = wordRadixTree.SeekWord(testWord, out var compResult);
-                    if (!string.IsNullOrEmpty(partial) && compResult == 0)
+                    testWord.SetLength(i);
+                    for (int j = 0; j < i; j++)
                     {
-                        hashSetSubWords.Add(testWord);
+                        testWord[j] = str[j];
+                    }
+                    var partial = wordRadixTree.SeekWord(testWord, out var compResult);
+                    if (partial.WordLength > 0 && compResult == 0)
+                    {
+                        hashSetSubWords.Add(testWord.GetWord());
                     }
                     else
                     {
