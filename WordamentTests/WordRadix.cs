@@ -15,15 +15,10 @@ namespace WordamentTests
         public int TotalWords = 0;
         public ComparerWordRadix comparerInstance = new();
         internal WordRadixNode TestNode; // used for testing a string using List.BinarySearch. Reuse same node to reduce mem consumption
-        public WordRadixTree()
+        public WordRadixTree(List<string> allWords)
         {
             TestNode = new(this, parentNode: null, nodePrefixLength: 0, new MyWord("dummy"), IsAWord: false);
-        }
-        public void ClearAll()
-        {
-            TotalWords = 0;
-            TotalNodes = 0;
-            RootNode = null;
+            AddWords(allWords);
         }
         public void AddWords(List<string> lstAllWords)
         {
@@ -87,7 +82,7 @@ namespace WordamentTests
             while (true) //while (curNode != null && len < testword.Length)// find a node in the tree to which the testword is being added.
             {   // the word must always belong to the current node. Determine if we need to split the curNode or add the word as a descendant (if the word matches the entire node value)
                 lstNodesVisited.Add(curNode);
-                if (testword.Substring(len).StartsWith(curNode.NodeString)) // if the word matches the prefix completely. We don't need to split the node, but we need to add it as a descendant
+                if (testword.StartsWith(curNode.NodeString, StartingIndexOfFirstWord: len)) // if the word matches the prefix completely. We don't need to split the node, but we need to add it as a descendant
                 {
                     if (!AddIfAbsent && len + curNode.NodeString.WordLength == testword.WordLength && curNode.IsNodeAWord) // if we're not adding and exact match with node
                     {
@@ -95,7 +90,16 @@ namespace WordamentTests
                         break;
                     }
                     len += curNode.NodeString.WordLength;
-                    TestNode.NodeString = testword.Substring(len);
+                    // TestNode.NodeString = testword.Substring(len);
+
+                    TestNode.NodeString.SetWord(testword, StartingIndexOfOtherWord: len);
+                    //var tt = new MyWord(testwordinput);
+                    //tt.SetWord(testword, StartingIndexOfOtherWord: len);
+                    //if (TestNode.NodeString.CompareTo(tt) != 0)
+                    //{
+                    //    "".ToString();
+                    //}
+
                     if (curNode.Children == null) // with no children, we add the word as a childnode and we're done
                     {
                         if (!AddIfAbsent)
@@ -315,7 +319,7 @@ namespace WordamentTests
                 {
                     if (strSoFar.Length != curNode.NodePrefixLength)
                     {
-                        "".ToString();
+                        throw new Exception($" {curNode} {strSoFar}  nodeprefixlength?");
                     }
                     if (!func(strSoFar + curNode.NodeString, nDepth))
                     {
@@ -381,7 +385,7 @@ namespace WordamentTests
             //    //};
             //    //arr[1]=new SmallStuff();
             //}
-            NodeString = str;
+            NodeString = new MyWord(str);
             IsNodeAWord = IsAWord;
             NodePrefixLength = nodePrefixLength;
             ParentNode = parentNode;

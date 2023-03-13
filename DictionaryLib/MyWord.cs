@@ -25,6 +25,10 @@ namespace DictionaryLib
         {
             SetWord(word);
         }
+        public MyWord(MyWord word)
+        {
+            this.SetWord(word, StartingIndexOfOtherWord: 0);
+        }
 
         public void SetWord(string word)
         {
@@ -32,6 +36,18 @@ namespace DictionaryLib
             for (int ndx = 0; ndx < word.Length; ndx++)
             {
                 _wordBytes[ndx] = DictionaryLib.ToLowerByte((byte)word[ndx]);
+            }
+        }
+        public void SetWord(MyWord otherword, int StartingIndexOfOtherWord)
+        {
+            if (StartingIndexOfOtherWord > otherword.WordLength)
+            {
+                throw new ArgumentOutOfRangeException(nameof(StartingIndexOfOtherWord));
+            }
+            SetLength(otherword.WordLength - StartingIndexOfOtherWord);
+            for (int i = 0; i < WordLength; i++)
+            {
+                this[i] = otherword[i + StartingIndexOfOtherWord];
             }
         }
         public void SetWord(byte byte0, byte byte1, byte byte2)
@@ -75,6 +91,18 @@ namespace DictionaryLib
                 {
                     res = i;
                     break;
+                }
+            }
+            return res;
+        }
+        public bool StartsWith(MyWord otherWord, int StartingIndexOfFirstWord)
+        {
+            var res = true;
+            for (int i = 0; i < otherWord.WordLength; i++)
+            {
+                if (this[i + StartingIndexOfFirstWord] != otherWord[i])
+                {
+                    res = false;
                 }
             }
             return res;

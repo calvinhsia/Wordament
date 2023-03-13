@@ -39,9 +39,7 @@ namespace WordamentTests
         {
             var dictionarySmall = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
             var lstAllWords = dictionarySmall.GetAllWords();
-            var wordRadixTree = new WordRadixTree();
-            wordRadixTree.ClearAll();
-            wordRadixTree.AddWords(lstAllWords);
+            var wordRadixTree = new WordRadixTree(lstAllWords);
             for (int i = 0; i < 300; i++)
             {
                 var hashSetSubWords = new SortedSet<string>();
@@ -74,10 +72,8 @@ namespace WordamentTests
         {
             var dictionarySmall = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
             var lstAllWords = dictionarySmall.GetAllWords();
-            var wordRadixTree = new WordRadixTree();
-            wordRadixTree.ClearAll();
+            var wordRadixTree = new WordRadixTree(lstAllWords);
             Trace.WriteLine($"Adding {lstAllWords.Count} words");
-            wordRadixTree.AddWords(lstAllWords);
             // now verify
             var nWords = 0;
             var maxDepth = 0;
@@ -201,6 +197,7 @@ remove tolower:
             x.DoWithNone();
             //*/
             /*
+calvinh5:
 |      Method | InitialWord |         Mean |      Error |     StdDev |        Gen0 |        Gen1 |     Allocated |
 |------------ |------------ |-------------:|-----------:|-----------:|------------:|------------:|--------------:|
 |  DoWithNone |  discounter | 2,693.806 ms |  4.4708 ms |  3.9633 ms | 134000.0000 | 134000.0000 |   687285.7 KB |
@@ -209,6 +206,26 @@ remove tolower:
 |  DoWithNone |     testing |     3.587 ms |  0.0217 ms |  0.0203 ms |    175.7813 |    175.7813 |     914.85 KB |
 |   DoHashSet |     testing |    10.029 ms |  0.0586 ms |  0.0519 ms |     46.8750 |     46.8750 |     292.63 KB |
 | DoWordRadix |     testing |    12.378 ms |  0.0425 ms |  0.0398 ms |    328.1250 |    328.1250 |    1721.76 KB |
+
+With MyWord:
+|      Method | InitialWord |          Mean |       Error |        StdDev |        Median |         Gen0 |      Gen1 |     Allocated |
+|------------ |------------ |--------------:|------------:|--------------:|--------------:|-------------:|----------:|--------------:|
+|  DoWithNone |  discounter |  4,357.888 ms |  72.0785 ms |   128.1195 ms |  4,297.169 ms |  249000.0000 |         - | 1020128.32 KB |
+|   DoHashSet |  discounter | 12,671.543 ms | 487.9133 ms | 1,352.0054 ms | 12,126.428 ms |   85000.0000 | 1000.0000 |   351813.3 KB |
+| DoWordRadix |  discounter |  7,698.831 ms |  91.9871 ms |    86.0448 ms |  7,708.209 ms | 1442000.0000 |         - |  5907520.2 KB |
+|  DoWithNone |     testing |      8.894 ms |   0.7823 ms |     2.3065 ms |      7.728 ms |     328.1250 |         - |    1373.33 KB |
+|   DoHashSet |     testing |     34.061 ms |   0.4352 ms |     0.4071 ms |     34.090 ms |      66.6667 |         - |     448.54 KB |
+| DoWordRadix |     testing |     20.885 ms |   0.4025 ms |     0.4635 ms |     20.812 ms |    1875.0000 |         - |    7746.88 KB |
+calvinh5:
+|      Method | InitialWord |         Mean |      Error |     StdDev |        Gen0 |        Gen1 |     Allocated |
+|------------ |------------ |-------------:|-----------:|-----------:|------------:|------------:|--------------:|
+|  DoWithNone |  discounter | 2,666.301 ms |  6.6024 ms |  5.8529 ms | 134000.0000 |           - |   687285.7 KB |
+|   DoHashSet |  discounter | 7,306.645 ms | 17.4893 ms | 15.5038 ms |  46000.0000 |           - |  239401.89 KB |
+| DoWordRadix |  discounter | 4,746.020 ms | 11.1651 ms |  9.8976 ms | 742000.0000 | 742000.0000 | 3799920.26 KB |
+|  DoWithNone |     testing |     3.598 ms |  0.0180 ms |  0.0168 ms |    175.7813 |           - |     914.85 KB |
+|   DoHashSet |     testing |    10.025 ms |  0.0344 ms |  0.0287 ms |     46.8750 |           - |     292.63 KB |
+| DoWordRadix |     testing |     6.055 ms |  0.0088 ms |  0.0073 ms |    968.7500 |      7.8125 |    4987.86 KB |
+
              */
         }
         [TestMethod]
@@ -250,8 +267,7 @@ remove tolower:
         {
             dict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
             lstAllWords = dict.GetAllWords();
-            wordRadixTree = new WordRadixTree();
-            wordRadixTree.AddWords(lstAllWords);
+            wordRadixTree = new WordRadixTree(lstAllWords);
         }
         [Benchmark]
         public int DoWithNone()
