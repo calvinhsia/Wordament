@@ -35,15 +35,15 @@ namespace WordamentTests
             TestContext.WriteLine($"{dictionarySmall}  WordNode Count = {WordTrie.NodeCnt}");
         }
         [TestMethod]
-        public void TestWordRadixPerf()
+        public void TestGenSubWordPerf()
         {
             var bench = new BenchGenSubWords()
             {
-                InitialWord = "testing"
+                InitialWord = "discounter"
             };
             for (int i = 0; i < 1; i++)
             {
-                var lst = bench.DoWithNone();
+                var lst = bench.DoWordRadix();
                 Trace.WriteLine($"{i} {lst.Count} words");
             }
             //var dictionarySmall = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
@@ -268,6 +268,16 @@ remove substr in Permute lambda
 |  DoWithNone |     testing |     3.587 ms |  0.0093 ms |  0.0078 ms |    175.7813 |           - |    914.85 KB |
 |   DoHashSet |     testing |    10.026 ms |  0.0327 ms |  0.0290 ms |     46.8750 |           - |       293 KB |
 | DoWordRadix |     testing |     2.915 ms |  0.0043 ms |  0.0040 ms |     85.9375 |     85.9375 |       441 KB |
+
+DoWithNone: use MyWord
+|      Method | InitialWord |         Mean |      Error |     StdDev |       Gen0 |    Gen1 |    Allocated |
+|------------ |------------ |-------------:|-----------:|-----------:|-----------:|--------:|-------------:|
+|  DoWithNone |  discounter | 1,921.353 ms |  6.9252 ms |  6.1390 ms | 62000.0000 |       - | 322202.94 KB |
+|   DoHashSet |  discounter | 7,424.749 ms | 14.3898 ms | 13.4602 ms | 46000.0000 |       - | 239409.89 KB |
+| DoWordRadix |  discounter | 2,318.888 ms |  7.7698 ms |  7.2679 ms | 71000.0000 |       - | 364003.37 KB |
+|  DoWithNone |     testing |     2.590 ms |  0.0198 ms |  0.0176 ms |    85.9375 |       - |    450.57 KB |
+|   DoHashSet |     testing |    10.130 ms |  0.0659 ms |  0.0551 ms |    46.8750 |       - |       293 KB |
+| DoWordRadix |     testing |     2.945 ms |  0.0132 ms |  0.0117 ms |    85.9375 | 85.9375 |       441 KB |
 
 
              */

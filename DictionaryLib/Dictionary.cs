@@ -336,6 +336,7 @@ namespace DictionaryLib
         {
             var numlookups = 0;
             var hashSetSubWords = new SortedSet<string>();
+            //*
             var testWord = new MyWord();
             PermuteString(InitialWord, LeftToRight, act: null, actMyWord: (str) =>
             {
@@ -354,7 +355,7 @@ namespace DictionaryLib
                     }
                     else
                     {
-                        if (partial.WordLength == 0) // if "ids" isn't a word and the closest word is "idyllic" which doesn't start with "ids" then there's no point trying words longer than "ids" that start with "ids"
+                        if (!partial.StartsWith(testWord)) // if "ids" isn't a word and the closest word is "idyllic" which doesn't start with "ids" then there's no point trying words longer than "ids" that start with "ids"
                         {
                             break;
                         }
@@ -363,6 +364,30 @@ namespace DictionaryLib
                 }
                 return hashSetSubWords.Count < MaxSubWords; // continue 
             });
+            /*/
+            PermuteString(InitialWord, LeftToRight, act: (str) =>
+            {
+                for (int i = MinLength; i <= str.Length; i++)
+                {
+                    var testWord = str.Substring(0, i);
+                    var partial = SeekWord(testWord, out var compResult);
+                    numlookups++;
+                    if (compResult == 0)
+                    {
+                        hashSetSubWords.Add(testWord);
+                    }
+                    else
+                    {
+                        if (!partial.StartsWith(testWord)) // if "ids" isn't a word and the closest word is "idyllic" which doesn't start with "ids" then there's no point trying words longer than "ids" that start with "ids"
+                        {
+                            break;
+                        }
+                        // "sci" is not a word, but the closest "science" starts with "sci", then continue
+                    }
+                }
+                return hashSetSubWords.Count < MaxSubWords; // continue 
+            });
+             //*/
             numLookups = numlookups;
             return hashSetSubWords.ToList();
         }

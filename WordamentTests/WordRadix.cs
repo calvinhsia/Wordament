@@ -385,9 +385,12 @@ namespace WordamentTests
             //    var msize = Marshal.SizeOf(smallStuff);
             //    var msize2 = Marshal.SizeOf<SmallStuff>();
             //    var off1 = (byte*)&ss.IsNodeAWord - addr;
-            //    var arr = new SmallStuff[2];
+            //    var arr = new SmallStuff[4];
             //    //var addr2 = (byte*)&arr;
             //    arr[0] = new SmallStuff();
+            //    arr[1] = new SmallStuff();
+            //    arr[2] = new SmallStuff();
+            //    arr[3] = new SmallStuff();
             //    //                var addrarr0 = (byte*)&arr[0];
             //    //fixed (byte *ptr0= (byte*)&arr[0]) {
             //    //};
