@@ -196,7 +196,7 @@ remove tolower:
              */
         }
         [TestMethod]
-        [Ignore]
+//        [Ignore]
         public void TestBenchGenSubWords()
         {
             //*
@@ -281,6 +281,16 @@ DoWithNone: use MyWord
 |   DoHashSet |     testing |    10.130 ms |  0.0659 ms |  0.0551 ms |    46.8750 |       - |       293 KB |
 | DoWordRadix |     testing |     2.945 ms |  0.0132 ms |  0.0117 ms |    85.9375 | 85.9375 |       441 KB |
 
+RejectCache
+|      Method | InitialWord |         Mean |      Error |     StdDev |       Gen0 |      Gen1 |    Allocated |
+|------------ |------------ |-------------:|-----------:|-----------:|-----------:|----------:|-------------:|
+|  DoWithNone |  discounter | 1,256.089 ms | 13.8997 ms | 12.3217 ms | 43000.0000 | 1000.0000 | 221772.26 KB |
+|   DoHashSet |  discounter | 7,365.139 ms | 14.0870 ms | 12.4878 ms | 46000.0000 |         - | 239409.89 KB |
+| DoWordRadix |  discounter | 2,297.427 ms |  7.1246 ms |  6.6644 ms | 71000.0000 | 1000.0000 | 364003.37 KB |
+|  DoWithNone |     testing |     1.763 ms |  0.0043 ms |  0.0036 ms |    68.3594 |   68.3594 |    350.22 KB |
+|   DoHashSet |     testing |    10.017 ms |  0.0538 ms |  0.0477 ms |    46.8750 |         - |       293 KB |
+| DoWordRadix |     testing |     2.939 ms |  0.0147 ms |  0.0137 ms |    85.9375 |         - |       441 KB |
+
 
              */
         }
@@ -354,11 +364,16 @@ DoWithNone: use MyWord
         {
             var hashSetSubWords = new SortedSet<string>();
             var numSearches = 0;
+            var rejectsCached = new HashSet<string>();
             DictionaryLib.DictionaryLib.PermuteString(InitialWord, LeftToRight: true, (str) =>
             {
                 for (int i = MinLength; i <= str.Length; i++)
                 {
                     var testWord = str.Substring(0, i);
+                    if (rejectsCached.Contains(testWord))
+                    {
+                        break;
+                    }
                     numSearches++;
                     var res = lstAllWords.BinarySearch(testWord);
                     if (res >= 0)
@@ -370,6 +385,7 @@ DoWithNone: use MyWord
                         var partial = lstAllWords[~res];
                         if (!partial.StartsWith(testWord))
                         {
+                            rejectsCached.Add(testWord);
                             break;
                         }
                     }
@@ -387,6 +403,7 @@ DoWithNone: use MyWord
         {
             var hashSetSubWords = new SortedSet<string>();
             var testWord = new MyWord();
+            var rejectsCached = new HashSet<MyWord>();
             DictionaryLib.DictionaryLib.PermuteString(InitialWord, LeftToRight: true, act: null, actMyWord: (str) =>
             {
                 for (int i = MinLength; i <= str.WordLength; i++)
@@ -395,6 +412,10 @@ DoWithNone: use MyWord
                     for (int j = 0; j < i; j++)
                     {
                         testWord[j] = str[j];
+                    }
+                    if (rejectsCached.Contains(testWord))
+                    {
+                        break;
                     }
                     var partial = wordRadixTree.SeekWord(testWord, out var compResult);
                     if (partial.WordLength > 0 && compResult == 0)
@@ -405,6 +426,7 @@ DoWithNone: use MyWord
                     {
                         if (!partial.StartsWith(testWord))
                         {
+                            rejectsCached.Add(testWord);
                             break;
                         }
                     }
