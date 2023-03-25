@@ -281,7 +281,7 @@ DoWithNone: use MyWord
 |   DoHashSet |     testing |    10.130 ms |  0.0659 ms |  0.0551 ms |    46.8750 |       - |       293 KB |
 | DoWordRadix |     testing |     2.945 ms |  0.0132 ms |  0.0117 ms |    85.9375 | 85.9375 |       441 KB |
 
-RejectCache
+RejectCache for DoWithNone
 |      Method | InitialWord |         Mean |      Error |     StdDev |       Gen0 |      Gen1 |    Allocated |
 |------------ |------------ |-------------:|-----------:|-----------:|-----------:|----------:|-------------:|
 |  DoWithNone |  discounter | 1,256.089 ms | 13.8997 ms | 12.3217 ms | 43000.0000 | 1000.0000 | 221772.26 KB |
@@ -290,6 +290,15 @@ RejectCache
 |  DoWithNone |     testing |     1.763 ms |  0.0043 ms |  0.0036 ms |    68.3594 |   68.3594 |    350.22 KB |
 |   DoHashSet |     testing |    10.017 ms |  0.0538 ms |  0.0477 ms |    46.8750 |         - |       293 KB |
 | DoWordRadix |     testing |     2.939 ms |  0.0147 ms |  0.0137 ms |    85.9375 |         - |       441 KB |
+RejectCache for all
+|      Method | InitialWord |         Mean |      Error |     StdDev |       Gen0 |      Gen1 |    Allocated |
+|------------ |------------ |-------------:|-----------:|-----------:|-----------:|----------:|-------------:|
+|  DoWithNone |  discounter | 1,259.965 ms |  8.1399 ms |  7.6141 ms | 43000.0000 | 1000.0000 | 221772.26 KB |
+|   DoHashSet |  discounter | 2,908.946 ms | 11.5987 ms | 10.8494 ms | 46000.0000 | 3000.0000 | 239660.43 KB |
+| DoWordRadix |  discounter | 1,359.161 ms |  2.9125 ms |  2.5819 ms | 38000.0000 | 1000.0000 | 198780.21 KB |
+|  DoWithNone |     testing |     1.768 ms |  0.0054 ms |  0.0048 ms |    68.3594 |   68.3594 |    350.22 KB |
+|   DoHashSet |     testing |     4.236 ms |  0.0250 ms |  0.0234 ms |    54.6875 |         - |    305.39 KB |
+| DoWordRadix |     testing |     1.953 ms |  0.0107 ms |  0.0095 ms |    58.5938 |         - |    310.02 KB |
 
 
              */
