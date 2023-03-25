@@ -157,6 +157,7 @@ namespace WordamentTests
             Assert.AreEqual(lstAllWords.Count, wordRadixTree.TotalWords);
         }
         [TestMethod]
+        [Ignore]
         public void TestWordNodesBench()
         {
             var config = BenchmarkDotNet.Configs.ManualConfig.Create(BenchmarkDotNet.Configs.DefaultConfig.Instance);//.WithOptions(BenchmarkDotNet.Configs.ConfigOptions.DisableOptimizationsValidator);
@@ -195,6 +196,7 @@ remove tolower:
              */
         }
         [TestMethod]
+        [Ignore]
         public void TestBenchGenSubWords()
         {
             //*

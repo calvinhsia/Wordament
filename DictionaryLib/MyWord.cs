@@ -15,7 +15,7 @@ namespace DictionaryLib
     public class MyWord : IComparable
     {
         public static MyWord Empty = new MyWord();
-        private byte[] _wordBytes = new byte[DictionaryLib.MaxWordLen];
+        internal byte[] _wordBytes = new byte[DictionaryLib.MaxWordLen];
         int _currentLength;
         public MyWord()
         {

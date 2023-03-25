@@ -497,7 +497,7 @@ namespace WordamentTests
         public void TestDoGenerateSubWords()
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
-            var InitWord = "discounter"; // not in small dict
+            var InitWord = "discounter";// "dishonestly";// "discounter"; 
             for (int i = 0; i < 1; i++)
             {
                 var lst = dict.GenerateSubWords(InitWord, out var numLookups);
@@ -508,9 +508,27 @@ namespace WordamentTests
                 }
                 Assert.AreEqual(484, lst.Count);
             }
+        }
 
-
-
+        [TestMethod]
+        public void TestSequentialCompResult()
+        {
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
+            var allwords = dict.GetAllWords();
+            for (int i = 0; i < allwords.Count; i++)
+            {
+                var word = allwords[i];
+                if (word == "ha")
+                {
+                    "".ToString();
+                }
+                var partial = dict.SeekWord(word, out var compResult);
+                if (compResult != 0)
+                {
+                    LogMessage($"{word} {compResult}");
+                }
+//                Assert.AreEqual(0, compResult, $"{word}");
+            }
         }
 
         [TestMethod]

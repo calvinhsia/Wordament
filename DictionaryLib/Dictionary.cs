@@ -143,10 +143,19 @@ namespace DictionaryLib
                 let2 = ToLowerByte((byte)(word[2]));
             }
             SetDictPos(let0, let1, let2);
+            if (word.WordLength < 3)
+            {
+                _MyWordSoFar.SetLength(word.WordLength);
+            }
             if (word.WordLength == 0) // the first word in dictionary is "a"
             {
                 compResult = 0;
                 return new MyWord("a");
+            }
+            if (word.WordLength == 1 && word[0] == 'i') // the word "i"
+            {
+                compResult = 0;
+                return new MyWord("i");
             }
             var wordStop = new MyWord(word);
             if (_nibndx == 0 && let0 > 97) // if the nibndx shows 0 but we're past the "A"'s, then we're at the end of the dictionary
@@ -268,9 +277,10 @@ namespace DictionaryLib
                 {
                     if (lenSoFar == 0) // we're transitioning to a new first letter
                     {
-                        if (_MyWordSoFar[0] == (byte)'h')
+                        if (_MyWordSoFar[0] == (byte)'h') // from "h" ?
                         {
-                            _MyWordSoFar.SetWord("i");
+                            _MyWordSoFar.SetWord("i"); // the word "I"
+                            compareResult = 1;
                             return _MyWordSoFar;
                         }
                     }
@@ -338,14 +348,20 @@ namespace DictionaryLib
             var hashSetSubWords = new SortedSet<string>();
             //*
             var testWord = new MyWord();
+            var rejectsCached = new HashSet<MyWord>();
             PermuteString(InitialWord, LeftToRight, act: null, actMyWord: (str) =>
             {
                 for (int i = MinLength; i <= str.WordLength; i++)
                 {
                     testWord.SetLength(i);
+                    //                    Array.Copy(sourceArray: str._wordBytes, destinationArray: testWord._wordBytes, length: i);
                     for (int j = 0; j < i; j++)
                     {
                         testWord[j] = str[j];
+                    }
+                    if (rejectsCached.Contains(testWord))
+                    {
+                        break;
                     }
                     var partial = SeekWord(testWord, out var compResult);
                     numlookups++;
@@ -357,6 +373,7 @@ namespace DictionaryLib
                     {
                         if (!partial.StartsWith(testWord)) // if "ids" isn't a word and the closest word is "idyllic" which doesn't start with "ids" then there's no point trying words longer than "ids" that start with "ids"
                         {
+                            rejectsCached.Add(testWord);
                             break;
                         }
                         // "sci" is not a word, but the closest "science" starts with "sci", then continue

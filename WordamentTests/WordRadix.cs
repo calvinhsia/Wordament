@@ -50,7 +50,7 @@ namespace WordamentTests
                     }
                     var tmp = curnode.GetWordAsMyWord();
                     if (tmp.CompareTo(testWord) > 0)
-//                    if (string.Compare(tmp, testWord) > 0)
+                    //                    if (string.Compare(tmp, testWord) > 0)
                     {
                         compResult = -1;
                         strResult = tmp;
@@ -81,6 +81,10 @@ namespace WordamentTests
             closestNode = RootNode;
             if (RootNode == null)
             {
+                if (!AddIfAbsent)
+                {
+                    return false;
+                }
                 RootNode = new(this, parentNode: null, nodePrefixLength: 0, testword, IsAWord: true);
                 TotalWords++;
                 return true;
