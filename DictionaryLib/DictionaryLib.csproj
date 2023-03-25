@@ -8,7 +8,7 @@
 Allows you to see if a string is a valid English word. Also can generate random words. Works on Windows, Android</Description>
     <PackageId>DictionaryLib_Calvin_Hsia</PackageId>
     <PackageTags>English Words Dictionary</PackageTags>
-    <Version>1.0.5</Version>
+    <Version>1.0.6</Version>
     <LangVersion>latest</LangVersion>
     <IncludeSymbols>True</IncludeSymbols>
     <Title>English word dictionaries for word puzzles and games</Title>
