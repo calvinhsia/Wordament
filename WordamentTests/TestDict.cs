@@ -11,6 +11,7 @@ using DictionaryLib;
 using Wordament;
 using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Configs;
+using DictionaryData;
 
 namespace WordamentTests
 {
@@ -513,7 +514,7 @@ namespace WordamentTests
         [TestMethod]
         public void TestSequentialCompResult()
         {
-            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Large, new Random(1));
             var allwords = dict.GetAllWords();
             for (int i = 0; i < allwords.Count; i++)
             {
@@ -529,6 +530,38 @@ namespace WordamentTests
                 }
 //                Assert.AreEqual(0, compResult, $"{word}");
             }
+        }
+
+        [TestMethod]
+        public void TestDumpDictBin()
+        {
+            var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));
+            var allwords = dict.GetAllWords();
+            var binDataByteArray = dict._dictBytes;
+
+            LogMessage($"tab1= '{dict._dictHeader.tab1}'");
+            LogMessage($"tab2= '{dict._dictHeader.tab2}'");
+            var offset = Marshal.OffsetOf<DictHeader>(nameof(DictHeader.nibPairPtr));
+            LogMessage($"wordCount={dict._dictHeader.wordCount}  maxWordLen={dict._dictHeader.maxWordLen}  dictHeaderSize=0x{dict._dictHeaderSize:x} offset = 0x{offset.ToInt32():x}");
+            var mword = new MyWord();
+            foreach (var word in allwords)
+            {
+                mword.SetWord(word);
+                dict.SetDictPos(mword);
+                var nibs = "";
+                while (true)
+                {
+                    var nextnib = dict.GetNextNib();
+                    nibs += $"{nextnib:x1} ";
+                    if (nextnib == 0)
+                    {
+                        break;
+                    }
+                }
+                LogMessage($"{word,-18} {dict._nibndx:x6} {dict._havePartialNib, 5} {dict._partialNib} {nibs}");
+            }
+            var res = dict.SeekWord("ha");
+
         }
 
         [TestMethod]

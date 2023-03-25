@@ -196,7 +196,7 @@ remove tolower:
              */
         }
         [TestMethod]
-//        [Ignore]
+        [Ignore]
         public void TestBenchGenSubWords()
         {
             //*

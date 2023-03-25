@@ -44,9 +44,9 @@ namespace DictionaryLib
         internal byte[] _dictBytes;
         internal Random _random;
 
-        byte _partialNib = 0;
-        bool _havePartialNib = false;
-        int _nibndx;
+        internal byte _partialNib = 0;
+        internal bool _havePartialNib = false;
+        internal int _nibndx;
         internal int _GetNextWordCount;
 
         readonly MyWord _MyWordSoFar;
@@ -105,7 +105,8 @@ namespace DictionaryLib
         }
         public string SeekWord(string testWord, out int compResult)
         {
-            var node = SeekWord(new MyWord(testWord), out compResult);
+            var myTestWord = new MyWord(testWord);
+            var node = SeekWord(myTestWord, out compResult);
             if (node != null)
             {
                 return node.GetWord();
@@ -167,7 +168,7 @@ namespace DictionaryLib
             return result;
         }
 
-        void SetDictPos(byte let0, byte let1 = Lettera, byte let2 = Lettera)
+        internal void SetDictPos(byte let0, byte let1 = Lettera, byte let2 = Lettera)
         {
             _havePartialNib = false;
             var n = ((let0 - Lettera) * NumLetters + let1 - Lettera) * NumLetters + let2 - Lettera;
@@ -180,7 +181,7 @@ namespace DictionaryLib
             }
         }
 
-        void SetDictPos(MyWord mword)
+        internal void SetDictPos(MyWord mword)
         {
             byte let0;
             byte let1 = Lettera;
@@ -204,7 +205,7 @@ namespace DictionaryLib
             SetDictPos(let0, let1, let2);
         }
 
-        byte GetNextNib()
+        internal byte GetNextNib()
         {
             byte result;
             if (_havePartialNib)
@@ -275,7 +276,8 @@ namespace DictionaryLib
                 lenSoFar += nib;
                 if (lenSoFar < _MyWordSoFar.WordLength)
                 {
-                    if (lenSoFar == 0) // we're transitioning to a new first letter
+                    if (lenSoFar == 0 && // we could be transitioning to a new first letter
+                        _GetNextWordCount > 1)  // if we're not on "ha" at the beginning of a triplet section
                     {
                         if (_MyWordSoFar[0] == (byte)'h') // from "h" ?
                         {

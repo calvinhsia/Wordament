@@ -9,7 +9,7 @@ namespace DictionaryData
 {
     //bucket: ptr, cnt into encoded compressed dictionary data
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    struct DictHeaderNibbleEntry
+    public struct DictHeaderNibbleEntry
     {
         // offset of nibble
         // to get offset from dict base, divide by 2. If odd, skip a nibble
@@ -43,7 +43,7 @@ namespace DictionaryData
     // Encoded, compressed dictionary
     // data is a nibble (4 bits) 0-15.
     [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = CharSet.Ansi)]
-    internal struct DictHeader
+    public struct DictHeader
     {
         public const byte escapeChar = 0xf;
         public const byte EOFChar = 0xff;
