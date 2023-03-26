@@ -445,7 +445,7 @@ Fix HA bug, reuse MyStopWord
                     {
                         if (!partial.StartsWith(testWord))
                         {
-                            rejectsCached.Add(new MyWord(testWord));
+                            rejectsCached.Add(new MyWord(testWord, IsReadOnly:true));
                             break;
                         }
                     }

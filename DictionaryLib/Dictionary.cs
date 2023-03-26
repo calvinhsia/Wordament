@@ -84,6 +84,7 @@ namespace DictionaryLib
             }
             _dictHeader = DictionaryData.DictHeader.MakeHeaderFromBytes(_dictBytes);
             _dictHeaderSize = Marshal.SizeOf<DictHeader>();
+            MyWord.MaxLen = Math.Max(_dictHeader.maxWordLen, MyWord.MaxLen); // in case app uses 2 dicts
             _MyWordSoFar = new();
             _MyWordStop = new();
         }
@@ -279,7 +280,7 @@ namespace DictionaryLib
                 if (nib == DictHeader.EOFChar)
                 {
                     //              LogMessage($"Got EOD {_nibndx}");
-                    return MyWord.Empty;
+                    return null;
                 }
                 lenSoFar += nib;
                 if (lenSoFar < _MyWordSoFar.WordLength)
@@ -314,7 +315,7 @@ namespace DictionaryLib
                     else
                     {
                         //                        LogMessage($"GOT EODCHAR {_nibndx:x2}");
-                        return MyWord.Empty;
+                        return null;
                     }
                     _MyWordSoFar.AddByte((byte)newchar);
                 }
@@ -342,7 +343,7 @@ namespace DictionaryLib
                     }
                 }
             }
-            return _MyWordSoFar ?? MyWord.Empty;
+            return _MyWordSoFar ?? throw new Exception($"empty!!!");
         }
         public List<string> GenerateSubWords(string InitialWord, int MinLength = 3, bool LeftToRight = true, int MaxSubWords = int.MaxValue)
         {
@@ -383,7 +384,7 @@ namespace DictionaryLib
                     {
                         if (!partial.StartsWith(testWord)) // if "ids" isn't a word and the closest word is "idyllic" which doesn't start with "ids" then there's no point trying words longer than "ids" that start with "ids"
                         {
-                            rejectsCached.Add(new MyWord(testWord));
+                            rejectsCached.Add(new MyWord(testWord, IsReadOnly: true));
                             break;
                         }
                         // "sci" is not a word, but the closest "science" starts with "sci", then continue

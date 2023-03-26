@@ -14,20 +14,30 @@ namespace DictionaryLib
     [DebuggerDisplay("{GetWord()}")]
     public class MyWord : IComparable
     {
-        public static MyWord Empty = new MyWord();
-        internal byte[] _wordBytes = new byte[DictionaryLib.MaxWordLen];
+        public static int MaxLen = 0; // needs to be set
+        internal byte[] _wordBytes;
         int _currentLength;
         public MyWord()
         {
-
+            _wordBytes = new byte[MaxLen];
         }
         public MyWord(string word) : this()
         {
             SetWord(word);
         }
-        public MyWord(MyWord word)
+        public MyWord(MyWord word) : this()
         {
             this.SetWord(word, StartingIndexOfOtherWord: 0);
+        }
+        public MyWord(string word, bool IsReadOnly)
+        {
+            _wordBytes = new byte[word.Length];
+            SetWord(word);
+        }
+        public MyWord(MyWord word, bool IsReadOnly)
+        {
+            _wordBytes = new byte[word.WordLength];
+            SetWord(word, StartingIndexOfOtherWord: 0);
         }
 
         public void SetWord(string word)
@@ -159,7 +169,7 @@ namespace DictionaryLib
         /// </summary>
         public MyWord InsertBefore(MyWord wordOther)
         {
-            if (wordOther.WordLength + this.WordLength >= wordOther._wordBytes.Length)
+            if (wordOther.WordLength + this.WordLength > wordOther._wordBytes.Length)
             {
                 throw new ArgumentOutOfRangeException();
             }
