@@ -435,7 +435,7 @@ RejectCache for all
                     {
                         if (!partial.StartsWith(testWord))
                         {
-                            rejectsCached.Add(testWord);
+                            rejectsCached.Add(new MyWord(testWord));
                             break;
                         }
                     }

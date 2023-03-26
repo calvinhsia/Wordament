@@ -50,6 +50,8 @@ namespace DictionaryLib
         internal int _GetNextWordCount;
 
         readonly MyWord _MyWordSoFar;
+        readonly MyWord _MyWordStop;
+
         internal static Action<string> logMessageAction;
         internal static void LogMessage(string msg)
         {
@@ -82,7 +84,8 @@ namespace DictionaryLib
             }
             _dictHeader = DictionaryData.DictHeader.MakeHeaderFromBytes(_dictBytes);
             _dictHeaderSize = Marshal.SizeOf<DictHeader>();
-            _MyWordSoFar = new MyWord();
+            _MyWordSoFar = new();
+            _MyWordStop = new();
         }
 
         public static byte ToLowerByte(byte b)
@@ -158,13 +161,13 @@ namespace DictionaryLib
                 compResult = 0;
                 return new MyWord("i");
             }
-            var wordStop = new MyWord(word);
+            _MyWordStop.SetWord(word, StartingIndexOfOtherWord: 0);
             if (_nibndx == 0 && let0 > 97) // if the nibndx shows 0 but we're past the "A"'s, then we're at the end of the dictionary
             {
                 compResult = -1;
                 return null;
             }
-            var result = GetNextWord(out compResult, wordStop);
+            var result = GetNextWord(out compResult);
             return result;
         }
 
@@ -237,12 +240,17 @@ namespace DictionaryLib
         }
         public string GetNextWord()
         {
-            return GetNextWord(out int _, WordStop: null, cntSkip: 0)?.GetWord();
+            _MyWordStop.SetLength(0);
+            return GetNextWord(out int _, cntSkip: 0)?.GetWord();
         }
 
         internal MyWord GetNextWord(MyWord WordStop = null, int cntSkip = 0)
         {
-            return GetNextWord(out int _, WordStop, cntSkip);
+            if (WordStop == null)
+            {
+                _MyWordStop.SetLength(0);
+            }
+            return GetNextWord(out int _, cntSkip);
         }
 
         /// <summary>
@@ -253,9 +261,9 @@ namespace DictionaryLib
         /// 0 means return next word. 1 means skip one word. For perf: don't have to convert to string over and over</param>
         /// <param name="compareResult">if provided, </param>
         /// <returns></returns>
-        internal MyWord GetNextWord(out int compareResult, MyWord WordStop = null, int cntSkip = 0)
+        internal MyWord GetNextWord(out int compareResult, int cntSkip = 0)
         {
-            Debug.Assert((WordStop == null) || cntSkip == 0);
+            Debug.Assert((_MyWordStop.WordLength == 0) || cntSkip == 0);
             byte nib;
             compareResult = 0;
             var done = false;
@@ -310,9 +318,9 @@ namespace DictionaryLib
                     }
                     _MyWordSoFar.AddByte((byte)newchar);
                 }
-                if (WordStop != null)
+                if (_MyWordStop.WordLength != 0)
                 {
-                    var cmp = _MyWordSoFar.CompareTo(WordStop);
+                    var cmp = _MyWordSoFar.CompareTo(_MyWordStop);
                     if (cmp >= 0)
                     {
                         compareResult = cmp;
@@ -375,7 +383,7 @@ namespace DictionaryLib
                     {
                         if (!partial.StartsWith(testWord)) // if "ids" isn't a word and the closest word is "idyllic" which doesn't start with "ids" then there's no point trying words longer than "ids" that start with "ids"
                         {
-                            rejectsCached.Add(testWord);
+                            rejectsCached.Add(new MyWord(testWord));
                             break;
                         }
                         // "sci" is not a word, but the closest "science" starts with "sci", then continue
