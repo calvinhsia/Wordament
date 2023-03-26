@@ -299,6 +299,16 @@ RejectCache for all
 |  DoWithNone |     testing |     1.768 ms |  0.0054 ms |  0.0048 ms |    68.3594 |   68.3594 |    350.22 KB |
 |   DoHashSet |     testing |     4.236 ms |  0.0250 ms |  0.0234 ms |    54.6875 |         - |    305.39 KB |
 | DoWordRadix |     testing |     1.953 ms |  0.0107 ms |  0.0095 ms |    58.5938 |         - |    310.02 KB |
+Fix HA bug, reuse MyStopWord
+|      Method | InitialWord |         Mean |      Error |     StdDev |       Gen0 |      Gen1 |    Allocated |
+|------------ |------------ |-------------:|-----------:|-----------:|-----------:|----------:|-------------:|
+|  DoWithNone |  discounter | 1,271.622 ms | 14.2685 ms | 13.3468 ms | 23000.0000 | 4000.0000 | 120755.42 KB |
+|   DoHashSet |  discounter | 2,889.098 ms |  7.8503 ms |  6.9591 ms | 46000.0000 | 3000.0000 | 239660.43 KB |
+| DoWordRadix |  discounter | 1,358.555 ms |  6.0528 ms |  5.6618 ms | 38000.0000 | 4000.0000 | 199220.14 KB |
+|  DoWithNone |     testing |     1.759 ms |  0.0033 ms |  0.0029 ms |    41.0156 |   41.0156 |    213.86 KB |
+|   DoHashSet |     testing |     4.251 ms |  0.0369 ms |  0.0345 ms |    54.6875 |         - |    305.39 KB |
+| DoWordRadix |     testing |     1.937 ms |  0.0090 ms |  0.0079 ms |    64.4531 |    5.8594 |    331.09 KB |
+
 
 
              */
