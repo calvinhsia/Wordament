@@ -512,6 +512,17 @@ namespace WordamentTests
                     LogMessage($"{word}");
                 }
                 Assert.AreEqual(484, lst.Count);
+
+
+                InitWord = "puzzling";
+                lst = dict.GenerateSubWords(InitWord, out numLookups);
+                LogMessage($"{InitWord} Found subwords ={lst.Count} #Lookups = {numLookups:n0}");
+                foreach (var word in lst)
+                {
+                    LogMessage($"{word}");
+                }
+                Assert.AreEqual(15, lst.Count);
+
             }
         }
 
