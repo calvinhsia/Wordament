@@ -80,6 +80,8 @@ namespace WordamentTests
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
 
+            var partial = dict.SeekWord("zupzling");
+
             var testwrd = "qqq";
             var wrd = dict.SeekWord(testwrd, out var _);
             Console.WriteLine($"Seek {testwrd} {wrd} GetNextWordCount= {dict._GetNextWordCount}");
@@ -97,7 +99,7 @@ namespace WordamentTests
             Assert.AreEqual(dict.SeekWord("asdf"), "asexual");
             Assert.AreEqual(dict.SeekWord("it"), "it");
 
-            var partial = dict.SeekWord("test", out var compResult);
+            partial = dict.SeekWord("test", out var compResult);
             Assert.AreEqual(0, compResult);
             Assert.AreEqual("test", partial);
 
@@ -116,6 +118,7 @@ namespace WordamentTests
             partial = dict.SeekWord("contemplatip", out compResult);
             Assert.IsTrue(compResult > 0);
             Assert.AreEqual("contemplative", partial);
+
 
         }
 
@@ -487,6 +490,7 @@ namespace WordamentTests
             }
         }
         [TestMethod]
+        [Ignore]
         public void TestBench()
         {
             var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, new Random(1));

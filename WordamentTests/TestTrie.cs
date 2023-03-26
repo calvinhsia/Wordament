@@ -39,7 +39,7 @@ namespace WordamentTests
         {
             var bench = new BenchGenSubWords()
             {
-                InitialWord = "discounter"
+                InitialWord = "puzzling"
             };
             for (int i = 0; i < 1; i++)
             {
@@ -308,6 +308,15 @@ Fix HA bug, reuse MyStopWord
 |  DoWithNone |     testing |     1.759 ms |  0.0033 ms |  0.0029 ms |    41.0156 |   41.0156 |    213.86 KB |
 |   DoHashSet |     testing |     4.251 ms |  0.0369 ms |  0.0345 ms |    54.6875 |         - |    305.39 KB |
 | DoWordRadix |     testing |     1.937 ms |  0.0090 ms |  0.0079 ms |    64.4531 |    5.8594 |    331.09 KB |
+MyWord sizing dictmax
+|      Method | InitialWord |         Mean |      Error |     StdDev |       Gen0 |      Gen1 |    Allocated |
+|------------ |------------ |-------------:|-----------:|-----------:|-----------:|----------:|-------------:|
+|  DoWithNone |  discounter | 1,242.128 ms |  4.7244 ms |  3.6885 ms | 23000.0000 | 3000.0000 | 120571.43 KB |
+|   DoHashSet |  discounter | 2,897.306 ms |  8.1686 ms |  7.2413 ms | 46000.0000 | 3000.0000 | 239660.43 KB |
+| DoWordRadix |  discounter | 1,375.791 ms | 11.1615 ms | 10.4405 ms | 35000.0000 | 4000.0000 | 183339.89 KB |
+|  DoWithNone |     testing |     1.751 ms |  0.0058 ms |  0.0054 ms |    39.0625 |   39.0625 |    204.59 KB |
+|   DoHashSet |     testing |     4.219 ms |  0.0089 ms |  0.0079 ms |    54.6875 |   54.6875 |    305.39 KB |
+| DoWordRadix |     testing |     1.933 ms |  0.0051 ms |  0.0045 ms |    56.6406 |   56.6406 |    298.36 KB |
 
 
 

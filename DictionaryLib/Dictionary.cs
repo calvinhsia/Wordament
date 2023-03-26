@@ -87,6 +87,7 @@ namespace DictionaryLib
             MyWord.MaxLen = Math.Max(_dictHeader.maxWordLen, MyWord.MaxLen); // in case app uses 2 dicts
             _MyWordSoFar = new();
             _MyWordStop = new();
+            MyWord.Empty = new MyWord();
         }
 
         public static byte ToLowerByte(byte b)
@@ -115,7 +116,7 @@ namespace DictionaryLib
             {
                 return node.GetWord();
             }
-            return null;
+            return string.Empty;
         }
         /// <summary>
         /// Seek in dictionary to provided "word". (Case insensitive)
@@ -166,7 +167,7 @@ namespace DictionaryLib
             if (_nibndx == 0 && let0 > 97) // if the nibndx shows 0 but we're past the "A"'s, then we're at the end of the dictionary
             {
                 compResult = -1;
-                return null;
+                return MyWord.Empty;
             }
             var result = GetNextWord(out compResult);
             return result;
@@ -280,7 +281,7 @@ namespace DictionaryLib
                 if (nib == DictHeader.EOFChar)
                 {
                     //              LogMessage($"Got EOD {_nibndx}");
-                    return null;
+                    return MyWord.Empty;
                 }
                 lenSoFar += nib;
                 if (lenSoFar < _MyWordSoFar.WordLength)
@@ -315,7 +316,7 @@ namespace DictionaryLib
                     else
                     {
                         //                        LogMessage($"GOT EODCHAR {_nibndx:x2}");
-                        return null;
+                        return MyWord.Empty;
                     }
                     _MyWordSoFar.AddByte((byte)newchar);
                 }

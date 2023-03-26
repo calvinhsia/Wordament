@@ -37,7 +37,7 @@ namespace WordamentTests
         }
         public MyWord SeekWord(MyWord testWord, out int compResult)
         {
-            MyWord strResult = null;
+            MyWord strResult = MyWord.Empty;
             compResult = 0;
             if (!IsWord(testWord, AddIfAbsent: false, out var closestNode))
             {
@@ -436,7 +436,7 @@ namespace WordamentTests
             while (curNode != null)
             {
                 curNode = GetNextNode(curNode, InitialDirectionDown);
-                if (!OnlyWordNodes || curNode.IsNodeAWord)
+                if (curNode == null || !OnlyWordNodes || curNode.IsNodeAWord)
                 {
                     break;
                 }
