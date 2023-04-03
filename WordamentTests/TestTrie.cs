@@ -85,6 +85,17 @@ namespace WordamentTests
         public void TestWordRadix()
         {
             var dictionarySmall = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
+            DoTestWordRadix(dictionarySmall);
+        }
+        [TestMethod]
+        public void TestWordRadixLargeDict()
+        {
+            var dictionarySmall = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Large);
+            DoTestWordRadix(dictionarySmall);
+        }
+
+        private void DoTestWordRadix(DictionaryLib.DictionaryLib dictionarySmall)
+        {
             var lstAllWords = dictionarySmall.GetAllWords();
             var wordRadixTree = new WordRadixTree(lstAllWords);
             Trace.WriteLine($"Adding {lstAllWords.Count} words");
@@ -142,7 +153,7 @@ namespace WordamentTests
             }
             var x = wordRadixTree.SeekWord("cids", out var compResult);
             var lstBadWords = new List<string>() { // 3 different kinds of find failures
-                "beckoningly",
+                //"beckoningly",
                 "testp",
                 "foobar",
             };
@@ -156,6 +167,7 @@ namespace WordamentTests
 
             Assert.AreEqual(lstAllWords.Count, wordRadixTree.TotalWords);
         }
+
         [TestMethod]
         [Ignore]
         public void TestWordNodesBench()

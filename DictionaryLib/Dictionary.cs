@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 [assembly: InternalsVisibleTo("WordamentTests")]
+[assembly: InternalsVisibleTo("DictionaryTests32")]
 
 namespace DictionaryLib
 {
@@ -292,6 +293,11 @@ namespace DictionaryLib
                         if (_MyWordSoFar[0] == (byte)'h') // from "h" ?
                         {
                             _MyWordSoFar.SetWord("i"); // the word "I"
+                            if (_dictionaryType == DictionaryType.Large)
+                            {
+                                GetNextNib(); // skip over so GetNextWord works
+                                GetNextNib(); // skip over so GetNextWord works
+                            }
                             compareResult = 1;
                             return _MyWordSoFar;
                         }

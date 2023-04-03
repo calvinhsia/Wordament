@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.28705.295
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33530.636
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "Wordament", "Wordament\Wordament.vbproj", "{EDA78854-E26D-44A6-A999-82F016975F6C}"
 EndProject
@@ -14,6 +14,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DictionaryLib", "DictionaryLib\DictionaryLib.csproj", "{A5007702-0C87-42A0-9589-6A8B173F5E63}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WordMake", "WordMake\WordMake.csproj", "{4F489A32-6C5F-42C3-9E1C-707C5FF7DB69}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DictionaryTests32", "DictionaryTests32\DictionaryTests32.csproj", "{31FA6707-19FB-4D60-ADE1-1D91D4A71D60}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,6 +49,10 @@ Global
 		{4F489A32-6C5F-42C3-9E1C-707C5FF7DB69}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4F489A32-6C5F-42C3-9E1C-707C5FF7DB69}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4F489A32-6C5F-42C3-9E1C-707C5FF7DB69}.Release|Any CPU.Build.0 = Release|Any CPU
+		{31FA6707-19FB-4D60-ADE1-1D91D4A71D60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{31FA6707-19FB-4D60-ADE1-1D91D4A71D60}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{31FA6707-19FB-4D60-ADE1-1D91D4A71D60}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{31FA6707-19FB-4D60-ADE1-1D91D4A71D60}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
