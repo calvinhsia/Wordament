@@ -12,6 +12,7 @@ Allows you to see if a string is a valid English word. Also can generate random 
     <LangVersion>latest</LangVersion>
     <IncludeSymbols>True</IncludeSymbols>
     <Title>English word dictionaries for word puzzles and games</Title>
+    <PackageProjectUrl>https://github.com/calvinhsia/Wordament</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>
