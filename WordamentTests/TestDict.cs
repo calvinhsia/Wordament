@@ -523,6 +523,15 @@ namespace WordamentTests
                 }
                 Assert.AreEqual(15, lst.Count);
 
+                InitWord = "scrutinized";
+                lst = dict.GenerateSubWords(InitWord, out numLookups);
+                LogMessage($"{InitWord} Found subwords ={lst.Count} #Lookups = {numLookups:n0}");
+                foreach (var word in lst)
+                {
+                    LogMessage($"{word}");
+                }
+                Assert.AreEqual(284, lst.Count);
+
             }
         }
 

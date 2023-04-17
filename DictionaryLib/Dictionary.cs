@@ -282,6 +282,7 @@ namespace DictionaryLib
                 if (nib == DictHeader.EOFChar)
                 {
                     //              LogMessage($"Got EOD {_nibndx}");
+                    compareResult = 1;
                     return MyWord.Empty;
                 }
                 lenSoFar += nib;
@@ -322,6 +323,7 @@ namespace DictionaryLib
                     else
                     {
                         //                        LogMessage($"GOT EODCHAR {_nibndx:x2}");
+                        compareResult = 1;
                         return MyWord.Empty;
                     }
                     _MyWordSoFar.AddByte((byte)newchar);
@@ -367,6 +369,7 @@ namespace DictionaryLib
             //*
             var testWord = new MyWord();
             var rejectsCached = new HashSet<MyWord>();
+            int ncnd = 0;
             PermuteString(InitialWord, LeftToRight, act: null, actMyWord: (str) =>
             {
                 for (int i = MinLength; i <= str.WordLength; i++)
@@ -380,6 +383,12 @@ namespace DictionaryLib
                     if (rejectsCached.Contains(testWord))
                     {
                         break;
+                    }
+                    var t = testWord.GetWord();
+                    if (t == "zincs")
+                    {
+                        ncnd++;
+                        Trace.WriteLine($"{ncnd} {t}");
                     }
                     var partial = SeekWord(testWord, out var compResult);
                     numlookups++;
