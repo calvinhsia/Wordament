@@ -329,6 +329,15 @@ MyWord sizing dictmax
 |  DoWithNone |     testing |     1.751 ms |  0.0058 ms |  0.0054 ms |    39.0625 |   39.0625 |    204.59 KB |
 |   DoHashSet |     testing |     4.219 ms |  0.0089 ms |  0.0079 ms |    54.6875 |   54.6875 |    305.39 KB |
 | DoWordRadix |     testing |     1.933 ms |  0.0051 ms |  0.0045 ms |    56.6406 |   56.6406 |    298.36 KB |
+GenSubWords: lookup found subword only once
+|      Method | InitialWord |         Mean |     Error |    StdDev |       Gen0 |      Gen1 |    Allocated |
+|------------ |------------ |-------------:|----------:|----------:|-----------:|----------:|-------------:|
+|  DoWithNone |  discounter | 1,174.184 ms | 3.0720 ms | 2.5653 ms | 21000.0000 | 3000.0000 | 112379.36 KB |
+|   DoHashSet |  discounter | 2,946.870 ms | 9.5632 ms | 8.4776 ms | 46000.0000 | 3000.0000 | 239660.43 KB |
+| DoWordRadix |  discounter | 1,371.883 ms | 6.9380 ms | 6.4899 ms | 35000.0000 | 4000.0000 | 183339.89 KB |
+|  DoWithNone |     testing |     1.571 ms | 0.0088 ms | 0.0083 ms |    37.1094 |   37.1094 |    191.31 KB |
+|   DoHashSet |     testing |     4.277 ms | 0.0270 ms | 0.0239 ms |    54.6875 |   54.6875 |    305.39 KB |
+| DoWordRadix |     testing |     1.957 ms | 0.0167 ms | 0.0156 ms |    54.6875 |   54.6875 |    298.38 KB |
 
 
 

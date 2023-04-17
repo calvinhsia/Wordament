@@ -505,7 +505,7 @@ namespace WordamentTests
             var InitWord = "discounter";// "dishonestly";// "discounter"; 
             for (int i = 0; i < 1; i++)
             {
-                var lst = dict.GenerateSubWords(InitWord, out var numLookups);
+                var lst = dict.GenerateSubWords(InitWord, out var numLookups, MinLength:3);
                 LogMessage($"{InitWord} Found subwords ={lst.Count} #Lookups = {numLookups:n0}");
                 foreach (var word in lst)
                 {

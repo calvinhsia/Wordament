@@ -365,11 +365,10 @@ namespace DictionaryLib
         public List<string> GenerateSubWords(string InitialWord, out int numLookups, int MinLength = 3, bool LeftToRight = true, int MaxSubWords = int.MaxValue)
         {
             var numlookups = 0;
-            var hashSetSubWords = new SortedSet<string>();
+            var hashSetSubWords = new SortedSet<MyWord>();
             //*
             var testWord = new MyWord();
             var rejectsCached = new HashSet<MyWord>();
-            int ncnd = 0;
             PermuteString(InitialWord, LeftToRight, act: null, actMyWord: (str) =>
             {
                 for (int i = MinLength; i <= str.WordLength; i++)
@@ -384,17 +383,15 @@ namespace DictionaryLib
                     {
                         break;
                     }
-                    var t = testWord.GetWord();
-                    if (t == "zincs")
+                    if (hashSetSubWords.Contains(testWord))
                     {
-                        ncnd++;
-                        Trace.WriteLine($"{ncnd} {t}");
+                        continue;
                     }
                     var partial = SeekWord(testWord, out var compResult);
                     numlookups++;
                     if (compResult == 0)
                     {
-                        hashSetSubWords.Add(testWord.GetWord());
+                        hashSetSubWords.Add(new MyWord(testWord, IsReadOnly: true));
                     }
                     else
                     {
@@ -433,7 +430,7 @@ namespace DictionaryLib
             });
              //*/
             numLookups = numlookups;
-            return hashSetSubWords.ToList();
+            return hashSetSubWords.Select(s => s.GetWord()).ToList();
         }
         /// <summary>
         /// All the dictionary entries in order. A binary search can be made.
