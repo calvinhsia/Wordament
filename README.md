@@ -10,7 +10,7 @@ Each word entry starts with 4 bits indicating how much of the prior word to keep
 
 DictionaryLib_Calvin_Hsia is available on nuget.org.
 
-    <PackageReference Include="DictionaryLib_Calvin_Hsia" Version="1.0.3" />
+    <PackageReference Include="DictionaryLib_Calvin_Hsia" Version="1.0.6" />
 
 There are 2 dictionaries encoded, Large has ~170,000 words and Small has ~52,000
 
