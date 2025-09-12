@@ -30,9 +30,9 @@ namespace DictionaryLib
     {            // 0x41 - 0x5a == A-Z   0x61-0x7a == a-z
 
         public const byte Lettera = 97; // 'a'
-        public const byte Letterz = Lettera + 26 - 1; // 'z'
+        public const byte Letterz = Lettera + 26 - 1; // 'z' 122
         public const byte LetterA = 65; // 'A'
-        public const byte LetterZ = LetterA + 26 - 1; // 'Z'
+        public const byte LetterZ = LetterA + 26 - 1; // 'Z' 90
         public const byte ToLowerDiff = Lettera - LetterA; // 32: add this to convert from upper case to lower case
 
         public const int NumLetters = 26; // # letters in alphabet
@@ -94,7 +94,7 @@ namespace DictionaryLib
         public static byte ToLowerByte(byte b)
         {
             var ret = b;
-            if (b < LetterZ)
+            if (b >= LetterA && b <= LetterZ)
             {
                 b += ToLowerDiff;
             }

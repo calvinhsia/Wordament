@@ -30,4 +30,8 @@ Allows you to see if a string is a valid English word. Also can generate random 
     </EmbeddedResource>
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.2" />
+  </ItemGroup>
+
 </Project>

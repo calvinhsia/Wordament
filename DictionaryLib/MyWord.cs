@@ -188,43 +188,22 @@ namespace DictionaryLib
         }
         public int CompareTo(object obj)
         {
-            int retval = 0;
-            if (obj is MyWord other)
-            {
-                for (int i = 0; i < Math.Min(this._currentLength, other._currentLength); i++)
-                {
-                    /*
-                    var thisone = this._wordBytes[i];
-                    var thatone = other._wordBytes[i];
-                    if (thisone != thatone)
-                    {
-                        retval = thisone.CompareTo(thatone);
-                        if (retval != 0)
-                        {
-                            break;
-                        }
-                    }
-                    /*/
-                    if (this[i] != other[i])
-                    {
-                        retval = this[i].CompareTo(other[i]);
-                        if (retval != 0)
-                        {
-                            break;
-                        }
-                    }
-                    //*/
-                }
-                if (retval == 0)
-                {
-                    retval = this._currentLength.CompareTo(other._currentLength);
-                }
-            }
-            else
-            {
+            if (!(obj is MyWord other))
                 throw new InvalidOperationException();
+
+            int lenA = this._currentLength;
+            int lenB = other._currentLength;
+            int minLen = lenA < lenB ? lenA : lenB;
+            var bytesA = this._wordBytes;
+            var bytesB = other._wordBytes;
+
+            for (int i = 0; i < minLen; i++)
+            {
+                int diff = bytesA[i] - bytesB[i];
+                if (diff != 0)
+                    return diff;
             }
-            return retval;
+            return lenA - lenB;
         }
         public override int GetHashCode()
         {
