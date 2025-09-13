@@ -1,5 +1,6 @@
 ﻿11/3/19:
 
+bump version in DictionaryLib.csproj to 1.0.x
 
 build release
 
